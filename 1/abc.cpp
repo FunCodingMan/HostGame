@@ -4,7 +4,9 @@ int main()
 {
     std::cout << "Type 3 numbers: ";
 
-    int num1, num2, num3;
+    int num1 = 0; 
+    int num2 = 0; 
+    int num3 = 0;
     if (std::cin >> num1 && std::cin >> num2 && std::cin >> num3)
     {
         std::cout << (num1 + num2 + num3) << std::endl;
