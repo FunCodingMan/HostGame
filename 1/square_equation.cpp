@@ -27,7 +27,7 @@ int main()
     }
     else if (D == 0)
     {
-        float x = -b / 2;
+        float x = -b / (2 * a);
         std::cout << "x = " << x << std::endl;
     }
     else

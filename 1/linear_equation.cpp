@@ -10,7 +10,7 @@ int main()
 
     if (a != 0.0f)
     {
-        float x = -b / a;
+        float x = -b / (2 * a);
         std::cout << "Solution x = " << x << std::endl;
     }
     else

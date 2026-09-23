@@ -33,3 +33,5 @@ x86/
 .directory
 .Trash-*
 .nfs*
+
+test/
