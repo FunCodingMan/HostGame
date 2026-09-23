@@ -36,7 +36,9 @@ void Game::processEvents()
 
 void Game::update(float dt)
 {
-    parasite.update(dt);
+    sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+    sf::Vector2f mousePos(static_cast<float>(mousePixelPos.x), static_cast<float>(mousePixelPos.y));
+    parasite.update(dt, mousePos);
 }
 
 void Game::render()
