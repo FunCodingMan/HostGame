@@ -5,6 +5,8 @@ const float PARASITE_HEIGHT = 60.f;
 const float PARASITE_GRAVITY = 1500.f;
 const float PARASITE_JUMP_FORCE = 600.f;
 const float FLOOR_Y = 600.f;
+const float GAME_WIDTH = 1920.f;
+const float MAX_FALL_SPEED = 1000.f;
 const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
 
 Parasite::Parasite(sf::Vector2f position)
@@ -34,6 +36,10 @@ void Parasite::update(float dt)
 
     velocity.y += PARASITE_GRAVITY * dt;
 
+    if (velocity.y > MAX_FALL_SPEED) {
+       velocity.y = MAX_FALL_SPEED;
+    }
+
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && isOnGround)
     {
         velocity.y = -PARASITE_JUMP_FORCE;
@@ -48,6 +54,17 @@ void Parasite::update(float dt)
         shape.setPosition(shape.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
         velocity.y = 0.f;
         isOnGround = true;
+    }
+    
+    if (shape.getPosition().x < 0)
+    {
+        shape.setPosition(0, shape.getPosition().y);
+    }
+    
+    float rightX = shape.getPosition().x + PARASITE_WIDTH;
+    if (rightX >= GAME_WIDTH)
+    {
+        shape.setPosition(GAME_WIDTH - PARASITE_WIDTH, shape.getPosition().y);
     }
 }
 void Parasite::draw(sf::RenderWindow& window)
