@@ -53,18 +53,27 @@ bool Parasite::isDashKeyPressed()
 
 bool Parasite::checkMoveKeys(float dt)
 {
-    bool moved = false;
-    if (isLeftKeyPressed())
+    bool left = isLeftKeyPressed();
+    bool right = isRightKeyPressed();
+
+    if (left && right)
     {
-        velocity.x -= accel * dt;
-        moved = true;
+        return false;
     }
-    if (isRightKeyPressed())
+
+    if (left)
     {
-        velocity.x += accel * dt;
-        moved = true;
+        velocity.x -= accel;
+        return true;
     }
-    return moved;
+
+    if (right)
+    {
+        velocity.x += accel;
+        return true;
+    }
+    
+    return false;
 }
 
 void Parasite::resolveFriction(float dt)
