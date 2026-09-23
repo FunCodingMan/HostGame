@@ -24,35 +24,36 @@ Parasite::Parasite(sf::Vector2f position)
     shape.setPosition(position);
 }
 
-void Parasite::update(float dt)
+bool Parasite::checkMoveKeys(float dt)
 {
-    bool isMoving = false;
-
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
         velocity.x -= accel * dt;
-        isMoving = true;
+        return true;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
     {
         velocity.x += accel * dt;
-        isMoving = true;
+        return true;
     }
+}
 
-    if (!isMoving)
+void Parasite::resolveFriction(float dt)
+{
+    if (velocity.x > 0.f)
     {
-        if (velocity.x > 0.f)
-        {
-            velocity.x -= friction * dt;
-            if (velocity.x < 0) velocity.x = 0.f;
-        }
-        else
-        {
-            velocity.x += friction * dt;
-            if (velocity.x > 0.f) velocity.x = 0.f;
-        }
+        velocity.x -= friction * dt;
+        if (velocity.x < 0) velocity.x = 0.f;
     }
+    else
+    {
+        velocity.x += friction * dt;
+        if (velocity.x > 0.f) velocity.x = 0.f;
+    }
+}
 
+void Parasite::checkMaxSpeed()
+{
     if (velocity.x > PARASITE_MAX_SPEED)
     {
         velocity.x = PARASITE_MAX_SPEED;
@@ -61,7 +62,22 @@ void Parasite::update(float dt)
     {
         velocity.x = -PARASITE_MAX_SPEED;
     }
+}
 
+void Parasite::updateHorizontal(float dt)
+{
+    bool isMoving = checkMoveKeys(dt);
+
+    if (!isMoving)
+    {
+        resolveFriction(dt);
+    }
+
+    checkMaxSpeed();
+}
+
+void Parasite::updateVertical(float dt)
+{
     float curGravity = gravity;
 
     if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && velocity.y < 0.f)
@@ -80,9 +96,10 @@ void Parasite::update(float dt)
         velocity.y = -PARASITE_JUMP_FORCE;
         isOnGround = false;
     }
+}
 
-    shape.move(velocity.x * dt, velocity.y * dt);
-
+void Parasite::resolveCollisions()
+{
     float bottomY = shape.getPosition().y + PARASITE_HEIGHT;
     if (bottomY >= FLOOR_Y)
     {
@@ -104,6 +121,18 @@ void Parasite::update(float dt)
         velocity.x = 0;
     }
 }
+
+void Parasite::update(float dt)
+{
+    updateHorizontal(dt);
+
+    updateVertical(dt);
+
+    shape.move(velocity.x * dt, velocity.y * dt);
+
+    resolveCollisions();
+}
+
 void Parasite::draw(sf::RenderWindow& window)
 {
     window.draw(shape);

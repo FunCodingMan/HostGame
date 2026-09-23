@@ -8,6 +8,13 @@ class Parasite
         void update(float dt);
         void draw(sf::RenderWindow& window);
     private:
+        void updateHorizontal(float dt);
+        void updateVertical(float dt);
+        void resolveCollisions();
+        void resolveFriction(float dt);
+        void checkMaxSpeed();
+        bool checkMoveKeys(float dt);
+
         sf::RectangleShape shape;
         sf::Vector2f velocity;
 
