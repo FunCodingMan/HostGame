@@ -36,6 +36,7 @@ bool Parasite::checkMoveKeys(float dt)
         velocity.x += accel * dt;
         return true;
     }
+    return false;
 }
 
 void Parasite::resolveFriction(float dt)
@@ -82,7 +83,7 @@ void Parasite::updateVertical(float dt)
 
     if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && velocity.y < 0.f)
     {
-        curGravity *= 3.0f;
+        curGravity *= 2.0f;
     }
 
     velocity.y += curGravity * dt;
@@ -98,16 +99,8 @@ void Parasite::updateVertical(float dt)
     }
 }
 
-void Parasite::resolveCollisions()
+void Parasite::checkXBoundaries()
 {
-    float bottomY = shape.getPosition().y + PARASITE_HEIGHT;
-    if (bottomY >= FLOOR_Y)
-    {
-        shape.setPosition(shape.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
-        velocity.y = 0.f;
-        isOnGround = true;
-    }
-
     if (shape.getPosition().x < 0)
     {
         shape.setPosition(0, shape.getPosition().y);
@@ -120,6 +113,19 @@ void Parasite::resolveCollisions()
         shape.setPosition(GAME_WIDTH - PARASITE_WIDTH, shape.getPosition().y);
         velocity.x = 0;
     }
+}
+
+void Parasite::resolveCollisions()
+{
+    float bottomY = shape.getPosition().y + PARASITE_HEIGHT;
+    if (bottomY >= FLOOR_Y)
+    {
+        shape.setPosition(shape.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
+        velocity.y = 0.f;
+        isOnGround = true;
+    }
+
+    checkXBoundaries();
 }
 
 void Parasite::update(float dt)

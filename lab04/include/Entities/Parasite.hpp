@@ -10,6 +10,7 @@ class Parasite
     private:
         void updateHorizontal(float dt);
         void updateVertical(float dt);
+        void checkXBoundaries();
         void resolveCollisions();
         void resolveFriction(float dt);
         void checkMaxSpeed();
