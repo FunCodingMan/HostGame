@@ -62,7 +62,7 @@ void Parasite::update(float dt)
         velocity.x = -PARASITE_MAX_SPEED;
     }
 
-    velocity.y += PARASITE_GRAVITY * dt;
+    velocity.y += gravity * dt;
 
     if (velocity.y > MAX_FALL_SPEED) {
        velocity.y = MAX_FALL_SPEED;
@@ -87,12 +87,14 @@ void Parasite::update(float dt)
     if (shape.getPosition().x < 0)
     {
         shape.setPosition(0, shape.getPosition().y);
+        velocity.x = 0;
     }
     
     float rightX = shape.getPosition().x + PARASITE_WIDTH;
     if (rightX >= GAME_WIDTH)
     {
         shape.setPosition(GAME_WIDTH - PARASITE_WIDTH, shape.getPosition().y);
+        velocity.x = 0;
     }
 }
 void Parasite::draw(sf::RenderWindow& window)
