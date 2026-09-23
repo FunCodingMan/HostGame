@@ -24,14 +24,29 @@ Parasite::Parasite(sf::Vector2f position)
     shape.setPosition(position);
 }
 
+bool Parasite::isJumpKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || 
+           sf::Keyboard::isKeyPressed(sf::Keyboard::W)     ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
+}
+bool Parasite::isLeftKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
+}
+bool Parasite::isRightKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
+}
+
 bool Parasite::checkMoveKeys(float dt)
 {
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+    if (isLeftKeyPressed())
     {
         velocity.x -= accel * dt;
         return true;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+    if (isRightKeyPressed())
     {
         velocity.x += accel * dt;
         return true;
@@ -81,7 +96,7 @@ void Parasite::updateVertical(float dt)
 {
     float curGravity = gravity;
 
-    if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && velocity.y < 0.f)
+    if (!isJumpKeyPressed() && velocity.y < 0.f)
     {
         curGravity *= 2.0f;
     }
@@ -92,7 +107,7 @@ void Parasite::updateVertical(float dt)
        velocity.y = MAX_FALL_SPEED;
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && isOnGround)
+    if (isJumpKeyPressed() && isOnGround)
     {
         velocity.y = -PARASITE_JUMP_FORCE;
         isOnGround = false;

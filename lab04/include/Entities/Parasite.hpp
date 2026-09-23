@@ -15,6 +15,9 @@ class Parasite
         void resolveFriction(float dt);
         void checkMaxSpeed();
         bool checkMoveKeys(float dt);
+        bool isJumpKeyPressed();
+        bool isLeftKeyPressed();
+        bool isRightKeyPressed();
 
         sf::RectangleShape shape;
         sf::Vector2f velocity;
