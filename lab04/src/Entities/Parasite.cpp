@@ -62,7 +62,14 @@ void Parasite::update(float dt)
         velocity.x = -PARASITE_MAX_SPEED;
     }
 
-    velocity.y += gravity * dt;
+    float curGravity = gravity;
+
+    if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && velocity.y < 0.f)
+    {
+        curGravity *= 3.0f;
+    }
+
+    velocity.y += curGravity * dt;
 
     if (velocity.y > MAX_FALL_SPEED) {
        velocity.y = MAX_FALL_SPEED;
