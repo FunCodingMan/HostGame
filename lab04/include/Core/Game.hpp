@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include "Entities/Parasite.hpp"
 
 class Game {
 public:
@@ -9,8 +10,10 @@ public:
 
 private:
     void processEvents();
-    void update();
+    void update(float dt);
     void render();
 
     sf::RenderWindow window;
+    sf::Clock clock;
+    Parasite parasite;
 };

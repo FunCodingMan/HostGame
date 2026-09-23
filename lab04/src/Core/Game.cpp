@@ -1,14 +1,21 @@
 #include "Core/Game.hpp"
+#include "Entities/Parasite.hpp"
 
-Game::Game() : window(sf::VideoMode(1920, 1080), "The Host")
+const int GAME_HEIGHT = 1920;
+const int GAME_WIDTH = 1080;
+
+Game::Game() 
+    : window(sf::VideoMode(1920, 1080), "The Host"),
+      parasite(sf::Vector2f(100.f, 100.f))
 {
-    window.setFramerateLimit(60);
+    
 }
 
 void Game::run() {
     while (window.isOpen()) {
+        float dt = clock.restart().asSeconds();
         processEvents();
-        update();
+        update(dt);
         render();
     }
 }
@@ -27,14 +34,14 @@ void Game::processEvents()
     }
 }
 
-void Game::update()
+void Game::update(float dt)
 {
-
+    parasite.update(dt);
 }
 
 void Game::render()
 {
     window.clear(sf::Color(40, 40, 40));
-
+    parasite.draw(window);
     window.display();
 }
