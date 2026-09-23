@@ -1,5 +1,7 @@
 #include "Entities/Parasite.hpp"
-const float PARASITE_SPEED = 300.f;
+const float PARASITE_MAX_SPEED = 400.f;
+const float PARASITE_ACCEL = 2000.f;
+const float PARASITE_FRICTION = 1000.f;
 const float PARASITE_WIDTH = 50.f;
 const float PARASITE_HEIGHT = 60.f;
 const float PARASITE_GRAVITY = 1500.f;
@@ -11,7 +13,8 @@ const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
 
 Parasite::Parasite(sf::Vector2f position)
 : shape(sf::Vector2f(PARASITE_WIDTH, PARASITE_HEIGHT)),
-  speed(PARASITE_SPEED),
+  accel(PARASITE_ACCEL),
+  friction(PARASITE_FRICTION),
   velocity(sf::Vector2f(0.f, 0.f)),
   jumpForce(PARASITE_JUMP_FORCE),
   gravity(PARASITE_GRAVITY),
@@ -23,15 +26,40 @@ Parasite::Parasite(sf::Vector2f position)
 
 void Parasite::update(float dt)
 {
-    velocity.x = 0.f;
+    bool isMoving = false;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
-        velocity.x = -speed;
+        velocity.x -= accel * dt;
+        isMoving = true;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
     {
-        velocity.x = speed;
+        velocity.x += accel * dt;
+        isMoving = true;
+    }
+
+    if (!isMoving)
+    {
+        if (velocity.x > 0.f)
+        {
+            velocity.x -= friction * dt;
+            if (velocity.x < 0) velocity.x = 0.f;
+        }
+        else
+        {
+            velocity.x += friction * dt;
+            if (velocity.x > 0.f) velocity.x = 0.f;
+        }
+    }
+
+    if (velocity.x > PARASITE_MAX_SPEED)
+    {
+        velocity.x = PARASITE_MAX_SPEED;
+    }
+    if (velocity.x < -PARASITE_MAX_SPEED)
+    {
+        velocity.x = -PARASITE_MAX_SPEED;
     }
 
     velocity.y += PARASITE_GRAVITY * dt;
@@ -55,7 +83,7 @@ void Parasite::update(float dt)
         velocity.y = 0.f;
         isOnGround = true;
     }
-    
+
     if (shape.getPosition().x < 0)
     {
         shape.setPosition(0, shape.getPosition().y);

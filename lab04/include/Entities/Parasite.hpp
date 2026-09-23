@@ -14,5 +14,7 @@ class Parasite
         float speed;
         float jumpForce;
         float gravity;
+        float accel;
+        float friction;
         bool isOnGround;
 };
