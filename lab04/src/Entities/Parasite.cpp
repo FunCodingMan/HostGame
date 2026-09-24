@@ -63,13 +63,13 @@ bool Parasite::checkMoveKeys(float dt)
 
     if (left)
     {
-        velocity.x -= accel;
+        velocity.x -= accel * dt;
         return true;
     }
 
     if (right)
     {
-        velocity.x += accel;
+        velocity.x += accel * dt;
         return true;
     }
     
@@ -78,14 +78,15 @@ bool Parasite::checkMoveKeys(float dt)
 
 void Parasite::resolveFriction(float dt)
 {
+    float f = isOnGround ? friction : friction * 0.3f;
     if (velocity.x > 0.f)
     {
-        velocity.x -= friction * dt;
+        velocity.x -= f * dt;
         if (velocity.x < 0) velocity.x = 0.f;
     }
     else
     {
-        velocity.x += friction * dt;
+        velocity.x += f * dt;
         if (velocity.x > 0.f) velocity.x = 0.f;
     }
 }
@@ -109,12 +110,12 @@ void Parasite::horizontalDash(float dt)
     if (velocity.x > 0.f)
     {
         velocity.x -= drag * dt;
-        if (velocity.x < PARASITE_MAX_SPEED) velocity.x = PARASITE_MAX_SPEED;
+        velocity.x = std::max(velocity.x, PARASITE_MAX_SPEED);
     }
     else
     {
         velocity.x += drag * dt;
-        if (velocity.x > -PARASITE_MAX_SPEED) velocity.x = -PARASITE_MAX_SPEED;
+        velocity.x = std::min(velocity.x, -PARASITE_MAX_SPEED);
     }
 }
 
@@ -182,6 +183,8 @@ void Parasite::checkXBoundaries()
 
 void Parasite::resolveCollisions()
 {
+    isOnGround = false;
+    
     float bottomY = shape.getPosition().y + PARASITE_HEIGHT;
     if (bottomY >= FLOOR_Y)
     {
