@@ -1,6 +1,6 @@
-#include "Core/Game.hpp"
-#include "Entities/Parasite.hpp"
-#include "Entities/Enemy.hpp"
+#include "Core/Game/Game.hpp"
+#include "Entities/Parasite/Parasite.hpp"
+#include "Entities/Enemy/Enemy.hpp"
 #include <iostream>
 #include "Core/Config.hpp"
 

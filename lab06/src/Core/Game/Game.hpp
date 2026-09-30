@@ -1,8 +1,8 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include "Entities/Parasite.hpp"
-#include "Entities/Enemy.hpp"
+#include "Entities/Parasite/Parasite.hpp"
+#include "Entities/Enemy/Enemy.hpp"
 
 class Game {
 public:

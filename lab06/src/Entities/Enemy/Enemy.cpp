@@ -1,4 +1,4 @@
-#include "Entities/Enemy.hpp"
+#include "Entities/Enemy/Enemy.hpp"
 #include "Core/Config.hpp"
 
 using namespace Config;

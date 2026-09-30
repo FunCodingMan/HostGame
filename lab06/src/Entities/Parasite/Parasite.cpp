@@ -1,4 +1,4 @@
-#include "Entities/Parasite.hpp"
+#include "Entities/Parasite/Parasite.hpp"
 #include "Core/Config.hpp"
 #include <iostream>
 
@@ -17,7 +17,7 @@ Parasite::Parasite(sf::Vector2f position)
   dashTimer(0.f)
 {
     hitbox.setSize(sf::Vector2f(PARASITE_HITBOX_WIDTH, PARASITE_HITBOX_HEIGHT));
-    hitbox.setOrigin(PARASITE_HITBOX_WIDTH / 2.f, PARASITE_HITBOX_HEIGHT / 2.f); // Центрируем
+    hitbox.setOrigin(PARASITE_HITBOX_WIDTH / 2.f, PARASITE_HITBOX_HEIGHT / 2.f);
     hitbox.setPosition(position);
     
     hitbox.setFillColor(sf::Color::Transparent);
