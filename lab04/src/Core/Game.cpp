@@ -2,16 +2,14 @@
 #include "Entities/Parasite.hpp"
 #include "Entities/Enemy.hpp"
 #include <iostream>
+#include "Core/Config.hpp"
 
-const int GAME_HEIGHT = 1920;
-const int GAME_WIDTH = 1080;
 
 Game::Game() 
-    : window(sf::VideoMode(1920, 1080), "The Host"),
-      parasite(sf::Vector2f(100.f, 100.f)),
-      enemy(sf::Vector2f(960.f, 540.f))
+    : window(sf::VideoMode(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), "The Host"),
+      parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
+      enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y))
 {
-    
 }
 
 void Game::run() {
@@ -47,13 +45,12 @@ void Game::update(float dt)
     if (parasite.getBounds().intersects(enemy.getBounds()))
     {
         enemy.onCollision();
-        std::cout << "COLLISION DETECTED!" << std::endl;
     }
 }
 
 void Game::render()
 {
-    window.clear(sf::Color(40, 40, 40));
+    window.clear(Config::BG_COLOR);
     enemy.draw(window); 
     parasite.draw(window);
     window.display();

@@ -1,8 +1,7 @@
 #include "Entities/Enemy.hpp"
+#include "Core/Config.hpp"
 
-const float WINDOW_WIDTH = 1920.f;
-const float WINDOW_HEIGHT = 1080.f;
-const float ENEMY_SIZE = 40.f;
+using namespace Config;
 
 Enemy::Enemy(sf::Vector2f startPos)
 {
@@ -31,8 +30,8 @@ void Enemy::update(float dt)
     if (pos.y <= 0.f) {
         pos.y = 0.f;
         velocity.y = -velocity.y;
-    } else if (pos.y + ENEMY_SIZE >= WINDOW_HEIGHT) {
-        pos.y = WINDOW_HEIGHT - ENEMY_SIZE;
+    } else if (pos.y + ENEMY_SIZE >= FLOOR_Y) {
+        pos.y = FLOOR_Y - ENEMY_SIZE;
         velocity.y = -velocity.y;
     }
 

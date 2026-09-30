@@ -15,7 +15,7 @@ class Parasite
         void checkXBoundaries();
         void resolveCollisions();
         void resolveFriction(float dt);
-        void checkMaxSpeed();
+        void checkMaxSpeed();   
         bool checkMoveKeys(float dt);
         bool isJumpKeyPressed();
         bool isLeftKeyPressed();

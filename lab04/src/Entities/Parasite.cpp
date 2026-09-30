@@ -1,20 +1,7 @@
 #include "Entities/Parasite.hpp"
-const float PARASITE_MAX_SPEED = 400.f;
-const float PARASITE_ACCEL = 2000.f;
-const float PARASITE_FRICTION = 1000.f;
-const float PARASITE_WIDTH = 50.f;
-const float PARASITE_HEIGHT = 60.f;
-const float PARASITE_GRAVITY = 1500.f;
-const float PARASITE_JUMP_FORCE = 600.f;
-const float FLOOR_Y = 600.f;
-const float GAME_WIDTH = 1920.f;
-const float MAX_FALL_SPEED = 1000.f;
-const float PARASITE_DASH_FORCE = 1500.f;
-const float DASH_COOLDOWN_TIME = 5.0f;
-const float DASH_DURATION = 0.20f;
-const float EYE_SIZE = 12.f;
-const float PUPIL_SIZE = 6.f;
-const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
+#include "Core/Config.hpp"
+
+using namespace Config;
 
 Parasite::Parasite(sf::Vector2f position)
 : body(sf::Vector2f(PARASITE_WIDTH, PARASITE_HEIGHT)),
@@ -180,9 +167,9 @@ void Parasite::checkXBoundaries()
     }
     
     float rightX = body.getPosition().x + PARASITE_WIDTH;
-    if (rightX >= GAME_WIDTH)
+    if (rightX >= WINDOW_WIDTH)
     {
-        body.setPosition(GAME_WIDTH - PARASITE_WIDTH, body.getPosition().y);
+        body.setPosition(WINDOW_WIDTH - PARASITE_WIDTH, body.getPosition().y);
         velocity.x = 0;
     }
 }
