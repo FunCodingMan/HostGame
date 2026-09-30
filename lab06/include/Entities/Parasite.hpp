@@ -29,7 +29,7 @@ class Parasite
         
         sf::Texture texture;
         sf::Sprite sprite;
-
+        sf::RectangleShape hitbox;
         sf::Vector2f velocity;
 
         float speed;

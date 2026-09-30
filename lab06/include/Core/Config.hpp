@@ -17,10 +17,11 @@ namespace Config
     inline const sf::Color ENEMY_COLOR = sf::Color::Green;
     inline const sf::Color ENEMY_FLASH_COLOR = sf::Color::Red;
 
+    inline constexpr float PARASITE_SCALE = 4.0f;
     inline constexpr float PARASITE_INITIAL_X = 100.f;
     inline constexpr float PARASITE_INITIAL_Y = 100.f;
-    inline constexpr float PARASITE_WIDTH = 50.f;
-    inline constexpr float PARASITE_HEIGHT = 60.f;
+    inline constexpr float PARASITE_HITBOX_WIDTH = 64.f;
+    inline constexpr float PARASITE_HITBOX_HEIGHT = 64.f;
     inline constexpr float PARASITE_MAX_SPEED = 400.f;
     inline constexpr float PARASITE_ACCEL = 2000.f;
     inline constexpr float PARASITE_FRICTION = 1000.f;

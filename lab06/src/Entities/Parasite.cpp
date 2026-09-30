@@ -16,12 +16,22 @@ Parasite::Parasite(sf::Vector2f position)
   hasDash(true),
   dashTimer(0.f)
 {
+    hitbox.setSize(sf::Vector2f(PARASITE_HITBOX_WIDTH, PARASITE_HITBOX_HEIGHT));
+    hitbox.setOrigin(PARASITE_HITBOX_WIDTH / 2.f, PARASITE_HITBOX_HEIGHT / 2.f); // Центрируем
+    hitbox.setPosition(position);
+    
+    hitbox.setFillColor(sf::Color::Transparent);
+    hitbox.setOutlineColor(sf::Color::Red);
+    hitbox.setOutlineThickness(1.f);
+
     if (!texture.loadFromFile("../assets/parasite.png"))
     {
         std::cerr << "Ошибка: Не удалось загрузить assets/parasite.png!" << std::endl;
     }
 
+    texture.setSmooth(false);
     sprite.setTexture(texture);
+    sprite.setScale(Config::PARASITE_SCALE, Config::PARASITE_SCALE);
 
     sf::FloatRect bounds = sprite.getLocalBounds();
     sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -165,16 +175,18 @@ void Parasite::updateVertical(float dt)
 
 void Parasite::checkXBoundaries()
 {
-    if (sprite.getPosition().x < 0)
+    sf::FloatRect bounds = hitbox.getGlobalBounds();
+    float halfWidth = bounds.width / 2.f;
+
+    if (bounds.left < 0)
     {
-        sprite.setPosition(0, sprite.getPosition().y);
+        hitbox.setPosition(halfWidth, hitbox.getPosition().y);
         velocity.x = 0;
     }
     
-    float rightX = sprite.getPosition().x + PARASITE_WIDTH;
-    if (rightX >= WINDOW_WIDTH)
+    if (bounds.left + bounds.width >= WINDOW_WIDTH)
     {
-        sprite.setPosition(WINDOW_WIDTH - PARASITE_WIDTH, sprite.getPosition().y);
+        hitbox.setPosition(WINDOW_WIDTH - halfWidth, hitbox.getPosition().y);
         velocity.x = 0;
     }
 }
@@ -182,11 +194,15 @@ void Parasite::checkXBoundaries()
 void Parasite::resolveCollisions()
 {
     isOnGround = false;
+
+    sf::FloatRect bounds = hitbox.getGlobalBounds();
+    float halfHeight = bounds.height / 2.f;
     
-    float bottomY = sprite.getPosition().y + PARASITE_HEIGHT;
+    float bottomY = bounds.top + bounds.height;
+
     if (bottomY >= FLOOR_Y)
     {
-        sprite.setPosition(sprite.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
+        hitbox.setPosition(hitbox.getPosition().x, FLOOR_Y - halfHeight);
         velocity.y = 0.f;
         isOnGround = true;
         hasDash = true;
@@ -204,7 +220,7 @@ void Parasite::updateDash(float dt, sf::Vector2f mousePos)
 
     if (isDashKeyPressed() && dashCooldown <= 0.f && hasDash)
     {
-        sf::Vector2f center = sprite.getPosition() + sf::Vector2f(PARASITE_WIDTH / 2.f, PARASITE_HEIGHT / 2.f);
+        sf::Vector2f center = hitbox.getPosition();
 
         float dx = mousePos.x - center.x;
         float dy = mousePos.y - center.y;
@@ -251,7 +267,7 @@ void Parasite::updateMove(float dt)
 
 sf::FloatRect Parasite::getBounds() const
 {
-    return sprite.getGlobalBounds(); 
+    return hitbox.getGlobalBounds(); 
 }
 
 void Parasite::update(float dt, sf::Vector2f mousePos)
@@ -260,12 +276,11 @@ void Parasite::update(float dt, sf::Vector2f mousePos)
     
     updateMove(dt);
 
-    sprite.move(velocity.x * dt, velocity.y * dt);
+    hitbox.move(velocity.x * dt, velocity.y * dt);
 
     resolveCollisions();
 
-
-    
+    sprite.setPosition(hitbox.getPosition());
 }
 
 void Parasite::draw(sf::RenderWindow& window)
