@@ -12,10 +12,14 @@ const float MAX_FALL_SPEED = 1000.f;
 const float PARASITE_DASH_FORCE = 1500.f;
 const float DASH_COOLDOWN_TIME = 5.0f;
 const float DASH_DURATION = 0.20f;
+const float EYE_SIZE = 12.f;
+const float PUPIL_SIZE = 6.f;
 const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
 
 Parasite::Parasite(sf::Vector2f position)
-: shape(sf::Vector2f(PARASITE_WIDTH, PARASITE_HEIGHT)),
+: body(sf::Vector2f(PARASITE_WIDTH, PARASITE_HEIGHT)),
+  eye(sf::Vector2f(EYE_SIZE, EYE_SIZE)),
+  pupil(sf::Vector2f(PUPIL_SIZE, PUPIL_SIZE)),
   accel(PARASITE_ACCEL),
   friction(PARASITE_FRICTION),
   velocity(sf::Vector2f(0.f, 0.f)),
@@ -27,8 +31,10 @@ Parasite::Parasite(sf::Vector2f position)
   hasDash(true),
   dashTimer(0.f)
 {
-    shape.setFillColor(PARASITE_COLOR);
-    shape.setPosition(position);
+    body.setFillColor(PARASITE_COLOR);
+    body.setPosition(position);
+    eye.setFillColor(sf::Color::White);
+    pupil.setFillColor(sf::Color::Black);
 }
 
 bool Parasite::isJumpKeyPressed()
@@ -167,16 +173,16 @@ void Parasite::updateVertical(float dt)
 
 void Parasite::checkXBoundaries()
 {
-    if (shape.getPosition().x < 0)
+    if (body.getPosition().x < 0)
     {
-        shape.setPosition(0, shape.getPosition().y);
+        body.setPosition(0, body.getPosition().y);
         velocity.x = 0;
     }
     
-    float rightX = shape.getPosition().x + PARASITE_WIDTH;
+    float rightX = body.getPosition().x + PARASITE_WIDTH;
     if (rightX >= GAME_WIDTH)
     {
-        shape.setPosition(GAME_WIDTH - PARASITE_WIDTH, shape.getPosition().y);
+        body.setPosition(GAME_WIDTH - PARASITE_WIDTH, body.getPosition().y);
         velocity.x = 0;
     }
 }
@@ -185,10 +191,10 @@ void Parasite::resolveCollisions()
 {
     isOnGround = false;
     
-    float bottomY = shape.getPosition().y + PARASITE_HEIGHT;
+    float bottomY = body.getPosition().y + PARASITE_HEIGHT;
     if (bottomY >= FLOOR_Y)
     {
-        shape.setPosition(shape.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
+        body.setPosition(body.getPosition().x, FLOOR_Y - PARASITE_HEIGHT);
         velocity.y = 0.f;
         isOnGround = true;
         hasDash = true;
@@ -206,7 +212,7 @@ void Parasite::updateDash(float dt, sf::Vector2f mousePos)
 
     if (isDashKeyPressed() && dashCooldown <= 0.f && hasDash)
     {
-        sf::Vector2f center = shape.getPosition() + sf::Vector2f(PARASITE_WIDTH / 2.f, PARASITE_HEIGHT / 2.f);
+        sf::Vector2f center = body.getPosition() + sf::Vector2f(PARASITE_WIDTH / 2.f, PARASITE_HEIGHT / 2.f);
 
         float dx = mousePos.x - center.x;
         float dy = mousePos.y - center.y;
@@ -251,18 +257,49 @@ void Parasite::updateMove(float dt)
     }
 }
 
+sf::FloatRect Parasite::getBounds() const
+{
+    return body.getGlobalBounds(); 
+}
+
+void Parasite::moveEye(sf::Vector2f mousePos)
+{
+    sf::Vector2f center = body.getPosition() + sf::Vector2f(PARASITE_WIDTH / 2.f, PARASITE_HEIGHT / 4.f);
+    float dx = mousePos.x - center.x;
+    float dy = mousePos.y - center.y;
+    float length = std::sqrt(dx * dx + dy * dy);
+
+    float dirX = 0.f;
+    float dirY = 0.f;
+    if (length != 0) {
+        dirX = dx / length;
+        dirY = dy / length;
+    }
+    sf::Vector2f eyeCenter(center.x + dirX * 10.f, center.y + dirY * 10.f);
+    eye.setPosition(eyeCenter.x - 6.f, eyeCenter.y - 6.f);
+
+    sf::Vector2f pupilCenter(eyeCenter.x + dirX * 3.f, eyeCenter.y + dirY * 3.f);
+    pupil.setPosition(pupilCenter.x - 3.f, pupilCenter.y - 3.f);
+}
+
 void Parasite::update(float dt, sf::Vector2f mousePos)
 {
     updateDash(dt, mousePos);
     
     updateMove(dt);
 
-    shape.move(velocity.x * dt, velocity.y * dt);
+    body.move(velocity.x * dt, velocity.y * dt);
 
     resolveCollisions();
+
+    moveEye(mousePos);
+
+    
 }
 
 void Parasite::draw(sf::RenderWindow& window)
 {
-    window.draw(shape);
+    window.draw(body);
+    window.draw(eye);
+    window.draw(pupil);
 }

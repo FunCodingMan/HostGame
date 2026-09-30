@@ -2,6 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "Entities/Parasite.hpp"
+#include "Entities/Enemy.hpp"
 
 class Game {
 public:
@@ -16,4 +17,5 @@ private:
     sf::RenderWindow window;
     sf::Clock clock;
     Parasite parasite;
+    Enemy enemy;
 };

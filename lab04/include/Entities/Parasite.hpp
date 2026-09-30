@@ -8,6 +8,7 @@ class Parasite
         Parasite(sf::Vector2f position);
         void update(float dt, sf::Vector2f mousePos);
         void draw(sf::RenderWindow& window);
+        sf::FloatRect getBounds() const;
     private:
         void updateHorizontal(float dt);
         void updateVertical(float dt);
@@ -25,8 +26,11 @@ class Parasite
         void horizontalDash(float dt);
         void horizontalCommon(float dt);
         void updateDashTimer(float dt);
+        void moveEye(sf::Vector2f mousePos);
 
-        sf::RectangleShape shape;
+        sf::RectangleShape body;
+        sf::RectangleShape eye;
+        sf::RectangleShape pupil;
         sf::Vector2f velocity;
 
         float speed;
