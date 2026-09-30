@@ -6,26 +6,27 @@ class Parasite
 {
     public:
         Parasite(sf::Vector2f position);
-        void update(float dt, sf::Vector2f mousePos);
-        void draw(sf::RenderWindow& window);
-        sf::FloatRect getBounds() const;
+        void Update(float dt, sf::Vector2f mousePos);
+        void Draw(sf::RenderWindow& window);
+        sf::FloatRect GetBounds() const;
     private:
-        void updateHorizontal(float dt);
-        void updateVertical(float dt);
-        void checkXBoundaries();
-        void resolveCollisions();
-        void resolveFriction(float dt);
-        void checkMaxSpeed();   
-        bool checkMoveKeys(float dt);
-        bool isJumpKeyPressed();
-        bool isLeftKeyPressed();
-        bool isRightKeyPressed();
-        bool isDashKeyPressed();
-        void updateDash(float dt, sf::Vector2f mousePos);
-        void updateMove(float dt);
-        void horizontalDash(float dt);
-        void horizontalCommon(float dt);
-        void updateDashTimer(float dt);
+        void UpdateHorizontal(float dt);
+        void UpdateVertical(float dt);
+        void CheckXBoundaries();
+        void ResolveCollisions();
+        void ResolveFriction(float dt);
+        void CheckMaxSpeed();   
+        bool CheckMoveKeys(float dt);
+        bool IsJumpKeyPressed();
+        bool IsLeftKeyPressed();
+        bool IsRightKeyPressed();
+        bool IsDashKeyPressed();
+        void UpdateDash(float dt, sf::Vector2f mousePos);
+        void UpdateMove(float dt);
+        void HorizontalDash(float dt);
+        void HorizontalCommon(float dt);
+        void UpdateDashTimer(float dt);
+        void UpdateSpriteDirection();
         
         sf::Texture texture;
         sf::Sprite sprite;

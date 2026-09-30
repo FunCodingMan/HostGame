@@ -5,13 +5,13 @@ class Enemy
 {
 public:
     Enemy(sf::Vector2f startPos);
-    void update(float dt);
-    void draw(sf::RenderWindow& window);
+    void Update(float dt);
+    void Draw(sf::RenderWindow& window);
 
 
-    sf::FloatRect getBounds() const;
+    sf::FloatRect GetBounds() const;
     
-    void onCollision();
+    void OnCollision();
 
 private:
     sf::RectangleShape shape;

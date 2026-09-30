@@ -7,12 +7,12 @@
 class Game {
 public:
     Game();
-    void run();
+    void Run();
 
 private:
-    void processEvents();
-    void update(float dt);
-    void render();
+    void ProcessEvents();
+    void Update(float dt);
+    void Render();
 
     sf::RenderWindow window;
     sf::Clock clock;

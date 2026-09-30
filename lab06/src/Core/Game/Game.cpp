@@ -12,17 +12,17 @@ Game::Game()
 {
 }
 
-void Game::run() {
+void Game::Run() {
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
-        processEvents();
-        update(dt);
-        render();
+        ProcessEvents();
+        Update(dt);
+        Render();
     }
 }
 
 
-void Game::processEvents()
+void Game::ProcessEvents()
 {
     sf::Event event;
 
@@ -35,23 +35,23 @@ void Game::processEvents()
     }
 }
 
-void Game::update(float dt)
+void Game::Update(float dt)
 {
     sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
     sf::Vector2f mousePos(static_cast<float>(mousePixelPos.x), static_cast<float>(mousePixelPos.y));
-    parasite.update(dt, mousePos);
-    enemy.update(dt);
+    parasite.Update(dt, mousePos);
+    enemy.Update(dt);
 
-    if (parasite.getBounds().intersects(enemy.getBounds()))
+    if (parasite.GetBounds().intersects(enemy.GetBounds()))
     {
-        enemy.onCollision();
+        enemy.OnCollision();
     }
 }
 
-void Game::render()
+void Game::Render()
 {
     window.clear(Config::BG_COLOR);
-    enemy.draw(window); 
-    parasite.draw(window);
+    enemy.Draw(window); 
+    parasite.Draw(window);
     window.display();
 }

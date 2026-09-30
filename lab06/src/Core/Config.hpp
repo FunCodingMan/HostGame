@@ -24,15 +24,15 @@ namespace Config
     inline constexpr float PARASITE_HITBOX_HEIGHT = 64.f;
     inline constexpr float PARASITE_MAX_SPEED = 400.f;
     inline constexpr float PARASITE_ACCEL = 2000.f;
-    inline constexpr float PARASITE_FRICTION = 1000.f;
-    inline constexpr float PARASITE_GRAVITY = 1500.f;
-    inline constexpr float PARASITE_JUMP_FORCE = 600.f;
+    inline constexpr float PARASITE_FRICTION = 2000.f;
+    inline constexpr float PARASITE_GRAVITY = 2500.f;
+    inline constexpr float PARASITE_JUMP_FORCE = 850.f;
     inline constexpr float MAX_FALL_SPEED = 1000.f;
     
 
-    inline constexpr float PARASITE_DASH_FORCE = 1500.f;
-    inline constexpr float DASH_COOLDOWN_TIME = 5.0f;
-    inline constexpr float DASH_DURATION = 0.20f;
+    inline constexpr float PARASITE_DASH_FORCE = 2000.f;
+    inline constexpr float DASH_COOLDOWN_TIME = 2.f;
+    inline constexpr float DASH_DURATION = 0.15f;
 
 
     inline const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);

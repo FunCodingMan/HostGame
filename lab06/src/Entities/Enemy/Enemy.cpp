@@ -13,7 +13,7 @@ Enemy::Enemy(sf::Vector2f startPos)
     flashTimer = 0.f;
 }
 
-void Enemy::update(float dt)
+void Enemy::Update(float dt)
 {
     shape.move(velocity.x * dt, velocity.y * dt);
 
@@ -45,17 +45,17 @@ void Enemy::update(float dt)
     }
 }
 
-void Enemy::draw(sf::RenderWindow& window)
+void Enemy::Draw(sf::RenderWindow& window)
 {
     window.draw(shape);
 }
 
-sf::FloatRect Enemy::getBounds() const
+sf::FloatRect Enemy::GetBounds() const
 {
     return shape.getGlobalBounds();
 }
 
-void Enemy::onCollision()
+void Enemy::OnCollision()
 {
     shape.setFillColor(sf::Color::Red);
     flashTimer = 0.5f;
