@@ -319,4 +319,5 @@ void Parasite::Update(float dt, sf::Vector2f mousePos)
 void Parasite::Draw(sf::RenderWindow &window)
 {
     window.draw(sprite);
+    window.draw(hitbox);
 }
