@@ -12,6 +12,7 @@ public:
 private:
     void ProcessEvents();
     void Update(float dt);
+    void ProcessKeyboardEvents(sf::Event event);
     void Render();
 
     sf::RenderWindow window;

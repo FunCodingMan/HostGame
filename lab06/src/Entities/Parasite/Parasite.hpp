@@ -1,14 +1,13 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <cmath>
+#include "Entities/Entity/Entity.hpp"
 
-class Parasite
+class Parasite : public Entity
 {
     public:
         Parasite(sf::Vector2f position);
-        void Update(float dt, sf::Vector2f mousePos);
-        void Draw(sf::RenderWindow& window);
-        sf::FloatRect GetBounds() const;
+        void Update(const GameContext& ctx) override;
     private:
         void UpdateHorizontal(float dt);
         void UpdateVertical(float dt);
@@ -27,13 +26,7 @@ class Parasite
         void HorizontalCommon(float dt);
         void UpdateDashTimer(float dt);
         void UpdateSpriteDirection();
-        
-        sf::Texture texture;
-        sf::Sprite sprite;
-        sf::RectangleShape hitbox;
-        sf::Vector2f velocity;
 
-        float speed;
         float jumpForce;
         float gravity;
         float accel;

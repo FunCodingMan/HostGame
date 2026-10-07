@@ -21,6 +21,14 @@ void Game::Run() {
     }
 }
 
+void Game::ProcessKeyboardEvents(sf::Event event)
+{
+    if (event.key.code == sf::Keyboard::B && sf::Keyboard::isKeyPressed(sf::Keyboard::F3))
+    {
+        Entity::ToggleHitboxes();
+    }
+}
+
 
 void Game::ProcessEvents()
 {
@@ -28,9 +36,14 @@ void Game::ProcessEvents()
 
     while (window.pollEvent(event))
     {
-        if (event.type == sf::Event::Closed)
+        switch (event.type)
         {
-            window.close();
+            case sf::Event::Closed:
+                window.close();
+                break;
+            case sf::Event::KeyPressed:
+                ProcessKeyboardEvents(event);
+                break;
         }
     }
 }
@@ -38,8 +51,13 @@ void Game::ProcessEvents()
 void Game::Update(float dt)
 {
     sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
-    sf::Vector2f mousePos(static_cast<float>(mousePixelPos.x), static_cast<float>(mousePixelPos.y));
-    parasite.Update(dt, mousePos);
+    sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos);
+
+    GameContext ctx;
+    ctx.dt = dt;
+    ctx.mousePos = mousePos;
+
+    parasite.Update(ctx);
     enemy.Update(dt);
 
     if (parasite.GetBounds().intersects(enemy.GetBounds()))

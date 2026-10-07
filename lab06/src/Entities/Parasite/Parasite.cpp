@@ -7,7 +7,7 @@
 using namespace Config;
 
 Parasite::Parasite(sf::Vector2f position)
-    : accel(PARASITE_ACCEL), friction(PARASITE_FRICTION), velocity(sf::Vector2f(0.f, 0.f)),
+    : accel(PARASITE_ACCEL), friction(PARASITE_FRICTION),
       jumpForce(PARASITE_JUMP_FORCE), gravity(PARASITE_GRAVITY), isOnGround(false),
       dashCooldown(0.f), dashForce(PARASITE_DASH_FORCE), hasDash(true), dashTimer(0.f)
 {
@@ -266,12 +266,6 @@ void Parasite::UpdateMove(float dt)
     }
 }
 
-sf::FloatRect Parasite::GetBounds() const
-{
-    return hitbox.getGlobalBounds();
-}
-
-
 void Parasite::UpdateSpriteDirection()
 {
     if (dashTimer > 0.f)
@@ -301,8 +295,11 @@ void Parasite::UpdateSpriteDirection()
     }
 }
 
-void Parasite::Update(float dt, sf::Vector2f mousePos)
+void Parasite::Update(const GameContext& ctx)
 {
+    float dt = ctx.dt;
+    sf::Vector2f mousePos = ctx.mousePos;
+
     UpdateDash(dt, mousePos);
 
     UpdateMove(dt);
@@ -314,10 +311,4 @@ void Parasite::Update(float dt, sf::Vector2f mousePos)
     UpdateSpriteDirection();
 
     sprite.setPosition(hitbox.getPosition());
-}
-
-void Parasite::Draw(sf::RenderWindow &window)
-{
-    window.draw(sprite);
-    window.draw(hitbox);
 }
