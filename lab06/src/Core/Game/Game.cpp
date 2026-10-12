@@ -9,7 +9,8 @@ Game::Game()
     : window(sf::VideoMode::getDesktopMode(), "The Host", sf::Style::Fullscreen),
       parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
       enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y)),
-      camera(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT))
+      camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM, 
+                          Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM))
 {
     map.LoadTileConfig("../assets/map/tileset.txt");
     map.LoadFromFile("../assets/map/level1.txt");
@@ -56,9 +57,31 @@ void Game::ProcessEvents()
     }
 }
 
+void Game::UpdateCamera(float dt)
+{
+    sf::Vector2f targetPos = parasite.GetPosition();
+
+    sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+    sf::Vector2u windowSize = window.getSize();
+
+    float normX = (mousePixelPos.x - (windowSize.x / 2.f)) / (windowSize.x / 2.f);
+    float normY = (mousePixelPos.y - (windowSize.y / 2.f)) / (windowSize.y / 2.f);
+
+    normX = std::clamp(normX, -1.f, 1.f);
+    normY = std::clamp(normY, -1.f, 1.f);
+
+    sf::Vector2f viewSize = camera.GetView().getSize();
+    float maxOffsetX = (viewSize.x / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+    float maxOffsetY = (viewSize.y / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+
+    sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
+
+    camera.Update(targetPos, mouseOffset, dt, map.GetWidthInPixels(), map.GetHeightInPixels());
+}
+
 void Game::Update(float dt)
 {
-    camera.Update(parasite.GetPosition(), dt, map.GetWidthInPixels(), map.GetHeightInPixels());
+    UpdateCamera(dt);
 
     sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
     sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos, camera.GetView());

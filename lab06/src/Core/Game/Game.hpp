@@ -14,6 +14,7 @@ public:
 private:
     void ProcessEvents();
     void Update(float dt);
+    void UpdateCamera(float dt);
     void ProcessKeyboardEvents(sf::Event event);
     void Render();
 

@@ -7,12 +7,19 @@ class Camera
 public:
     Camera(sf::Vector2f size);
 
-    void Update(sf::Vector2f targetPos, float dt, float mapWidthPx, float mapHeightPx);
-    
+    void Update(sf::Vector2f targetPos, sf::Vector2f targetMouseOffset, float dt, float mapWidthPx,
+                float mapHeightPx);
+
+    void NewFunction(sf::Vector2f &targetPos, sf::Vector2f &desiredFocus);
+
     const sf::View& GetView() const;
+    void SetSize(sf::Vector2f newSize);
+    void Zoom(float factor);
 
 private:
     sf::View view;
     float lerpSpeed;
     sf::Vector2f deadZone;
+    sf::Vector2f currentFocus;
+    sf::Vector2f currentMouseOffset;
 };

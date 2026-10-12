@@ -64,6 +64,8 @@ namespace Config
     inline constexpr float DASH_DURATION = 0.15f;
 
     inline constexpr float CAMERA_LERP_FACTOR = 5.0f;
+    inline constexpr float CAMERA_ZOOM = 1.5f;
+    inline constexpr float CAMERA_LOOK_STRENGTH = 0.4f;
 
     inline const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
     inline constexpr float EYE_SIZE = 12.f;

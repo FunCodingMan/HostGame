@@ -8,37 +8,53 @@ Camera::Camera(sf::Vector2f size) : lerpSpeed(CAMERA_LERP_FACTOR)
     view.setSize(size);
     view.setCenter(size.x / 2.f, size.y / 2.f);
     deadZone = sf::Vector2f(100.f, 80.f);
+
+    currentFocus = view.getCenter();
+    currentMouseOffset = sf::Vector2f(0.f, 0.f);
 }
 
-void Camera::Update(sf::Vector2f targetPos, float dt, float mapWidthPx, float mapHeightPx)
+void Camera::Update(sf::Vector2f targetPos, sf::Vector2f targetMouseOffset, float dt, float mapWidthPx, float mapHeightPx)
 {
-    sf::Vector2f currentPos = view.getCenter();
-    sf::Vector2f desiredPos = currentPos;
+    sf::Vector2f desiredFocus = currentFocus;
     
-    if (targetPos.x > currentPos.x + deadZone.x) {
-        desiredPos.x = targetPos.x - deadZone.x;
-    } else if (targetPos.x < currentPos.x - deadZone.x) {
-        desiredPos.x = targetPos.x + deadZone.x;
+    if (targetPos.x > currentFocus.x + deadZone.x) {
+        desiredFocus.x = targetPos.x - deadZone.x;
+    } else if (targetPos.x < currentFocus.x - deadZone.x) {
+        desiredFocus.x = targetPos.x + deadZone.x;
     }
 
-    if (targetPos.y > currentPos.y + deadZone.y) {
-        desiredPos.y = targetPos.y - deadZone.y;
-    } else if (targetPos.y < currentPos.y - deadZone.y) {
-        desiredPos.y = targetPos.y + deadZone.y;
+    if (targetPos.y > currentFocus.y + deadZone.y) {
+        desiredFocus.y = targetPos.y - deadZone.y;
+    } else if (targetPos.y < currentFocus.y - deadZone.y) {
+        desiredFocus.y = targetPos.y + deadZone.y;
     }
-    
-    sf::Vector2f newPos = currentPos + (desiredPos - currentPos) * lerpSpeed * dt;
 
+    currentFocus += (desiredFocus - currentFocus) * lerpSpeed * dt;
+
+    currentMouseOffset += (targetMouseOffset - currentMouseOffset) * lerpSpeed * dt;
+
+    sf::Vector2f finalPos = currentFocus + currentMouseOffset;
+    
     float halfWidth = view.getSize().x / 2.f;
     float halfHeight = view.getSize().y / 2.f;
 
-    newPos.x = std::clamp(newPos.x, halfWidth, mapWidthPx - halfWidth);
-    newPos.y = std::clamp(newPos.y, halfHeight, mapHeightPx - halfHeight);
-    
-    view.setCenter(newPos);
+    finalPos.x = std::clamp(finalPos.x, halfWidth, mapWidthPx - halfWidth);
+    finalPos.y = std::clamp(finalPos.y, halfHeight, mapHeightPx - halfHeight);
+
+    view.setCenter(finalPos);
 }
 
 const sf::View& Camera::GetView() const
 {
     return view;
+}
+
+void Camera::SetSize(sf::Vector2f newSize)
+{
+    view.setSize(newSize);
+}
+
+void Camera::Zoom(float factor)
+{
+    view.zoom(factor);
 }
