@@ -8,7 +8,8 @@
 Game::Game() 
     : window(sf::VideoMode(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), "The Host"),
       parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
-      enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y))
+      enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y)),
+      camera(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT))
 {
     map.LoadTileConfig("../assets/map/tileset.txt");
     map.LoadFromFile("../assets/map/level1.txt");
@@ -52,8 +53,10 @@ void Game::ProcessEvents()
 
 void Game::Update(float dt)
 {
+    camera.Update(parasite.GetPosition(), dt);
+
     sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
-    sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos);
+    sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos, camera.GetView());
 
     GameContext ctx;
     ctx.dt = dt;
@@ -73,6 +76,7 @@ void Game::Update(float dt)
 void Game::Render()
 {
     window.clear(Config::BG_COLOR);
+    window.setView(camera.GetView());
     map.Draw(window);
     parasite.Draw(window);
     window.display();

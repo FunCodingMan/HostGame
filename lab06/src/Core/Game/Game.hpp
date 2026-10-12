@@ -4,6 +4,7 @@
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Enemy/Enemy.hpp"
 #include "Core/Map/Map.hpp"
+#include "Core/Camera/Camera.hpp"
 
 class Game {
 public:
@@ -21,4 +22,5 @@ private:
     Parasite parasite;
     Enemy enemy;
     Map map;
+    Camera camera;
 };

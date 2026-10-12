@@ -33,6 +33,10 @@ public:
     {
         return hitbox.getGlobalBounds();
     }
+
+    sf::Vector2f GetPosition() const {
+        return hitbox.getPosition();
+    }
 private:
     inline static bool showHitboxes = false;
 };

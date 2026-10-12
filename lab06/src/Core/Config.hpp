@@ -4,8 +4,8 @@
 namespace Config 
 {
     inline constexpr int TEXTURE_TILE_SIZE = 32;
-    inline constexpr int WORLD_TILE_SIZE = 64;
-        
+    inline constexpr int WORLD_TILE_SIZE = 128;
+
     enum class EntityType {
         Parasite,
         Human,
@@ -47,8 +47,8 @@ namespace Config
     inline const sf::Color ENEMY_FLASH_COLOR = sf::Color::Red;
 
     inline constexpr float PARASITE_SCALE = 4.0f;
-    inline constexpr float PARASITE_INITIAL_X = 100.f;
-    inline constexpr float PARASITE_INITIAL_Y = 100.f;
+    inline constexpr float PARASITE_INITIAL_X = 200.f;
+    inline constexpr float PARASITE_INITIAL_Y = 200.f;
     inline constexpr float PARASITE_HITBOX_WIDTH = 64.f;
     inline constexpr float PARASITE_HITBOX_HEIGHT = 64.f;
     inline constexpr float PARASITE_MAX_SPEED = 400.f;
