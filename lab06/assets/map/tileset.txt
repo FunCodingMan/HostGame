@@ -1,0 +1,8 @@
+# Файл конфигурации блоков
+# Код  Физика       X  Y
+..     Empty        0  0
+wa     Solid        1  0
+fl     Solid        2  0
+bw     Solid        3  0
+el     Solid        0  1
+ve     Ventilation  1  1

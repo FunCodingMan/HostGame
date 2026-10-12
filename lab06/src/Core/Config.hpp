@@ -3,6 +3,34 @@
 
 namespace Config 
 {
+    inline constexpr int TILE_SIZE = 64;
+    
+    enum class EntityType {
+        Parasite,
+        Human,
+        Bullet
+    };
+
+    enum class BlockNames {
+        Empty,
+        Wall,
+        Floor,
+        BlackWall,
+        Elevator,
+        Ventilation
+    };
+
+    enum class CollisionType {
+        Empty,
+        Solid,
+        Ventilation
+    };
+
+    struct TileData {
+        CollisionType collision;
+        sf::IntRect textureRect;
+    };
+    
     inline constexpr float WINDOW_WIDTH = 1080.f;
     inline constexpr float WINDOW_HEIGHT = 720.f;
     inline constexpr float FLOOR_Y = 600.f;
