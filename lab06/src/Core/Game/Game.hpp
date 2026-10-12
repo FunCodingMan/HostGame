@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Enemy/Enemy.hpp"
+#include "Core/Map/Map.hpp"
 
 class Game {
 public:
@@ -19,4 +20,5 @@ private:
     sf::Clock clock;
     Parasite parasite;
     Enemy enemy;
+    Map map;
 };

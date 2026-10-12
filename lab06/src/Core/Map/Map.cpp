@@ -5,10 +5,15 @@
 
 using namespace std;
 
-Map::Map() : width(0), height(0), tileSize(Config::TILE_SIZE)
+Map::Map() : width(0), height(0)
 {
+    if (!tileset.loadFromFile("../assets/tileset.png")) {
+        std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
+    }
+
+    mVertices.setPrimitiveType(sf::Quads);
+    
     InitStringMappings();
-    InitTileDictionary();
 }
 
 void Map::InitStringMappings()
@@ -19,24 +24,6 @@ void Map::InitStringMappings()
     stringToBlock["bw"] = Config::BlockNames::BlackWall;
     stringToBlock["el"] = Config::BlockNames::Elevator;
     stringToBlock["ve"] = Config::BlockNames::Ventilation;
-}
-
-void Map::InitTileDictionary()
-{
-    auto getRect = [this](int row, int col) {
-        return sf::IntRect(col * tileSize, row * tileSize, tileSize, tileSize);
-    };
-
-    using namespace Config;
-    tileDictionary[BlockNames::Empty] = {CollisionType::Empty, getRect(0, 0)};
-
-    tileDictionary[BlockNames::Wall] = {CollisionType::Solid, getRect(0, 1)};
-
-    tileDictionary[BlockNames::Floor] = {CollisionType::Solid, getRect(0, 2)};
-
-    tileDictionary[BlockNames::BlackWall] = {CollisionType::Solid, getRect(0, 3)};
-
-    tileDictionary[BlockNames::Elevator] = {CollisionType::Empty, getRect(1, 0)};
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -62,7 +49,10 @@ void Map::ParseTileConfig(const string& code, const string collisionStr, const i
 
     Config::CollisionType type = StringToColisionType(collisionStr);
 
-    tileDictionary[blockName] = {type, sf::IntRect(col * tileSize, row * tileSize, tileSize, tileSize)};
+    tileDictionary[blockName] = {type, sf::IntRect(col * Config::TEXTURE_TILE_SIZE, 
+                                                   row * Config::TEXTURE_TILE_SIZE, 
+                                                   Config::TEXTURE_TILE_SIZE, 
+                                                   Config::TEXTURE_TILE_SIZE)};
 }
 
 bool Map::LoadTileConfig(const string& filename)
@@ -147,6 +137,8 @@ bool Map::LoadFromFile(const string& filename)
         LoadLeveFromLine(line);
     }
 
+    BuildVertexArray();
+
     return true;
 }
 
@@ -189,6 +181,53 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
     return false;
 }
 
+void Map::BuildVertexElement(int xTile, int yTile)
+{
+    Config::BlockNames blockName = GetTile(xTile, yTile);
 
+    const Config::TileData* tileData = GetTileData(blockName);
+    if (!tileData)
+    {
+        return;
+    }
 
+    int vertexElIdx = (xTile + yTile * width) * 4;
 
+    sf::Vertex* quad = &mVertices[vertexElIdx];
+    float wSize = Config::WORLD_TILE_SIZE;
+    float x = xTile * wSize;
+    float y = yTile * wSize;
+
+    quad[0].position = sf::Vector2f(x, y);
+    quad[1].position = sf::Vector2f(x + wSize, y);
+    quad[2].position = sf::Vector2f(x + wSize, y + wSize);
+    quad[3].position = sf::Vector2f(x, y + wSize);
+
+    sf::IntRect texRect = tileData->textureRect;
+    float tx = texRect.left;
+    float ty = texRect.top;
+    float tSize = texRect.width;
+
+    quad[0].texCoords = sf::Vector2f(tx, ty);
+    quad[1].texCoords = sf::Vector2f(tx + tSize, ty);
+    quad[2].texCoords = sf::Vector2f(tx + tSize, ty + tSize);
+    quad[3].texCoords = sf::Vector2f(tx, ty + tSize);
+}
+
+void Map::BuildVertexArray()
+{
+    mVertices.resize(width * height * 4);
+
+    for (int i = 0; i < width; ++i)
+    {
+        for (int j = 0; j < height; ++j)
+        {
+            BuildVertexElement(i, j);
+        }
+    }
+}
+
+void Map::Draw(sf::RenderWindow& window) const
+{
+    window.draw(mVertices, &tileset);
+}

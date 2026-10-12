@@ -18,7 +18,10 @@ public:
 
     int GetWidth() const { return width; }
     int GetHeight() const { return height; }
-    int GetTileSize() const { return tileSize; }
+    int GetTileSize() const { return Config::WORLD_TILE_SIZE; }
+
+    void BuildVertexArray();
+    void Draw(sf::RenderWindow& window) const;
 
     const Config::TileData* GetTileData(Config::BlockNames blockName) const;
 
@@ -38,7 +41,10 @@ private:
 
     Config::CollisionType StringToColisionType(const std::string& s);
 
-    void InitTileDictionary();
-
     void InitStringMappings();
+
+    void BuildVertexElement(int x, int y);
+
+    sf::Texture tileset;
+    sf::VertexArray mVertices;
 };

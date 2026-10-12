@@ -10,6 +10,8 @@ Game::Game()
       parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
       enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y))
 {
+    map.LoadTileConfig("../assets/map/tileset.txt");
+    map.LoadFromFile("../assets/map/level1.txt");
 }
 
 void Game::Run() {
@@ -56,6 +58,8 @@ void Game::Update(float dt)
     GameContext ctx;
     ctx.dt = dt;
     ctx.mousePos = mousePos;
+    ctx.levelMap = &map;
+    
 
     parasite.Update(ctx);
     enemy.Update(dt);
@@ -69,7 +73,7 @@ void Game::Update(float dt)
 void Game::Render()
 {
     window.clear(Config::BG_COLOR);
-    enemy.Draw(window); 
+    map.Draw(window);
     parasite.Draw(window);
     window.display();
 }

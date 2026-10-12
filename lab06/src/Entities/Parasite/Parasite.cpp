@@ -192,26 +192,6 @@ void Parasite::CheckXBoundaries()
     }
 }
 
-void Parasite::ResolveCollisions()
-{
-    isOnGround = false;
-
-    sf::FloatRect bounds = hitbox.getGlobalBounds();
-    float halfHeight = bounds.height / 2.f;
-
-    float bottomY = bounds.top + bounds.height;
-
-    if (bottomY >= FLOOR_Y)
-    {
-        hitbox.setPosition(hitbox.getPosition().x, FLOOR_Y - halfHeight);
-        velocity.y = 0.f;
-        isOnGround = true;
-        hasDash = true;
-    }
-
-    CheckXBoundaries();
-}
-
 void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
 {
     if (dashCooldown > 0.f)
@@ -295,6 +275,80 @@ void Parasite::UpdateSpriteDirection()
     }
 }
 
+void Parasite::ResolveCollisionsX(int x, const GameContext& ctx)
+{
+    int tileSize = ctx.levelMap->GetTileSize();
+    sf::FloatRect bounds = hitbox.getGlobalBounds();
+
+    if (velocity.x > 0.f)
+    {
+        hitbox.setPosition(x * tileSize - (bounds.width / 2.f) - Config::EPSILON, hitbox.getPosition().y);
+        velocity.x = 0.f;
+    }
+    else if (velocity.x < 0.f)
+    {
+        hitbox.setPosition((x + 1) * tileSize + (bounds.width / 2.f) + Config::EPSILON, hitbox.getPosition().y);
+        velocity.x = 0.f;
+    }
+}
+
+void Parasite::ResolveCollisionsY(int y, const GameContext& ctx)
+{
+    int tileSize = ctx.levelMap->GetTileSize();
+    sf::FloatRect bounds = hitbox.getGlobalBounds();
+
+    if (velocity.y > 0.f)
+    {
+        hitbox.setPosition(hitbox.getPosition().x, y * tileSize - (bounds.height / 2.f) - Config::EPSILON);
+        velocity.y = 0.f;
+        isOnGround = true;
+        hasDash = true;
+    }
+    else if (velocity.y < 0.f) 
+    {
+        hitbox.setPosition(hitbox.getPosition().x, (y + 1) * tileSize + (bounds.height / 2.f) + Config::EPSILON);
+        velocity.y = 0.f;
+    }    
+}
+
+void Parasite::ResolveCollisions(const GameContext& ctx, Axis axis)
+{
+    sf::FloatRect bounds = hitbox.getGlobalBounds();
+    int tileSize = ctx.levelMap->GetTileSize();
+
+    int minX = std::floor(bounds.left / tileSize);
+    int maxX = std::floor((bounds.left + bounds.width) / tileSize);
+    int minY = std::floor(bounds.top / tileSize);
+    int maxY = std::floor((bounds.top + bounds.height) / tileSize);
+
+    float epsilon = 0.01f;
+
+    if (axis == Axis::Vertical) 
+    {
+        isOnGround = false;
+    }
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            if (ctx.levelMap->IsSolid(x, y, Config::EntityType::Parasite))
+            {
+                if (axis == Axis::Horizontal)
+                {
+                    ResolveCollisionsX(x, ctx);
+                }
+                else
+                {
+                    ResolveCollisionsY(y, ctx);
+                }
+            }
+        }
+    }
+}
+
+
+
 void Parasite::Update(const GameContext& ctx)
 {
     float dt = ctx.dt;
@@ -304,9 +358,11 @@ void Parasite::Update(const GameContext& ctx)
 
     UpdateMove(dt);
 
-    hitbox.move(velocity.x * dt, velocity.y * dt);
+    hitbox.move(velocity.x * dt, 0.f);
+    ResolveCollisions(ctx, Axis::Horizontal);
 
-    ResolveCollisions();
+    hitbox.move(0.f, velocity.y * dt);
+    ResolveCollisions(ctx, Axis::Vertical);
 
     UpdateSpriteDirection();
 

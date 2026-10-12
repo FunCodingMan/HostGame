@@ -3,8 +3,9 @@
 
 namespace Config 
 {
-    inline constexpr int TILE_SIZE = 64;
-    
+    inline constexpr int TEXTURE_TILE_SIZE = 32;
+    inline constexpr int WORLD_TILE_SIZE = 64;
+        
     enum class EntityType {
         Parasite,
         Human,
@@ -68,4 +69,6 @@ namespace Config
     inline constexpr float PUPIL_SIZE = 6.f;
     inline constexpr float EYE_OFFSET = 10.f;  
     inline constexpr float PUPIL_OFFSET = 3.f;
+
+    inline constexpr float EPSILON = 0.1f;
 }

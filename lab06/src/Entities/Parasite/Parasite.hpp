@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include "Entities/Entity/Entity.hpp"
+#include "Core/Map/Map.hpp"
 
 class Parasite : public Entity
 {
@@ -12,7 +13,10 @@ class Parasite : public Entity
         void UpdateHorizontal(float dt);
         void UpdateVertical(float dt);
         void CheckXBoundaries();
-        void ResolveCollisions();
+        enum class Axis { Horizontal, Vertical };
+        void ResolveCollisions(const GameContext& ctx, Axis axis);
+        void ResolveCollisionsX(int x, const GameContext& ctx);
+        void ResolveCollisionsY(int y, const GameContext& ctx);
         void ResolveFriction(float dt);
         void CheckMaxSpeed();   
         bool CheckMoveKeys(float dt);
