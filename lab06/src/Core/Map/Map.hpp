@@ -25,6 +25,9 @@ public:
 
     const Config::TileData* GetTileData(Config::BlockNames blockName) const;
 
+    float GetWidthInPixels() const { return width * Config::WORLD_TILE_SIZE; }
+    float GetHeightInPixels() const { return height * Config::WORLD_TILE_SIZE; }
+
 private:
     std::vector<Config::BlockNames> grid;
     int width;

@@ -6,7 +6,7 @@
 
 
 Game::Game() 
-    : window(sf::VideoMode(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), "The Host"),
+    : window(sf::VideoMode::getDesktopMode(), "The Host", sf::Style::Fullscreen),
       parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
       enemy(sf::Vector2f(Config::ENEMY_INITIAL_X, Config::ENEMY_INITIAL_Y)),
       camera(sf::Vector2f(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT))
@@ -26,6 +26,11 @@ void Game::Run() {
 
 void Game::ProcessKeyboardEvents(sf::Event event)
 {
+    if (event.key.code == sf::Keyboard::Escape)
+    {
+        window.close();
+    }
+
     if (event.key.code == sf::Keyboard::B && sf::Keyboard::isKeyPressed(sf::Keyboard::F3))
     {
         Entity::ToggleHitboxes();
@@ -53,7 +58,7 @@ void Game::ProcessEvents()
 
 void Game::Update(float dt)
 {
-    camera.Update(parasite.GetPosition(), dt);
+    camera.Update(parasite.GetPosition(), dt, map.GetWidthInPixels(), map.GetHeightInPixels());
 
     sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
     sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos, camera.GetView());
