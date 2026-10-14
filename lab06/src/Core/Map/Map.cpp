@@ -50,9 +50,9 @@ void Map::ParseTileConfig(const string& code, const string collisionStr, const i
     Config::CollisionType type = StringToColisionType(collisionStr);
 
     m_tileDictionary[blockName] = {type, sf::IntRect(col * Config::TEXTURE_TILE_SIZE, 
-                                                   row * Config::TEXTURE_TILE_SIZE, 
-                                                   Config::TEXTURE_TILE_SIZE, 
-                                                   Config::TEXTURE_TILE_SIZE)};
+                                                     row * Config::TEXTURE_TILE_SIZE, 
+                                                     Config::TEXTURE_TILE_SIZE, 
+                                                     Config::TEXTURE_TILE_SIZE)};
 }
 
 bool Map::LoadTileConfig(const string& filename)
