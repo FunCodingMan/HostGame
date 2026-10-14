@@ -31,13 +31,13 @@ class Parasite : public Entity
         void UpdateDashTimer(float dt);
         void UpdateSpriteDirection();
 
-        float jumpForce;
-        float gravity;
-        float accel;
-        float friction;
-        float dashCooldown;
-        float dashForce;
-        bool hasDash;
-        float dashTimer;
-        bool isOnGround;
+        float m_jumpForce;
+        float m_gravity;
+        float m_accel;
+        float m_friction;
+        float m_dashCooldown;
+        float m_dashForce;
+        bool m_hasDash;
+        float m_dashTimer;
+        bool m_isOnGround;
 };

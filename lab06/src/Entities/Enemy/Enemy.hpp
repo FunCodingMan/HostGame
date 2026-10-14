@@ -14,8 +14,8 @@ public:
     void OnCollision();
 
 private:
-    sf::RectangleShape shape;
-    sf::Vector2f velocity;
+    sf::RectangleShape m_shape;
+    sf::Vector2f m_velocity;
     
-    float flashTimer;
+    float m_flashTimer;
 };

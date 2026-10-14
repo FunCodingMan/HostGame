@@ -5,14 +5,14 @@
 class Entity
 {
 protected:
-    sf::RectangleShape hitbox;
-    sf::Sprite sprite;
-    sf::Texture texture;
-    sf::Vector2f velocity;
+    sf::RectangleShape m_hitbox;
+    sf::Sprite m_sprite;
+    sf::Texture m_texture;
+    sf::Vector2f m_velocity;
 public:
     static void ToggleHitboxes()
     {
-        showHitboxes = !showHitboxes;
+        m_showHitboxes = !m_showHitboxes;
     }
 
     virtual ~Entity() = default;
@@ -21,22 +21,22 @@ public:
 
     virtual void Draw(sf::RenderWindow& window)
     {
-        window.draw(sprite);
+        window.draw(m_sprite);
 
-        if (showHitboxes)
+        if (m_showHitboxes)
         {
-            window.draw(hitbox);
+            window.draw(m_hitbox);
         }
     }
 
     sf::FloatRect GetBounds() const
     {
-        return hitbox.getGlobalBounds();
+        return m_hitbox.getGlobalBounds();
     }
 
     sf::Vector2f GetPosition() const {
-        return hitbox.getPosition();
+        return m_hitbox.getPosition();
     }
 private:
-    inline static bool showHitboxes = false;
+    inline static bool m_showHitboxes = false;
 };

@@ -3,58 +3,58 @@
 
 using namespace Config;
 
-Camera::Camera(sf::Vector2f size) : lerpSpeed(CAMERA_LERP_FACTOR)
+Camera::Camera(sf::Vector2f size) : m_lerpSpeed(CAMERA_LERP_FACTOR)
 {
-    view.setSize(size);
-    view.setCenter(size.x / 2.f, size.y / 2.f);
-    deadZone = sf::Vector2f(100.f, 80.f);
+    m_view.setSize(size);
+    m_view.setCenter(size.x / 2.f, size.y / 2.f);
+    m_deadZone = sf::Vector2f(CAMERA_DEAD_ZONE_WIDTH, CAMERA_DEAD_ZONE_HEIGHT);
 
-    currentFocus = view.getCenter();
-    currentMouseOffset = sf::Vector2f(0.f, 0.f);
+    m_currentFocus = m_view.getCenter();
+    m_currentMouseOffset = sf::Vector2f(0.f, 0.f);
 }
 
 void Camera::Update(sf::Vector2f targetPos, sf::Vector2f targetMouseOffset, float dt, float mapWidthPx, float mapHeightPx)
 {
-    sf::Vector2f desiredFocus = currentFocus;
+    sf::Vector2f desiredFocus = m_currentFocus;
     
-    if (targetPos.x > currentFocus.x + deadZone.x) {
-        desiredFocus.x = targetPos.x - deadZone.x;
-    } else if (targetPos.x < currentFocus.x - deadZone.x) {
-        desiredFocus.x = targetPos.x + deadZone.x;
+    if (targetPos.x > m_currentFocus.x + m_deadZone.x) {
+        desiredFocus.x = targetPos.x - m_deadZone.x;
+    } else if (targetPos.x < m_currentFocus.x - m_deadZone.x) {
+        desiredFocus.x = targetPos.x + m_deadZone.x;
     }
 
-    if (targetPos.y > currentFocus.y + deadZone.y) {
-        desiredFocus.y = targetPos.y - deadZone.y;
-    } else if (targetPos.y < currentFocus.y - deadZone.y) {
-        desiredFocus.y = targetPos.y + deadZone.y;
+    if (targetPos.y > m_currentFocus.y + m_deadZone.y) {
+        desiredFocus.y = targetPos.y - m_deadZone.y;
+    } else if (targetPos.y < m_currentFocus.y - m_deadZone.y) {
+        desiredFocus.y = targetPos.y + m_deadZone.y;
     }
 
-    currentFocus += (desiredFocus - currentFocus) * lerpSpeed * dt;
+    m_currentFocus += (desiredFocus - m_currentFocus) * m_lerpSpeed * dt;
 
-    currentMouseOffset += (targetMouseOffset - currentMouseOffset) * lerpSpeed * dt;
+    m_currentMouseOffset += (targetMouseOffset - m_currentMouseOffset) * m_lerpSpeed * dt;
 
-    sf::Vector2f finalPos = currentFocus + currentMouseOffset;
+    sf::Vector2f finalPos = m_currentFocus + m_currentMouseOffset;
     
-    float halfWidth = view.getSize().x / 2.f;
-    float halfHeight = view.getSize().y / 2.f;
+    float halfWidth = m_view.getSize().x / 2.f;
+    float halfHeight = m_view.getSize().y / 2.f;
 
     finalPos.x = std::clamp(finalPos.x, halfWidth, mapWidthPx - halfWidth);
     finalPos.y = std::clamp(finalPos.y, halfHeight, mapHeightPx - halfHeight);
 
-    view.setCenter(finalPos);
+    m_view.setCenter(finalPos);
 }
 
 const sf::View& Camera::GetView() const
 {
-    return view;
+    return m_view;
 }
 
 void Camera::SetSize(sf::Vector2f newSize)
 {
-    view.setSize(newSize);
+    m_view.setSize(newSize);
 }
 
 void Camera::Zoom(float factor)
 {
-    view.zoom(factor);
+    m_view.zoom(factor);
 }

@@ -18,10 +18,10 @@ private:
     void ProcessKeyboardEvents(sf::Event event);
     void Render();
 
-    sf::RenderWindow window;
-    sf::Clock clock;
-    Parasite parasite;
-    Enemy enemy;
-    Map map;
-    Camera camera;
+    sf::RenderWindow m_window;
+    sf::Clock m_clock;
+    Parasite m_parasite;
+    Enemy m_enemy;
+    Map m_map;
+    Camera m_camera;
 };

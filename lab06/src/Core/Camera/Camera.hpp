@@ -17,9 +17,9 @@ public:
     void Zoom(float factor);
 
 private:
-    sf::View view;
-    float lerpSpeed;
-    sf::Vector2f deadZone;
-    sf::Vector2f currentFocus;
-    sf::Vector2f currentMouseOffset;
+    sf::View m_view;
+    float m_lerpSpeed;
+    sf::Vector2f m_deadZone;
+    sf::Vector2f m_currentFocus;
+    sf::Vector2f m_currentMouseOffset;
 };

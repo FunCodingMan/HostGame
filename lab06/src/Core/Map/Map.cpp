@@ -5,25 +5,25 @@
 
 using namespace std;
 
-Map::Map() : width(0), height(0)
+Map::Map() : m_width(0), m_height(0)
 {
-    if (!tileset.loadFromFile("../assets/tileset.png")) {
+    if (!m_tileset.loadFromFile("../assets/tileset.png")) {
         std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
     }
 
-    mVertices.setPrimitiveType(sf::Quads);
+    m_Vertices.setPrimitiveType(sf::Quads);
     
     InitStringMappings();
 }
 
 void Map::InitStringMappings()
 {
-    stringToBlock[".."] = Config::BlockNames::Empty;
-    stringToBlock["wa"] = Config::BlockNames::Wall;
-    stringToBlock["fl"] = Config::BlockNames::Floor;
-    stringToBlock["bw"] = Config::BlockNames::BlackWall;
-    stringToBlock["el"] = Config::BlockNames::Elevator;
-    stringToBlock["ve"] = Config::BlockNames::Ventilation;
+    m_stringToBlock[".."] = Config::BlockNames::Empty;
+    m_stringToBlock["wa"] = Config::BlockNames::Wall;
+    m_stringToBlock["fl"] = Config::BlockNames::Floor;
+    m_stringToBlock["bw"] = Config::BlockNames::BlackWall;
+    m_stringToBlock["el"] = Config::BlockNames::Elevator;
+    m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -45,11 +45,11 @@ Config::CollisionType Map::StringToColisionType(const string& s)
 
 void Map::ParseTileConfig(const string& code, const string collisionStr, const int col, const int row)
 {
-    Config::BlockNames blockName = stringToBlock[code];
+    Config::BlockNames blockName = m_stringToBlock[code];
 
     Config::CollisionType type = StringToColisionType(collisionStr);
 
-    tileDictionary[blockName] = {type, sf::IntRect(col * Config::TEXTURE_TILE_SIZE, 
+    m_tileDictionary[blockName] = {type, sf::IntRect(col * Config::TEXTURE_TILE_SIZE, 
                                                    row * Config::TEXTURE_TILE_SIZE, 
                                                    Config::TEXTURE_TILE_SIZE, 
                                                    Config::TEXTURE_TILE_SIZE)};
@@ -75,7 +75,7 @@ bool Map::LoadTileConfig(const string& filename)
 
         if (ss >> code >> collisionStr >> col >> row)
         {
-            if (stringToBlock.find(code) == stringToBlock.end()) {
+            if (m_stringToBlock.find(code) == m_stringToBlock.end()) {
                 std::cerr << "Внимание: Найден неизвестный код '" << code << "' в " << filename << std::endl;
                 continue;
             }
@@ -93,22 +93,22 @@ void Map::LoadLeveFromLine(const string& line)
 
     while (ss >> tileCode)
     {
-        if (stringToBlock.find(tileCode) == stringToBlock.end())
+        if (m_stringToBlock.find(tileCode) == m_stringToBlock.end())
         {
             std::cerr << "Предупреждение: Неизвестный тайл '" << tileCode << "'" << std::endl;
-            grid.push_back(Config::BlockNames::Empty);
+            m_grid.push_back(Config::BlockNames::Empty);
         }
         else
         {
-            grid.push_back(stringToBlock[tileCode]);
+            m_grid.push_back(m_stringToBlock[tileCode]);
         }
         curLineWidth++;
     }
-    if (width == 0) 
+    if (m_width == 0) 
     {
-        width = curLineWidth;
+        m_width = curLineWidth;
     }
-    height++;
+    m_height++;
 }
 
 bool Map::LoadFromFile(const string& filename)
@@ -121,11 +121,11 @@ bool Map::LoadFromFile(const string& filename)
         return false;
     }
 
-    grid.clear();
+    m_grid.clear();
 
     string line;
-    height = 0;
-    width = 0;
+    m_height = 0;
+    m_width = 0;
 
     while (getline(file, line))
     {
@@ -144,18 +144,18 @@ bool Map::LoadFromFile(const string& filename)
 
 Config::BlockNames Map::GetTile(int x, int y) const
 {
-    if (x < 0 || x >= width || y < 0 || y >= height)
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height)
     {
         return Config::BlockNames::BlackWall;
     }
 
-    return grid[y * width + x];
+    return m_grid[y * m_width + x];
 }
 
 const Config::TileData* Map::GetTileData(Config::BlockNames blockName) const
 {
-    auto it = tileDictionary.find(blockName);
-    if (it != tileDictionary.end()) {
+    auto it = m_tileDictionary.find(blockName);
+    if (it != m_tileDictionary.end()) {
         return &it->second;
     }
     return nullptr;
@@ -191,9 +191,9 @@ void Map::BuildVertexElement(int xTile, int yTile)
         return;
     }
 
-    int vertexElIdx = (xTile + yTile * width) * 4;
+    int vertexElIdx = (xTile + yTile * m_width) * 4;
 
-    sf::Vertex* quad = &mVertices[vertexElIdx];
+    sf::Vertex* quad = &m_Vertices[vertexElIdx];
     float wSize = Config::WORLD_TILE_SIZE;
     float x = xTile * wSize;
     float y = yTile * wSize;
@@ -216,11 +216,11 @@ void Map::BuildVertexElement(int xTile, int yTile)
 
 void Map::BuildVertexArray()
 {
-    mVertices.resize(width * height * 4);
+    m_Vertices.resize(m_width * m_height * 4);
 
-    for (int i = 0; i < width; ++i)
+    for (int i = 0; i < m_width; ++i)
     {
-        for (int j = 0; j < height; ++j)
+        for (int j = 0; j < m_height; ++j)
         {
             BuildVertexElement(i, j);
         }
@@ -229,5 +229,5 @@ void Map::BuildVertexArray()
 
 void Map::Draw(sf::RenderWindow& window) const
 {
-    window.draw(mVertices, &tileset);
+    window.draw(m_Vertices, &m_tileset);
 }
