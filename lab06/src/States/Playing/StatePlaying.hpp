@@ -26,6 +26,7 @@ private:
 
     void HandlePossession();
     void HandleEjection(const GameContext& ctx);
+    void CleanDeadEnemies();
     void UpdateHUD();
 
     void CheckEndGameConditions();

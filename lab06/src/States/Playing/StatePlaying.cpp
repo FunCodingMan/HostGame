@@ -90,6 +90,8 @@ void StatePlaying::Update(float dt)
     HandlePossession();
     HandleEjection(ctx);
 
+    CleanDeadEnemies();
+
     UpdateHUD();
 
     CheckEndGameConditions();
@@ -182,6 +184,17 @@ void StatePlaying::CheckEndGameConditions()
     {
         m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
         return;
+    }
+}
+
+void StatePlaying::CleanDeadEnemies()
+{
+    for (int i = m_enemies.size() - 1; i >= 0; --i)
+    {
+        if (m_enemies[i]->IsDead())
+        {
+            m_enemies.erase(m_enemies.begin() + i);
+        }
     }
 }
 
