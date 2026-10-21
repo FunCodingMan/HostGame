@@ -189,13 +189,11 @@ void StatePlaying::CheckEndGameConditions()
 
 void StatePlaying::CleanDeadEnemies()
 {
-    for (int i = m_enemies.size() - 1; i >= 0; --i)
-    {
-        if (m_enemies[i]->IsDead())
-        {
-            m_enemies.erase(m_enemies.begin() + i);
-        }
-    }
+    m_enemies.erase(std::remove_if(
+        m_enemies.begin(), m_enemies.end(),
+        [](const std::unique_ptr<Enemy> &enemy) { return enemy->IsDead(); }),
+        m_enemies.end()
+    );
 }
 
 void StatePlaying::Draw()
