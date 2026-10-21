@@ -19,7 +19,7 @@ Parasite::Parasite(sf::Vector2f position)
     m_hitbox.setOutlineColor(sf::Color::Red);
     m_hitbox.setOutlineThickness(1.f);
 
-    if (!m_texture.loadFromFile("../assets/parasite.png"))
+    if (!m_texture.loadFromFile("../assets/images/parasite.png"))
     {
         std::cerr << "Ошибка: Не удалось загрузить assets/parasite.png!" << std::endl;
     }

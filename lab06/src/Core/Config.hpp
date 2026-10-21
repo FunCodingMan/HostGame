@@ -6,6 +6,15 @@ namespace Config
     inline constexpr int TEXTURE_TILE_SIZE = 32;
     inline constexpr int WORLD_TILE_SIZE = 64;
 
+    enum class GameState {
+        MainMenu,
+        Tutorial,
+        Playing,
+        Paused,
+        GameOver,
+        Victory
+    };
+
     enum class EntityType {
         Parasite,
         Human,
@@ -76,4 +85,8 @@ namespace Config
     inline constexpr float PUPIL_OFFSET = 3.f;
 
     inline constexpr float EPSILON = 0.1f;
+
+    inline constexpr float PHYSICS_FPS = 60.f;
+
+    inline constexpr float MENU_BUTTON_TEXT_SIZE = 50.f;
 }

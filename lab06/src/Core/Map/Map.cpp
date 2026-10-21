@@ -7,7 +7,7 @@ using namespace std;
 
 Map::Map() : m_width(0), m_height(0)
 {
-    if (!m_tileset.loadFromFile("../assets/tileset.png")) {
+    if (!m_tileset.loadFromFile("../assets/images/tileset.png")) {
         std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
     }
 
