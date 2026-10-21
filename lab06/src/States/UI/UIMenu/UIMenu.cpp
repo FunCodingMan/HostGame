@@ -3,9 +3,9 @@
 
 UIMenu::UIMenu() : m_selectedOption(0) {}
 
-void UIMenu::AddButton(const std::string& textStr, const sf::Font& font, float yPos, float windowWidth, std::function<void()> action)
+void UIMenu::AddButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> onClick)
 {
-    m_buttons.emplace_back(textStr, font, yPos, windowWidth, action);
+    m_buttons.emplace_back(text, font, yPos, windowWidth, onClick);
 }
 
 void UIMenu::MenuUp()

@@ -25,6 +25,8 @@ public:
 
     const Config::TileData* GetTileData(Config::BlockNames blockName) const;
 
+    bool IsIntersectingWith(const sf::FloatRect& bounds, Config::BlockNames targetBlock) const;
+
     float GetWidthInPixels() const { return m_width * Config::WORLD_TILE_SIZE; }
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
 

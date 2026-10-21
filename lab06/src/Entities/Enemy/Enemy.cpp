@@ -1,62 +1,35 @@
 #include "Entities/Enemy/Enemy.hpp"
 #include "Core/Config.hpp"
 
-using namespace Config;
-
-Enemy::Enemy(sf::Vector2f startPos)
+Enemy::Enemy(sf::Vector2f position) : LivingEntity(50.f)
 {
-    m_shape.setSize(sf::Vector2f(ENEMY_SIZE, ENEMY_SIZE));
-    m_shape.setFillColor(sf::Color::Green);
-    m_shape.setPosition(startPos);
-    
-    m_velocity = sf::Vector2f(200.0f, 150.0f);
-    m_flashTimer = 0.f;
-}
-
-void Enemy::Update(float dt)
-{
-    m_shape.move(m_velocity.x * dt, m_velocity.y * dt);
-
-    sf::Vector2f pos = m_shape.getPosition();
-
-    if (pos.x <= 0.f) {
-        pos.x = 0.f;
-        m_velocity.x = -m_velocity.x;
-    } else if (pos.x + ENEMY_SIZE >= WINDOW_WIDTH) {
-        pos.x = WINDOW_WIDTH - ENEMY_SIZE;
-        m_velocity.x = -m_velocity.x;
-    }
-
-    if (pos.y <= 0.f) {
-        pos.y = 0.f;
-        m_velocity.y = -m_velocity.y;
-    } else if (pos.y + ENEMY_SIZE >= FLOOR_Y) {
-        pos.y = FLOOR_Y - ENEMY_SIZE;
-        m_velocity.y = -m_velocity.y;
-    }
-
-    m_shape.setPosition(pos);
-
-    if (m_flashTimer > 0.f) {
-        m_flashTimer -= dt;
-        if (m_flashTimer <= 0.f) {
-            m_shape.setFillColor(sf::Color::Green);
-        }
-    }
+    m_hitbox.setSize(sf::Vector2f(40.f, 40.f));
+    m_hitbox.setOrigin(20.f, 20.f);
+    m_hitbox.setPosition(position);
+    m_hitbox.setFillColor(sf::Color::Yellow);
+    m_hitbox.setOutlineColor(sf::Color::Red);
+    m_hitbox.setOutlineThickness(1.f);
 }
 
 void Enemy::Draw(sf::RenderWindow& window)
 {
-    window.draw(m_shape);
+    window.draw(m_hitbox); 
 }
 
-sf::FloatRect Enemy::GetBounds() const
+void Enemy::Update(const GameContext& ctx)
 {
-    return m_shape.getGlobalBounds();
-}
+    if (m_isDead) return;
 
-void Enemy::OnCollision()
-{
-    m_shape.setFillColor(sf::Color::Red);
-    m_flashTimer = 0.5f;
+    if (m_isPlayerControlled)
+    {
+        m_decayTimer -= ctx.dt;
+
+        float speed = 150.f;
+        m_velocity.x = 0.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) m_velocity.x = -speed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) m_velocity.x = speed;
+
+        m_hitbox.move(m_velocity.x * ctx.dt, 0.f);
+        m_sprite.setPosition(m_hitbox.getPosition());
+    }
 }

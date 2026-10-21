@@ -46,8 +46,8 @@ namespace Config
     inline constexpr float FLOOR_Y = 600.f;
     inline const sf::Color BG_COLOR = sf::Color(40, 40, 40);
 
-    inline constexpr float ENEMY_INITIAL_X = 960.f;
-    inline constexpr float ENEMY_INITIAL_Y = 540.f;
+    inline constexpr float ENEMY_INITIAL_X = 400.f;
+    inline constexpr float ENEMY_INITIAL_Y = 400.f;
     inline constexpr float ENEMY_SIZE = 40.f;
     inline constexpr float ENEMY_START_VELOCITY_X = 200.f;
     inline constexpr float ENEMY_START_VELOCITY_Y = 150.f;
@@ -65,6 +65,7 @@ namespace Config
     inline constexpr float PARASITE_FRICTION = 2000.f;
     inline constexpr float PARASITE_GRAVITY = 2500.f;
     inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
+    inline constexpr float PARASITE_MAX_HEALTH = 5.f; 
     inline constexpr float MAX_FALL_SPEED = 1000.f;
     
 
@@ -89,4 +90,8 @@ namespace Config
     inline constexpr float PHYSICS_FPS = 60.f;
 
     inline constexpr float MENU_BUTTON_TEXT_SIZE = 50.f;
+
+    inline constexpr float PLAYER_HUD_WIDTH = 50.f;
+
+    inline constexpr float COOLDOWN_IN_HOST = 1.f;
 }

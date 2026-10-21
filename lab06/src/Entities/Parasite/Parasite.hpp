@@ -1,14 +1,16 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <cmath>
-#include "Entities/Entity/Entity.hpp"
+#include "Entities/LivingEntity/LivingEntity.hpp"
 #include "Core/Map/Map.hpp"
 
-class Parasite : public Entity
+class Parasite : public LivingEntity
 {
     public:
         Parasite(sf::Vector2f position);
         void Update(const GameContext& ctx) override;
+        bool IsDashing() const;
+        void ForceDash(sf::Vector2f targetPos);
     private:
         void UpdateHorizontal(float dt);
         void UpdateVertical(float dt);

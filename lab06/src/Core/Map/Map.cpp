@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -144,7 +145,11 @@ bool Map::LoadFromFile(const string& filename)
 
 Config::BlockNames Map::GetTile(int x, int y) const
 {
-    if (x < 0 || x >= m_width || y < 0 || y >= m_height)
+    if (y >= m_height)
+    {
+        return Config::BlockNames::Empty;
+    }
+    if (x < 0 || x >= m_width || y < 0)
     {
         return Config::BlockNames::BlackWall;
     }
@@ -225,6 +230,26 @@ void Map::BuildVertexArray()
             BuildVertexElement(i, j);
         }
     }
+}
+
+bool Map::IsIntersectingWith(const sf::FloatRect& bounds, Config::BlockNames targetBlock) const
+{
+    int minX = std::floor(bounds.left / Config::WORLD_TILE_SIZE);
+    int maxX = std::floor((bounds.left + bounds.width) / Config::WORLD_TILE_SIZE);
+    int minY = std::floor(bounds.top / Config::WORLD_TILE_SIZE);
+    int maxY = std::floor((bounds.top + bounds.height) / Config::WORLD_TILE_SIZE);
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            if (GetTile(x, y) == targetBlock)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void Map::Draw(sf::RenderWindow& window) const

@@ -1,21 +1,22 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "Entities/LivingEntity/LivingEntity.hpp"
+#include "Core/GameContext.hpp"
 
-class Enemy
+class Enemy : public LivingEntity
 {
 public:
-    Enemy(sf::Vector2f startPos);
-    void Update(float dt);
-    void Draw(sf::RenderWindow& window);
-
-
-    sf::FloatRect GetBounds() const;
+    Enemy(sf::Vector2f position);
     
-    void OnCollision();
+    void Update(const GameContext& ctx) override;
+
+    void Draw(sf::RenderWindow& window) override;
+
+    float GetDecayTimer() const override { return m_decayTimer; }
+    float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
+    void ResetDecayTimer() { m_decayTimer = m_maxDecayTimer; }
 
 private:
-    sf::RectangleShape m_shape;
-    sf::Vector2f m_velocity;
-    
-    float m_flashTimer;
+    float m_maxDecayTimer = 15.f;
+    float m_decayTimer = 15.f;
 };

@@ -1,13 +1,12 @@
 #include <SFML/Graphics.hpp>
 #include <functional>
-#include <string>
 #include "MenuButton.hpp"
 #include "Core/Config.hpp"
 
-MenuButton::MenuButton(const std::string& textStr, const sf::Font& font, float yPos, float windowWidth, std::function<void()> action) : m_action(action)
+MenuButton::MenuButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> action) : m_action(action)
 {
     m_text.setFont(font);
-    m_text.setString(textStr);
+    m_text.setString(text);
     m_text.setCharacterSize(Config::MENU_BUTTON_TEXT_SIZE);
 
     sf::FloatRect bounds = m_text.getLocalBounds();

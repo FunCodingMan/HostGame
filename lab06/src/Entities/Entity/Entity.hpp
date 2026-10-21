@@ -37,6 +37,11 @@ public:
     sf::Vector2f GetPosition() const {
         return m_hitbox.getPosition();
     }
+
+    void SetPosition(sf::Vector2f newPos) {
+        m_hitbox.setPosition(newPos);
+        m_sprite.setPosition(newPos);
+    }
 private:
     inline static bool m_showHitboxes = false;
 };

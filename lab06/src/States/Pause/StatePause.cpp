@@ -1,6 +1,8 @@
 #include "States/Pause/StatePause.hpp"
-#include "States/MainMenu/StateMainMenu.hpp"
+
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
 
 StatePause::StatePause(GameDataRef data) : m_data(data) {}
 
@@ -17,24 +19,34 @@ void StatePause::Init()
 
     m_title.Init("PAUSED", m_data->headerFont, 100, 200.f, windowSize.x);
 
-    m_menu.AddButton("Resume", m_data->headerFont, 400.f, windowSize.x, [this]() {
-        m_data->manager.RemoveState(); 
-    });
+    m_menu.AddButton("Resume", m_data->headerFont, 400.f, windowSize.x,
+                     [this]() { m_data->manager.RemoveState(); });
 
-    m_menu.AddButton("Main Menu", m_data->headerFont, 500.f, windowSize.x, [this]() {
-        m_data->manager.RemoveState(); 
-        m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
-    });
+    m_menu.AddButton("Restart", m_data->headerFont, 500.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton("Main Menu", m_data->headerFont, 600.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
 }
 
-void StatePause::HandleInput(const sf::Event& event)
+void StatePause::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        if (GameKeyboard::IsEventEscape(event)) {
+        if (GameKeyboard::IsEventEscape(event))
+        {
             m_data->manager.RemoveState();
-        } 
-        else {
+        }
+        else
+        {
             m_menu.HandleInput(event);
         }
     }
@@ -49,7 +61,7 @@ void StatePause::Draw()
 {
     m_data->window.draw(m_backgroundSprite);
     m_data->window.draw(m_darkOverlay);
-    
+
     m_title.Draw(m_data->window);
     m_menu.Draw(m_data->window);
 }

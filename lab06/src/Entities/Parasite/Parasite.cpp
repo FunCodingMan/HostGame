@@ -7,7 +7,8 @@
 using namespace Config;
 
 Parasite::Parasite(sf::Vector2f position)
-    : m_accel(PARASITE_ACCEL), m_friction(PARASITE_FRICTION),
+    : LivingEntity(Config::PARASITE_MAX_HEALTH),
+      m_accel(PARASITE_ACCEL), m_friction(PARASITE_FRICTION),
       m_jumpForce(PARASITE_JUMP_FORCE), m_gravity(PARASITE_GRAVITY), m_isOnGround(false),
       m_dashCooldown(0.f), m_dashForce(PARASITE_DASH_FORCE), m_hasDash(true), m_dashTimer(0.f)
 {
@@ -192,6 +193,31 @@ void Parasite::CheckXBoundaries()
     }
 }
 
+bool Parasite::IsDashing() const
+{
+    return m_dashTimer > 0.f;
+}
+
+void Parasite::ForceDash(sf::Vector2f targetPos)
+{
+    sf::Vector2f center = m_hitbox.getPosition();
+
+    float dx = targetPos.x - center.x;
+    float dy = targetPos.y - center.y;
+    float length = std::sqrt(dx * dx + dy * dy);
+
+    if (length != 0)
+    {
+        m_velocity.x = (dx / length) * m_dashForce;
+        m_velocity.y = (dy / length) * m_dashForce;
+
+        m_dashCooldown = DASH_COOLDOWN_TIME;
+        m_dashTimer = DASH_DURATION;
+        m_hasDash = false;
+        m_isOnGround = false;
+    }
+}
+
 void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
 {
     if (m_dashCooldown > 0.f)
@@ -201,23 +227,7 @@ void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
 
     if (IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
     {
-        sf::Vector2f center = m_hitbox.getPosition();
-
-        float dx = mousePos.x - center.x;
-        float dy = mousePos.y - center.y;
-
-        float length = std::sqrt(dx * dx + dy * dy);
-
-        if (length != 0)
-        {
-            m_velocity.x = (dx / length) * m_dashForce;
-            m_velocity.y = (dy / length) * m_dashForce;
-
-            m_dashCooldown = DASH_COOLDOWN_TIME;
-            m_dashTimer = DASH_DURATION;
-            m_hasDash = false;
-            m_isOnGround = false;
-        }
+        ForceDash(mousePos);
     }
 }
 
@@ -351,6 +361,8 @@ void Parasite::ResolveCollisions(const GameContext& ctx, Axis axis)
 
 void Parasite::Update(const GameContext& ctx)
 {
+    if (!m_isPlayerControlled) return;
+
     float dt = ctx.dt;
     sf::Vector2f mousePos = ctx.mousePos;
 
