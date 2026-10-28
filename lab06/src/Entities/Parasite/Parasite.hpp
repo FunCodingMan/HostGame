@@ -3,6 +3,7 @@
 #include <cmath>
 #include "Entities/LivingEntity/LivingEntity.hpp"
 #include "Core/Map/Map.hpp"
+#include "Core/Animation/AnimationController.hpp"   
 
 class Parasite : public LivingEntity
 {
@@ -32,7 +33,9 @@ class Parasite : public LivingEntity
         void HorizontalCommon(float dt);
         void UpdateDashTimer(float dt);
         void UpdateSpriteDirection();
+        void UpdateAnimation(float dt);
 
+        AnimationController m_anim;
         float m_jumpForce;
         float m_gravity;
         float m_accel;

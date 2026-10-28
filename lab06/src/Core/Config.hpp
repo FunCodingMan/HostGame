@@ -67,6 +67,10 @@ namespace Config
     inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
     inline constexpr float PARASITE_MAX_HEALTH = 5.f; 
     inline constexpr float MAX_FALL_SPEED = 1000.f;
+    inline constexpr int PARASITE_FRAME_W = 16;
+    inline constexpr int PARASITE_FRAME_H = 16;
+
+    inline constexpr float PARASITE_IDLE_FRAME_TIME = 0.25f;
     
 
     inline constexpr float PARASITE_DASH_FORCE = 1500.f;
@@ -88,6 +92,8 @@ namespace Config
     inline constexpr float EPSILON = 0.1f;
 
     inline constexpr float PHYSICS_FPS = 60.f;
+
+    inline constexpr float TIME_FOR_ONE_FRAME = 1.0f / PHYSICS_FPS;
 
     inline constexpr float MENU_BUTTON_TEXT_SIZE = 50.f;
 

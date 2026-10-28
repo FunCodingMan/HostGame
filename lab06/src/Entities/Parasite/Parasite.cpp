@@ -20,7 +20,7 @@ Parasite::Parasite(sf::Vector2f position)
     m_hitbox.setOutlineColor(sf::Color::Red);
     m_hitbox.setOutlineThickness(1.f);
 
-    if (!m_texture.loadFromFile("../assets/images/parasite.png"))
+    if (!m_texture.loadFromFile("../assets/animations/parasite.png"))
     {
         std::cerr << "Ошибка: Не удалось загрузить assets/parasite.png!" << std::endl;
     }
@@ -29,8 +29,23 @@ Parasite::Parasite(sf::Vector2f position)
     m_sprite.setTexture(m_texture);
     m_sprite.setScale(Config::PARASITE_SCALE, Config::PARASITE_SCALE);
 
-    sf::FloatRect bounds = m_sprite.getLocalBounds();
-    m_sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    m_sprite.setOrigin(Config::PARASITE_FRAME_W / 2.f, Config::PARASITE_FRAME_H / 2.f);
+
+    constexpr int FW = Config::PARASITE_FRAME_W;
+    constexpr int FH = Config::PARASITE_FRAME_H;
+
+    m_anim.AddClip("idle",
+        {
+            sf::IntRect(0,    0, FW, FH),
+            sf::IntRect(FW,   0, FW, FH),
+            sf::IntRect(2*FW, 0, FW, FH),
+            sf::IntRect(3*FW, 0, FW, FH),
+        },
+        Config::PARASITE_IDLE_FRAME_TIME,
+        true);
+
+    m_anim.Play("idle");
+    m_anim.Apply(m_sprite);
 
     m_sprite.setPosition(position);
 }
@@ -357,6 +372,12 @@ void Parasite::ResolveCollisions(const GameContext& ctx, Axis axis)
     }
 }
 
+void Parasite::UpdateAnimation(float dt)
+{
+    m_anim.Play("idle");
+    m_anim.Update(dt);
+    m_anim.Apply(m_sprite);
+}
 
 
 void Parasite::Update(const GameContext& ctx)
@@ -377,6 +398,7 @@ void Parasite::Update(const GameContext& ctx)
     ResolveCollisions(ctx, Axis::Vertical);
 
     UpdateSpriteDirection();
+    UpdateAnimation(dt);
 
     m_sprite.setPosition(m_hitbox.getPosition());
 }
