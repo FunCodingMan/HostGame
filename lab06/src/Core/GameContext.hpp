@@ -6,5 +6,5 @@ struct GameContext
 {
     float dt;
     sf::Vector2f mousePos;
-    const Map* levelMap;
+    Map* levelMap;
 };

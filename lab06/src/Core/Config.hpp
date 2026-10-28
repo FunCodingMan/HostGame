@@ -27,13 +27,15 @@ namespace Config
         Floor,
         BlackWall,
         Elevator,
-        Ventilation
+        Ventilation,
+        Glass
     };
 
     enum class CollisionType {
         Empty,
         Solid,
-        Ventilation
+        Ventilation,
+        Breakable
     };
 
     struct TileData {
@@ -74,6 +76,28 @@ namespace Config
     
 
     inline constexpr float PARASITE_DASH_FORCE = 1500.f;
+    inline constexpr float SCIENTIST_SCALE          = 2.0f;
+    inline constexpr float SCIENTIST_INITIAL_X      = 400.f;
+    inline constexpr float SCIENTIST_INITIAL_Y      = 400.f;
+    inline constexpr float SCIENTIST_HITBOX_WIDTH   = 32.f;
+    inline constexpr float SCIENTIST_HITBOX_HEIGHT  = 64.f;
+
+    inline constexpr float SCIENTIST_MAX_SPEED   = 300.f;
+    inline constexpr float SCIENTIST_ACCEL       = 1500.f;
+    inline constexpr float SCIENTIST_FRICTION    = 2000.f;
+    inline constexpr float SCIENTIST_GRAVITY     = 3500.f;
+    inline constexpr float SCIENTIST_JUMP_FORCE  = 1000.f;
+    inline constexpr float SCIENTIST_MAX_HEALTH  = 50.f;
+
+    inline constexpr int   SCIENTIST_FRAME_W = 16;
+    inline constexpr int   SCIENTIST_FRAME_H = 32;
+
+    inline constexpr float SCIENTIST_IDLE_FRAME_TIME = 0.20f;
+    inline constexpr float SCIENTIST_WALK_FRAME_TIME = 0.10f;
+    inline constexpr float SCIENTIST_WALK_THRESHOLD  = 15.f;
+
+    inline constexpr float SCIENTIST_DECAY_TIME = 10.f;  
+
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
 

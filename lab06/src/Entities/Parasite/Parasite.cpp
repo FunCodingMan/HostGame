@@ -1,35 +1,25 @@
 #include "Entities/Parasite/Parasite.hpp"
-
-#include <iostream>
-
 #include "Core/Config.hpp"
-
-using namespace Config;
+#include "Core/GameKeyboard/GameKeyboard.hpp"
 
 Parasite::Parasite(sf::Vector2f position)
-    : LivingEntity(Config::PARASITE_MAX_HEALTH),
-      m_accel(PARASITE_ACCEL), m_friction(PARASITE_FRICTION),
-      m_jumpForce(PARASITE_JUMP_FORCE), m_gravity(PARASITE_GRAVITY), m_isOnGround(false),
-      m_dashCooldown(0.f), m_dashForce(PARASITE_DASH_FORCE), m_hasDash(true), m_dashTimer(0.f)
+    : Character(Config::PARASITE_MAX_HEALTH, position)
 {
-    m_hitbox.setSize(sf::Vector2f(PARASITE_HITBOX_WIDTH, PARASITE_HITBOX_HEIGHT));
-    m_hitbox.setOrigin(PARASITE_HITBOX_WIDTH / 2.f, PARASITE_HITBOX_HEIGHT / 2.f);
-    m_hitbox.setPosition(position);
+    m_accel     = Config::PARASITE_ACCEL;
+    m_friction  = Config::PARASITE_FRICTION;
+    m_jumpForce = Config::PARASITE_JUMP_FORCE;
+    m_gravity   = Config::PARASITE_GRAVITY;
+    m_maxSpeed  = Config::PARASITE_MAX_SPEED;
 
-    m_hitbox.setFillColor(sf::Color::Transparent);
-    m_hitbox.setOutlineColor(sf::Color::Red);
-    m_hitbox.setOutlineThickness(1.f);
+    InitHitbox(Config::PARASITE_HITBOX_WIDTH,
+               Config::PARASITE_HITBOX_HEIGHT,
+               position);
+    InitSprite("../assets/animations/parasite.png",
+               Config::PARASITE_FRAME_W,
+               Config::PARASITE_FRAME_H,
+               Config::PARASITE_SCALE);
 
-    if (!m_texture.loadFromFile("../assets/animations/parasite.png"))
-    {
-        std::cerr << "Ошибка: Не удалось загрузить assets/parasite.png!" << std::endl;
-    }
-
-    m_texture.setSmooth(false);
-    m_sprite.setTexture(m_texture);
-    m_sprite.setScale(Config::PARASITE_SCALE, Config::PARASITE_SCALE);
-
-    m_sprite.setOrigin(Config::PARASITE_FRAME_W / 2.f, Config::PARASITE_FRAME_H / 2.f);
+    m_sprite.setPosition(position);
 
     constexpr int FW = Config::PARASITE_FRAME_W;
     constexpr int FH = Config::PARASITE_FRAME_H;
@@ -46,166 +36,6 @@ Parasite::Parasite(sf::Vector2f position)
 
     m_anim.Play("idle");
     m_anim.Apply(m_sprite);
-
-    m_sprite.setPosition(position);
-}
-
-bool Parasite::IsJumpKeyPressed()
-{
-    return sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
-           sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
-           sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
-}
-bool Parasite::IsLeftKeyPressed()
-{
-    return sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
-           sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
-}
-bool Parasite::IsRightKeyPressed()
-{
-    return sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
-           sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
-}
-
-bool Parasite::IsDashKeyPressed()
-{
-    return sf::Mouse::isButtonPressed(sf::Mouse::Left) ||
-           sf::Keyboard::isKeyPressed(sf::Keyboard::LShift);
-}
-
-bool Parasite::CheckMoveKeys(float dt)
-{
-    bool left = IsLeftKeyPressed();
-    bool right = IsRightKeyPressed();
-
-    if (left && right)
-    {
-        return false;
-    }
-
-    if (left)
-    {
-        m_velocity.x -= m_accel * dt;
-        return true;
-    }
-
-    if (right)
-    {
-        m_velocity.x += m_accel * dt;
-        return true;
-    }
-
-    return false;
-}
-
-void Parasite::ResolveFriction(float dt)
-{
-    float f = m_isOnGround ? m_friction : m_friction * 0.3f;
-    if (m_velocity.x > 0.f)
-    {
-        m_velocity.x -= f * dt;
-        if (m_velocity.x < 0)
-            m_velocity.x = 0.f;
-    }
-    else
-    {
-        m_velocity.x += f * dt;
-        if (m_velocity.x > 0.f)
-            m_velocity.x = 0.f;
-    }
-}
-
-void Parasite::CheckMaxSpeed()
-{
-    if (m_velocity.x > PARASITE_MAX_SPEED)
-    {
-        m_velocity.x = PARASITE_MAX_SPEED;
-    }
-    if (m_velocity.x < -PARASITE_MAX_SPEED)
-    {
-        m_velocity.x = -PARASITE_MAX_SPEED;
-    }
-}
-
-void Parasite::HorizontalDash(float dt)
-{
-    float drag = m_friction * 3.0f;
-
-    if (m_velocity.x > 0.f)
-    {
-        m_velocity.x -= drag * dt;
-        m_velocity.x = std::max(m_velocity.x, PARASITE_MAX_SPEED);
-    }
-    else
-    {
-        m_velocity.x += drag * dt;
-        m_velocity.x = std::min(m_velocity.x, -PARASITE_MAX_SPEED);
-    }
-}
-
-void Parasite::HorizontalCommon(float dt)
-{
-    bool isMoving = CheckMoveKeys(dt);
-
-    if (!isMoving)
-    {
-        ResolveFriction(dt);
-    }
-
-    CheckMaxSpeed();
-}
-
-void Parasite::UpdateHorizontal(float dt)
-{
-    if (std::abs(m_velocity.x) > PARASITE_MAX_SPEED)
-    {
-        HorizontalDash(dt);
-    }
-    else
-    {
-        HorizontalCommon(dt);
-    }
-}
-
-void Parasite::UpdateVertical(float dt)
-{
-    float curGravity = m_gravity;
-
-    if (!IsJumpKeyPressed() && m_velocity.y < 0.f)
-    {
-        curGravity *= 2.0f;
-    }
-
-    m_velocity.y += curGravity * dt;
-
-    if (m_velocity.y > MAX_FALL_SPEED)
-    {
-        m_velocity.y = MAX_FALL_SPEED;
-    }
-
-    if (IsJumpKeyPressed() && m_isOnGround)
-    {
-        m_velocity.y = -PARASITE_JUMP_FORCE;
-        m_isOnGround = false;
-    }
-}
-
-void Parasite::CheckXBoundaries()
-{
-    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
-    float halfWidth = bounds.width / 2.f;
-
-    if (bounds.left < 0)
-    {
-        m_hitbox.setPosition(halfWidth, m_hitbox.getPosition().y);
-        m_velocity.x = 0;
-    }
-
-    if (bounds.left + bounds.width >= WINDOW_WIDTH)
-    {
-        m_hitbox.setPosition(WINDOW_WIDTH - halfWidth, m_hitbox.getPosition().y);
-        m_velocity.x = 0;
-    }
 }
 
 bool Parasite::IsDashing() const
@@ -221,16 +51,18 @@ void Parasite::ForceDash(sf::Vector2f targetPos)
     float dy = targetPos.y - center.y;
     float length = std::sqrt(dx * dx + dy * dy);
 
-    if (length != 0)
+    if (length == 0.f)
     {
-        m_velocity.x = (dx / length) * m_dashForce;
-        m_velocity.y = (dy / length) * m_dashForce;
-
-        m_dashCooldown = DASH_COOLDOWN_TIME;
-        m_dashTimer = DASH_DURATION;
-        m_hasDash = false;
-        m_isOnGround = false;
+        return;
     }
+
+    m_velocity.x = (dx / length) * m_dashForce;
+    m_velocity.y = (dy / length) * m_dashForce;
+
+    m_dashCooldown = Config::DASH_COOLDOWN_TIME;
+    m_dashTimer    = Config::DASH_DURATION;
+    m_hasDash      = false;
+    m_isOnGround   = false;
 }
 
 void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
@@ -240,7 +72,7 @@ void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
         m_dashCooldown -= dt;
     }
 
-    if (IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
+    if (GameKeyboard::IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
     {
         ForceDash(mousePos);
     }
@@ -260,145 +92,69 @@ void Parasite::UpdateDashTimer(float dt)
     }
 }
 
-void Parasite::UpdateMove(float dt)
+void Parasite::HorizontalDash(float dt)
 {
-
-    UpdateDashTimer(dt);
-    if (m_dashTimer <= 0.f)
-    {
-        UpdateHorizontal(dt);
-        UpdateVertical(dt);
-    }
-}
-
-void Parasite::UpdateSpriteDirection()
-{
-    if (m_dashTimer > 0.f)
-    {
-        if (m_velocity.x > 0.f)
-        {
-            m_sprite.setScale(Config::PARASITE_SCALE, Config::PARASITE_SCALE);
-        }
-        else if (m_velocity.x < 0.f)
-        {
-            m_sprite.setScale(-Config::PARASITE_SCALE, Config::PARASITE_SCALE);
-        }
-    }
-    else
-    {
-        bool left = IsLeftKeyPressed();
-        bool right = IsRightKeyPressed();
-    
-        if (right && !left)
-        {
-            m_sprite.setScale(Config::PARASITE_SCALE, Config::PARASITE_SCALE);
-        }
-        else if (left && !right)
-        {
-            m_sprite.setScale(-Config::PARASITE_SCALE, Config::PARASITE_SCALE);
-        }
-    }
-}
-
-void Parasite::ResolveCollisionsX(int x, const GameContext& ctx)
-{
-    int tileSize = ctx.levelMap->GetTileSize();
-    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
+    float drag = m_friction * 3.f;
 
     if (m_velocity.x > 0.f)
     {
-        m_hitbox.setPosition(x * tileSize - (bounds.width / 2.f) - Config::EPSILON, m_hitbox.getPosition().y);
-        m_velocity.x = 0.f;
+        m_velocity.x -= drag * dt;
+        m_velocity.x = std::max(m_velocity.x, Config::PARASITE_MAX_SPEED);
     }
-    else if (m_velocity.x < 0.f)
+    else
     {
-        m_hitbox.setPosition((x + 1) * tileSize + (bounds.width / 2.f) + Config::EPSILON, m_hitbox.getPosition().y);
-        m_velocity.x = 0.f;
+        m_velocity.x += drag * dt;
+        m_velocity.x = std::min(m_velocity.x, -Config::PARASITE_MAX_SPEED);
     }
 }
 
-void Parasite::ResolveCollisionsY(int y, const GameContext& ctx)
+void Parasite::UpdateHorizontal(float dt)
 {
-    int tileSize = ctx.levelMap->GetTileSize();
-    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
-
-    if (m_velocity.y > 0.f)
+    if (std::abs(m_velocity.x) > m_maxSpeed)
     {
-        m_hitbox.setPosition(m_hitbox.getPosition().x, y * tileSize - (bounds.height / 2.f) - Config::EPSILON);
-        m_velocity.y = 0.f;
-        m_isOnGround = true;
-        m_hasDash = true;
+        HorizontalDash(dt);
     }
-    else if (m_velocity.y < 0.f) 
+    else
     {
-        m_hitbox.setPosition(m_hitbox.getPosition().x, (y + 1) * tileSize + (bounds.height / 2.f) + Config::EPSILON);
-        m_velocity.y = 0.f;
-    }    
+        Character::UpdateHorizontal(dt);
+    }
 }
 
-void Parasite::ResolveCollisions(const GameContext& ctx, Axis axis)
+void Parasite::UpdateMove(float dt)
 {
-    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
-    int tileSize = ctx.levelMap->GetTileSize();
+    UpdateDashTimer(dt);
 
-    int minX = std::floor(bounds.left / tileSize);
-    int maxX = std::floor((bounds.left + bounds.width) / tileSize);
-    int minY = std::floor(bounds.top / tileSize);
-    int maxY = std::floor((bounds.top + bounds.height) / tileSize);
-
-    float epsilon = 0.01f;
-
-    if (axis == Axis::Vertical) 
+    if (m_dashTimer <= 0.f)
     {
-        m_isOnGround = false;
-    }
-
-    for (int y = minY; y <= maxY; ++y)
-    {
-        for (int x = minX; x <= maxX; ++x)
-        {
-            if (ctx.levelMap->IsSolid(x, y, Config::EntityType::Parasite))
-            {
-                if (axis == Axis::Horizontal)
-                {
-                    ResolveCollisionsX(x, ctx);
-                }
-                else
-                {
-                    ResolveCollisionsY(y, ctx);
-                }
-            }
-        }
+        UpdateHorizontal(dt);
+        UpdateVertical(dt, true);
     }
 }
 
-void Parasite::UpdateAnimation(float dt)
+bool Parasite::TryBreakTile(int x, int y, const GameContext& ctx)
 {
-    m_anim.Play("idle");
-    m_anim.Update(dt);
-    m_anim.Apply(m_sprite);
-}
+    if (!IsDashing())
+    {
+        return false;
+    }
 
+    if (!ctx.levelMap->IsBreakable(x, y))
+    {
+        return false;
+    }
+
+    ctx.levelMap->BreakTile(x, y);
+    return true;
+}
 
 void Parasite::Update(const GameContext& ctx)
 {
-    if (!m_isPlayerControlled) return;
+    if (!m_isPlayerControlled)
+    {
+        return;
+    }
 
-    float dt = ctx.dt;
-    sf::Vector2f mousePos = ctx.mousePos;
-
-    UpdateDash(dt, mousePos);
-
-    UpdateMove(dt);
-
-    m_hitbox.move(m_velocity.x * dt, 0.f);
-    ResolveCollisions(ctx, Axis::Horizontal);
-
-    m_hitbox.move(0.f, m_velocity.y * dt);
-    ResolveCollisions(ctx, Axis::Vertical);
-
-    UpdateSpriteDirection();
-    UpdateAnimation(dt);
-
-    m_sprite.setPosition(m_hitbox.getPosition());
+    UpdateDash(ctx.dt, ctx.mousePos);
+    UpdateMove(ctx.dt);
+    ApplyMovement(ctx);
 }

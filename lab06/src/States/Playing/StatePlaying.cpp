@@ -24,9 +24,9 @@ void StatePlaying::Init()
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
     m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
 
-    m_enemies.push_back(std::make_unique<Enemy>(sf::Vector2f(400.f, 400.f)));
-    m_enemies.push_back(std::make_unique<Enemy>(sf::Vector2f(600.f, 400.f)));
-    m_enemies.push_back(std::make_unique<Enemy>(sf::Vector2f(800.f, 400.f)));
+    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
+    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
+    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
@@ -191,7 +191,7 @@ void StatePlaying::CleanDeadEnemies()
 {
     m_enemies.erase(std::remove_if(
         m_enemies.begin(), m_enemies.end(),
-        [](const std::unique_ptr<Enemy> &enemy) { return enemy->IsDead(); }),
+        [](const std::unique_ptr<Scientist> &enemy) { return enemy->IsDead(); }),
         m_enemies.end()
     );
 }

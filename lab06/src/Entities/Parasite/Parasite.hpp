@@ -1,48 +1,33 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <cmath>
-#include "Entities/LivingEntity/LivingEntity.hpp"
-#include "Core/Map/Map.hpp"
-#include "Core/Animation/AnimationController.hpp"   
+#include "Entities/Character/Character.hpp"
 
-class Parasite : public LivingEntity
+class Parasite : public Character
 {
-    public:
-        Parasite(sf::Vector2f position);
-        void Update(const GameContext& ctx) override;
-        bool IsDashing() const;
-        void ForceDash(sf::Vector2f targetPos);
-    private:
-        void UpdateHorizontal(float dt);
-        void UpdateVertical(float dt);
-        void CheckXBoundaries();
-        enum class Axis { Horizontal, Vertical };
-        void ResolveCollisions(const GameContext& ctx, Axis axis);
-        void ResolveCollisionsX(int x, const GameContext& ctx);
-        void ResolveCollisionsY(int y, const GameContext& ctx);
-        void ResolveFriction(float dt);
-        void CheckMaxSpeed();   
-        bool CheckMoveKeys(float dt);
-        bool IsJumpKeyPressed();
-        bool IsLeftKeyPressed();
-        bool IsRightKeyPressed();
-        bool IsDashKeyPressed();
-        void UpdateDash(float dt, sf::Vector2f mousePos);
-        void UpdateMove(float dt);
-        void HorizontalDash(float dt);
-        void HorizontalCommon(float dt);
-        void UpdateDashTimer(float dt);
-        void UpdateSpriteDirection();
-        void UpdateAnimation(float dt);
+public:
+    Parasite(sf::Vector2f position);
 
-        AnimationController m_anim;
-        float m_jumpForce;
-        float m_gravity;
-        float m_accel;
-        float m_friction;
-        float m_dashCooldown;
-        float m_dashForce;
-        bool m_hasDash;
-        float m_dashTimer;
-        bool m_isOnGround;
+    void Update(const GameContext& ctx) override;
+    bool IsDashing() const;
+    void ForceDash(sf::Vector2f targetPos);
+
+protected:
+    Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
+    const char*        GetAnimationName() const override { return "idle"; }
+    void               OnLanding() override { m_hasDash = true; }
+    bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
+
+    void UpdateHorizontal(float dt) override;
+    void UpdateMove(float dt) override;
+
+private:
+    void HorizontalDash(float dt);
+    void UpdateDash(float dt, sf::Vector2f mousePos);
+    void UpdateDashTimer(float dt);
+
+    float m_dashCooldown = 0.f;
+    float m_dashForce    = Config::PARASITE_DASH_FORCE;
+    bool  m_hasDash      = true;
+    float m_dashTimer    = 0.f;
 };

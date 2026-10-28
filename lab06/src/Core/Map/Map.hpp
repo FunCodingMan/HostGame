@@ -15,6 +15,9 @@ public:
 
     Config::BlockNames GetTile(int x, int y) const;
     bool IsSolid(int x, int y, Config::EntityType entityType) const;
+    bool IsBreakable(int x, int y) const;
+    
+    void BreakTile(int x, int y); 
 
     int GetWidth() const { return m_width; }
     int GetHeight() const { return m_height; }
@@ -29,6 +32,7 @@ public:
 
     float GetWidthInPixels() const { return m_width * Config::WORLD_TILE_SIZE; }
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
+    
 
 private:
     std::vector<Config::BlockNames> m_grid;

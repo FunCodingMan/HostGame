@@ -25,6 +25,7 @@ void Map::InitStringMappings()
     m_stringToBlock["bw"] = Config::BlockNames::BlackWall;
     m_stringToBlock["el"] = Config::BlockNames::Elevator;
     m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
+    m_stringToBlock["gl"] = Config::BlockNames::Glass;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -40,6 +41,10 @@ Config::CollisionType Map::StringToColisionType(const string& s)
     if (s == "Ventilation")
     {
         return Config::CollisionType::Ventilation;
+    }
+    if (s == "Breakable")
+    {
+        return Config::CollisionType::Breakable;
     }
     return Config::CollisionType::Solid;
 } 
@@ -175,7 +180,7 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
 
     Config::CollisionType type = data->collision;
 
-    if (type == Config::CollisionType::Solid) return true;
+    if (type == Config::CollisionType::Solid || type == Config::CollisionType::Breakable) return true;
     if (type == Config::CollisionType::Empty) return false;
     
     if (type == Config::CollisionType::Ventilation) 
@@ -250,6 +255,21 @@ bool Map::IsIntersectingWith(const sf::FloatRect& bounds, Config::BlockNames tar
         }
     }
     return false;
+}
+
+bool Map::IsBreakable(int x, int y) const
+{
+    const Config::TileData* data = GetTileData(GetTile(x, y));
+    return data && data->collision == Config::CollisionType::Breakable;
+}
+
+void Map::BreakTile(int x, int y)
+{
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
+    if (!IsBreakable(x, y)) return;
+
+    m_grid[y * m_width + x] = Config::BlockNames::Empty;
+    BuildVertexElement(x, y);
 }
 
 void Map::Draw(sf::RenderWindow& window) const
