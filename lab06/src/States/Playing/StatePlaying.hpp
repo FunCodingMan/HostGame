@@ -8,7 +8,7 @@
 #include "Core/Map/Map.hpp"
 #include "Core/Camera/Camera.hpp"
 #include "Entities/Parasite/Parasite.hpp"
-#include "Entities/Scientist/Scientist.hpp"
+#include "Entities/Host/Host.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
 class StatePlaying : public State
@@ -39,11 +39,11 @@ private:
     ScreenHUD m_screenHud;
 
     Parasite m_parasite;
-    std::vector<std::unique_ptr<Scientist>> m_enemies;
+    std::vector<std::unique_ptr<Host>>   m_hosts;
 
 
     LivingEntity* m_playerAvatar;
-    Scientist* m_currentHost = nullptr;
+    Host* m_currentHost = nullptr;
 
     float m_timeInCurrentHost;
 };

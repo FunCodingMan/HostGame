@@ -3,11 +3,8 @@
 #include <cmath>
 
 Scientist::Scientist(sf::Vector2f position)
-    : Character(Config::SCIENTIST_MAX_HEALTH, position)
+    : Host(Config::SCIENTIST_MAX_HEALTH, position, Config::SCIENTIST_DECAY_TIME)
 {
-    m_maxDecayTimer = Config::SCIENTIST_DECAY_TIME;
-    m_decayTimer    = m_maxDecayTimer;
-
     m_accel     = Config::SCIENTIST_ACCEL;
     m_friction  = Config::SCIENTIST_FRICTION;
     m_jumpForce = Config::SCIENTIST_JUMP_FORCE;
@@ -35,9 +32,7 @@ Scientist::Scientist(sf::Vector2f position)
     {
         std::vector<sf::IntRect> frames;
         for (int i = 0; i < count; ++i)
-        {
             frames.push_back(sf::IntRect(i * FW, r * FH, FW, FH));
-        }
         return frames;
     };
 
@@ -61,18 +56,14 @@ Scientist::Scientist(sf::Vector2f position)
 const char* Scientist::GetAnimationName() const
 {
     if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
-    {
         return "walk";
-    }
     return "idle";
 }
 
 void Scientist::Update(const GameContext& ctx)
 {
     if (m_isDead)
-    {
         return;
-    }
 
     if (m_isPlayerControlled)
     {

@@ -1,5 +1,5 @@
 #include "States/Playing/StatePlaying.hpp"
-
+#include "Entities/Scientist/Scientist.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
@@ -24,9 +24,9 @@ void StatePlaying::Init()
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
     m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
 
-    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
-    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
-    m_enemies.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
@@ -82,7 +82,7 @@ void StatePlaying::Update(float dt)
 
     m_parasite.Update(ctx);
 
-    for (auto &enemy : m_enemies)
+    for (auto &enemy : m_hosts)
     {
         enemy->Update(ctx);
     }
@@ -102,7 +102,7 @@ void StatePlaying::HandlePossession()
     if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
         return;
 
-    for (auto &enemy : m_enemies)
+    for (auto &enemy : m_hosts)
     {
         if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
         {
@@ -180,19 +180,23 @@ void StatePlaying::CheckEndGameConditions()
         return;
     }
 
-    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+    if (m_currentHost != nullptr)
     {
-        m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
-        return;
+        if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+        {
+            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+            return;
+        }
     }
+
 }
 
 void StatePlaying::CleanDeadEnemies()
 {
-    m_enemies.erase(std::remove_if(
-        m_enemies.begin(), m_enemies.end(),
-        [](const std::unique_ptr<Scientist> &enemy) { return enemy->IsDead(); }),
-        m_enemies.end()
+    m_hosts.erase(std::remove_if(
+        m_hosts.begin(), m_hosts.end(),
+        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }),
+        m_hosts.end()
     );
 }
 
@@ -201,7 +205,7 @@ void StatePlaying::Draw()
     m_data->window.setView(m_camera.GetView());
     m_map.Draw(m_data->window);
 
-    for (auto &enemy : m_enemies)
+    for (auto &enemy : m_hosts)
     {
         if (!enemy->IsDead())
         {
