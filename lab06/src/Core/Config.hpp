@@ -79,8 +79,10 @@ namespace Config
     inline constexpr float SCIENTIST_SCALE          = 2.0f;
     inline constexpr float SCIENTIST_INITIAL_X      = 400.f;
     inline constexpr float SCIENTIST_INITIAL_Y      = 400.f;
-    inline constexpr float SCIENTIST_HITBOX_WIDTH   = 32.f;
-    inline constexpr float SCIENTIST_HITBOX_HEIGHT  = 64.f;
+    inline constexpr float SCIENTIST_HITBOX_LEFT   = 11.f;
+    inline constexpr float SCIENTIST_HITBOX_RIGHT  = 8.f;
+    inline constexpr float SCIENTIST_HITBOX_TOP    = 26.f;
+    inline constexpr float SCIENTIST_HITBOX_BOTTOM = 32.f;
 
     inline constexpr float SCIENTIST_MAX_SPEED   = 300.f;
     inline constexpr float SCIENTIST_ACCEL       = 1500.f;
@@ -92,8 +94,9 @@ namespace Config
     inline constexpr int   SCIENTIST_FRAME_W = 16;
     inline constexpr int   SCIENTIST_FRAME_H = 32;
 
-    inline constexpr float SCIENTIST_IDLE_FRAME_TIME = 0.20f;
+    inline constexpr float SCIENTIST_IDLE_FRAME_TIME = 0.40f;
     inline constexpr float SCIENTIST_WALK_FRAME_TIME = 0.10f;
+    inline constexpr float PARASITE_DASH_FRAME_TIME = 0.04f;
     inline constexpr float SCIENTIST_WALK_THRESHOLD  = 15.f;
 
     inline constexpr float SCIENTIST_DECAY_TIME = 10.f;  

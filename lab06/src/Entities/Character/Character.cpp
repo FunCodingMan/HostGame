@@ -15,6 +15,26 @@ void Character::InitHitbox(float width, float height, sf::Vector2f position)
     m_hitbox.setFillColor(sf::Color::Transparent);
     m_hitbox.setOutlineColor(sf::Color::Red);
     m_hitbox.setOutlineThickness(1.f);
+    m_spriteOffset = sf::Vector2f(0.f, 0.f);
+}
+
+void Character::InitHitboxFromCenter(float left, float right, float top, float bottom,
+                                     sf::Vector2f position)
+{
+    float w = left + right;
+    float h = top + bottom;
+
+    sf::Vector2f offset((right - left) / 2.f, (bottom - top) / 2.f);
+
+    m_hitbox.setSize(sf::Vector2f(w, h));
+    m_hitbox.setOrigin(w / 2.f, h / 2.f);
+    m_hitbox.setPosition(position + offset);
+
+    m_spriteOffset = -offset;
+
+    m_hitbox.setFillColor(sf::Color::Transparent);
+    m_hitbox.setOutlineColor(sf::Color::Red);
+    m_hitbox.setOutlineThickness(1.f);
 }
 
 void Character::InitSprite(const std::string& texturePath,
@@ -258,5 +278,12 @@ void Character::ApplyMovement(const GameContext& ctx)
     UpdateSpriteDirection();
     UpdateAnimation(dt);
 
-    m_sprite.setPosition(m_hitbox.getPosition());
+    sf::Vector2f eff = m_spriteOffset;
+
+    if (m_sprite.getScale().x < 0.f)
+    {
+        eff.x = -eff.x;
+    }
+
+    m_sprite.setPosition(m_hitbox.getPosition() + eff);
 }

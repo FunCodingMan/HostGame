@@ -14,7 +14,7 @@ public:
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
-    const char*        GetAnimationName() const override { return "idle"; }
+    const char*        GetAnimationName() const override;
     void               OnLanding() override { m_hasDash = true; }
     bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
 

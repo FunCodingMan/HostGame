@@ -15,6 +15,7 @@ protected:
     enum class Axis { Horizontal, Vertical };
 
     void InitHitbox(float width, float height, sf::Vector2f position);
+    void InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position);
     void InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
 
     virtual void UpdateHorizontal(float dt);
@@ -45,6 +46,7 @@ protected:
     float m_maxSpeed  = 0.f;
     float m_scale     = 1.f;
     bool  m_isOnGround = false;
+    sf::Vector2f m_spriteOffset{0.f, 0.f};
 
     AnimationController m_anim;
 };

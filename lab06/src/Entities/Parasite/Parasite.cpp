@@ -21,18 +21,12 @@ Parasite::Parasite(sf::Vector2f position)
 
     m_sprite.setPosition(position);
 
-    constexpr int FW = Config::PARASITE_FRAME_W;
-    constexpr int FH = Config::PARASITE_FRAME_H;
+    m_anim.Setup(m_texture,
+                 Config::PARASITE_FRAME_W,
+                 Config::PARASITE_FRAME_H);
 
-    m_anim.AddClip("idle",
-        {
-            sf::IntRect(0,    0, FW, FH),
-            sf::IntRect(FW,   0, FW, FH),
-            sf::IntRect(2*FW, 0, FW, FH),
-            sf::IntRect(3*FW, 0, FW, FH),
-        },
-        Config::PARASITE_IDLE_FRAME_TIME,
-        true);
+    m_anim.AddClip("idle", 5, Config::PARASITE_IDLE_FRAME_TIME);
+    m_anim.AddClip("dash", 3, Config::PARASITE_DASH_FRAME_TIME); 
 
     m_anim.Play("idle");
     m_anim.Apply(m_sprite);
@@ -41,6 +35,16 @@ Parasite::Parasite(sf::Vector2f position)
 bool Parasite::IsDashing() const
 {
     return m_dashTimer > 0.f;
+}
+
+const char* Parasite::GetAnimationName() const
+{
+    if (m_dashTimer > 0.f)
+    {
+        return "dash";
+    }
+
+    return "idle";
 }
 
 void Parasite::ForceDash(sf::Vector2f targetPos)
