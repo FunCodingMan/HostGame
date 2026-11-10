@@ -1,5 +1,6 @@
 #pragma once
 #include "Entities/Entity/Entity.hpp"
+#include "Entities/StateManager/PropertiesManager/PropertiesManager.hpp"
 
 class LivingEntity : public Entity
 {
@@ -30,6 +31,9 @@ public:
         }
     }
 
+    PropertiesManager& GetProperties() { return m_properties; }
+    const PropertiesManager& GetProperties() const { return m_properties; }
+
 protected:
     virtual void Die() 
     {
@@ -40,4 +44,6 @@ protected:
     float m_maxLife;
     bool m_isDead;
     bool m_isPlayerControlled;
+
+    PropertiesManager m_properties;
 };

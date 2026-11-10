@@ -2,6 +2,8 @@
 #include "Core/Config.hpp"
 #include <cmath>
 
+using namespace Config;
+
 Scientist::Scientist(sf::Vector2f position)
     : Host(Config::SCIENTIST_MAX_HEALTH, position, Config::SCIENTIST_DECAY_TIME)
 {
@@ -11,7 +13,6 @@ Scientist::Scientist(sf::Vector2f position)
     m_gravity   = Config::SCIENTIST_GRAVITY;
     m_maxSpeed  = Config::SCIENTIST_MAX_SPEED;
 
-    
     InitSprite("../assets/animations/scientist.png",
         Config::SCIENTIST_FRAME_W,
         Config::SCIENTIST_FRAME_H,
@@ -32,17 +33,12 @@ Scientist::Scientist(sf::Vector2f position)
     m_anim.AddClip("idle", 3, Config::SCIENTIST_IDLE_FRAME_TIME);
     m_anim.AddClip("walk", 3, Config::SCIENTIST_WALK_FRAME_TIME);
 
-    m_anim.Play("idle");
-    m_anim.Apply(m_sprite);
+    m_properties.SetString("name", "Scientist");
+    m_properties.SetInt("access_level", 1);
+
+    m_stateManager.SetState(EntityState::Idle);
 }
 
-const char* Scientist::GetAnimationName() const
-{
-    if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
-        return "walk";
-
-    return "idle";
-}
 
 void Scientist::Update(const GameContext& ctx)
 {
@@ -50,6 +46,7 @@ void Scientist::Update(const GameContext& ctx)
     {
         return;
     }
+    m_stateManager.Update(ctx.dt);
 
     if (m_isPlayerControlled)
     {
@@ -59,6 +56,21 @@ void Scientist::Update(const GameContext& ctx)
     else
     {
         UpdateVertical(ctx.dt, false);
+    }
+
+    if (m_isOnGround)
+    {
+        if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
+        {
+            m_stateManager.SetState(EntityState::Walk);
+        }
+        else
+        {
+            m_stateManager.SetState(EntityState::Idle);
+        }
+    }
+    else 
+    {
     }
 
     ApplyMovement(ctx);

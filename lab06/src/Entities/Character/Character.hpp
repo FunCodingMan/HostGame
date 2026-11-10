@@ -1,15 +1,18 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
-#include "Entities/LivingEntity/LivingEntity.hpp"
+#include "Entities/LivingEntity/LivingEntity.hpp"                             
 #include "Core/Animation/AnimationController.hpp"
 #include "Core/Map/Map.hpp"
+#include "Entities/StateManager/EntityStateManager/EntityStateManager.hpp"
 
 class Character : public LivingEntity
 {
 public:
     Character(float maxLife, sf::Vector2f position);
     virtual ~Character() = default;
+    EntityStateManager& GetStateManager() { return m_stateManager; }
+    const EntityStateManager& GetStateManager() const { return m_stateManager; }
 
 protected:
     enum class Axis { Horizontal, Vertical };
@@ -35,7 +38,6 @@ protected:
     void ApplyMovement(const GameContext& ctx);
 
     virtual Config::EntityType GetEntityType() const = 0;
-    virtual const char* GetAnimationName() const = 0;
     virtual void OnLanding() {}
     virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
 
@@ -49,4 +51,6 @@ protected:
     sf::Vector2f m_spriteOffset{0.f, 0.f};
 
     AnimationController m_anim;
+
+    EntityStateManager m_stateManager;
 };

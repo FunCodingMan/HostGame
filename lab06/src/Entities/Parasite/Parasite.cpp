@@ -1,6 +1,9 @@
 #include "Entities/Parasite/Parasite.hpp"
 #include "Core/Config.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
+
+using namespace Config;
 
 Parasite::Parasite(sf::Vector2f position)
     : Character(Config::PARASITE_MAX_HEALTH, position)
@@ -34,17 +37,7 @@ Parasite::Parasite(sf::Vector2f position)
 
 bool Parasite::IsDashing() const
 {
-    return m_dashTimer > 0.f;
-}
-
-const char* Parasite::GetAnimationName() const
-{
-    if (m_dashTimer > 0.f)
-    {
-        return "dash";
-    }
-
-    return "idle";
+    return m_stateManager.GetState() == Config::EntityState::Dash;
 }
 
 void Parasite::ForceDash(sf::Vector2f targetPos)
@@ -64,9 +57,10 @@ void Parasite::ForceDash(sf::Vector2f targetPos)
     m_velocity.y = (dy / length) * m_dashForce;
 
     m_dashCooldown = Config::DASH_COOLDOWN_TIME;
-    m_dashTimer    = Config::DASH_DURATION;
     m_hasDash      = false;
     m_isOnGround   = false;
+
+    m_stateManager.SetState(EntityState::Dash);
 }
 
 void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
@@ -84,14 +78,14 @@ void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
 
 void Parasite::UpdateDashTimer(float dt)
 {
-    if (m_dashTimer > 0.f)
+    if (m_stateManager.GetState() == EntityState::Dash)
     {
-        m_dashTimer -= dt;
-
-        if (m_dashTimer <= 0.f)
+        if (m_stateManager.GetTimeInState() >= Config::DASH_DURATION)
         {
             m_velocity.x *= 0.5f;
             m_velocity.y *= 0.5f;
+            
+            m_stateManager.SetState(EntityState::Idle);
         }
     }
 }
@@ -126,9 +120,10 @@ void Parasite::UpdateHorizontal(float dt)
 
 void Parasite::UpdateMove(float dt)
 {
+    m_stateManager.Update(dt);
     UpdateDashTimer(dt);
 
-    if (m_dashTimer <= 0.f)
+    if (m_stateManager.GetState() != EntityState::Dash)
     {
         UpdateHorizontal(dt);
         UpdateVertical(dt, true);

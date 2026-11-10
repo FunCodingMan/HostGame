@@ -1,4 +1,4 @@
-#include "Entities/StateManager/PropertiesManager.hpp"
+#include "Entities/StateManager/PropertiesManager/PropertiesManager.hpp"
 
 void PropertiesManager::SetBool(const std::string& name, bool val) {
     m_bools[name] = val;

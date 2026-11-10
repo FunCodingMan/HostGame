@@ -6,6 +6,17 @@ namespace Config
     inline constexpr int TEXTURE_TILE_SIZE = 32;
     inline constexpr int WORLD_TILE_SIZE = 64;
 
+    enum class EntityState
+    {
+        None,
+        Idle,
+        Walk,
+        Jump,
+        Fall,
+        Dash,
+        Dead
+    };
+
     enum class GameState {
         MainMenu,
         Tutorial,

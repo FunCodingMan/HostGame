@@ -10,5 +10,4 @@ public:
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Human; }
-    const char*        GetAnimationName() const override;
 };

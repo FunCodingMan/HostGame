@@ -1,14 +1,46 @@
 #include "Entities/Character/Character.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
 #include <iostream>
 #include <cmath>
+
+using namespace Config;
 
 Character::Character(float maxLife, sf::Vector2f /*position*/)
     : LivingEntity(maxLife)
 {
+    m_stateManager.SetOnStateChanged([this](Config::EntityState newState) {
+        switch (newState)
+        {
+            case EntityState::Idle:
+                m_anim.Play("idle"); 
+                break;
+            case EntityState::Walk: 
+                m_anim.Play("walk"); 
+                break;
+            case EntityState::Dash: 
+                m_anim.Play("dash"); 
+                break;
+            case EntityState::Dead:
+                m_anim.Play("dead"); 
+                break;
+            default:
+                break;
+        }
+    });
 }
 void Character::InitHitbox(float width, float height, sf::Vector2f position)
 {
+    m_stateManager.SetOnStateChanged([this](EntityState newState) {
+        switch (newState)
+        {
+            case EntityState::Idle: m_anim.Play("idle"); break;
+            case EntityState::Walk: m_anim.Play("walk"); break;
+            case EntityState::Dash: m_anim.Play("dash"); break;
+            case EntityState::Dead: m_anim.Play("dead"); break;
+            default: break;
+        }
+    });
     m_hitbox.setSize(sf::Vector2f(width, height));
     m_hitbox.setOrigin(width / 2.f, height / 2.f);
     m_hitbox.setPosition(position);
@@ -253,14 +285,6 @@ void Character::UpdateSpriteDirection()
 
 void Character::UpdateAnimation(float dt)
 {
-    const char* name = GetAnimationName();
-
-    if (name == nullptr)
-    {
-        return;
-    }
-
-    m_anim.Play(name);
     m_anim.Update(dt);
     m_anim.Apply(m_sprite);
 }

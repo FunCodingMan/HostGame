@@ -14,7 +14,6 @@ public:
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
-    const char*        GetAnimationName() const override;
     void               OnLanding() override { m_hasDash = true; }
     bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
 
@@ -29,5 +28,4 @@ private:
     float m_dashCooldown = 0.f;
     float m_dashForce    = Config::PARASITE_DASH_FORCE;
     bool  m_hasDash      = true;
-    float m_dashTimer    = 0.f;
 };
