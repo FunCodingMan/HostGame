@@ -1,0 +1,2855 @@
+Path to file: ./src/Core/Animation/AnimationController.cpp
+Code:
+#include "Core/Animation/AnimationController.hpp"
+#include <algorithm>
+
+void AnimationController::Setup(const sf::Texture& tex, int frameW, int frameH)
+{
+    m_texture = &tex;
+    m_frameW  = frameW;
+    m_frameH  = frameH;
+    m_nextRow = 0;
+}
+
+void AnimationController::AddClip(const std::string& name, int frameCount, float frameTime)
+{
+    if (m_texture == nullptr || frameCount <= 0) return;
+
+    int rows = (int)(m_texture->getSize().y / m_frameH);
+    if (m_nextRow >= rows) return;
+
+    int row = m_nextRow++;
+    AddClipRow(name, row, 0, frameCount, frameTime);
+}
+
+void AnimationController::AddClip(const std::string& name, int frameCount, float frameTime,
+                                  int row, int startCol)
+{
+    if (m_texture == nullptr || frameCount <= 0 || row < 0 || startCol < 0) return;
+
+    int rows = (int)(m_texture->getSize().y / m_frameH);
+    if (row >= rows) return;
+
+    AddClipRow(name, row, startCol, frameCount, frameTime);
+
+    if (row + 1 > m_nextRow) m_nextRow = row + 1;
+}
+
+void AnimationController::AddClip(const std::string& name,
+                                  const std::vector<sf::IntRect>& frames,
+                                  float frameTime, bool loop)
+{
+    m_clips[name] = Clip{ frames, frameTime, loop };
+}
+
+void AnimationController::AddClipRow(const std::string& name, int row, int startCol,
+                                     int count, float frameTime)
+{
+    int cols = (int)(m_texture->getSize().x / m_frameW);
+    int realCount = std::min(count, cols - startCol);
+    if (realCount <= 0) return;
+
+    std::vector<sf::IntRect> frames;
+    frames.reserve(realCount);
+    for (int i = 0; i < realCount; ++i)
+    {
+        frames.emplace_back((startCol + i) * m_frameW, row * m_frameH, m_frameW, m_frameH);
+    }
+
+    bool  loop = (realCount > 1);
+    float ft   = (realCount > 1) ? frameTime : 1.f;
+
+    m_clips[name] = Clip{ frames, ft, loop };
+}
+
+void AnimationController::Play(const std::string& name)
+{
+    if (m_current == name) return;
+    if (!m_clips.count(name)) return;
+    m_current = name;
+    m_frame   = 0;
+    m_elapsed = 0.f;
+}
+
+void AnimationController::Update(float dt)
+{
+    auto it = m_clips.find(m_current);
+    if (it == m_clips.end() || it->second.frames.empty()) return;
+
+    const Clip& c = it->second;
+    m_elapsed += dt;
+    while (m_elapsed >= c.frameTime)
+    {
+        m_elapsed -= c.frameTime;
+        if (++m_frame >= (int)c.frames.size())
+            m_frame = c.loop ? 0 : (int)c.frames.size() - 1;
+    }
+}
+
+void AnimationController::Apply(sf::Sprite& sprite) const
+{
+    auto it = m_clips.find(m_current);
+    if (it == m_clips.end() || it->second.frames.empty()) return;
+    sprite.setTextureRect(it->second.frames[m_frame]);
+}
+Path to file: ./src/Core/Animation/AnimationController.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <unordered_map>
+#include <vector>
+#include <string>
+
+class AnimationController
+{
+public:
+    struct Clip
+    {
+        std::vector<sf::IntRect> frames;
+        float frameTime = 0.1f;
+        bool  loop      = true;
+    };
+
+    void Setup(const sf::Texture& tex, int frameW, int frameH);
+
+    void AddClip(const std::string& name, int frameCount, float frameTime);
+    void AddClip(const std::string& name, int frameCount, float frameTime,
+                 int row, int startCol = 0);
+
+    void AddClip(const std::string& name,
+                 const std::vector<sf::IntRect>& frames,
+                 float frameTime, bool loop = true);
+
+    void Play(const std::string& name);
+    void Update(float dt);
+    void Apply(sf::Sprite& sprite) const;
+
+    const std::string& Current() const { return m_current; }
+
+private:
+    void AddClipRow(const std::string& name, int row, int startCol,
+                    int count, float frameTime);
+
+    const sf::Texture* m_texture = nullptr;
+    int m_frameW  = 0;
+    int m_frameH  = 0;
+    int m_nextRow = 0;
+
+    std::unordered_map<std::string, Clip> m_clips;
+    std::string m_current;
+    int   m_frame   = 0;
+    float m_elapsed = 0.f;
+};
+Path to file: ./src/Core/Camera/Camera.cpp
+Code:
+#include "Core/Camera/Camera.hpp"
+#include "Core/Config.hpp"
+
+using namespace Config;
+
+Camera::Camera(sf::Vector2f size) : m_lerpSpeed(CAMERA_LERP_FACTOR)
+{
+    m_view.setSize(size);
+    m_view.setCenter(size.x / 2.f, size.y / 2.f);
+    m_deadZone = sf::Vector2f(CAMERA_DEAD_ZONE_WIDTH, CAMERA_DEAD_ZONE_HEIGHT);
+
+    m_currentFocus = m_view.getCenter();
+    m_currentMouseOffset = sf::Vector2f(0.f, 0.f);
+}
+
+void Camera::Update(sf::Vector2f targetPos, sf::Vector2f targetMouseOffset, float dt, float mapWidthPx, float mapHeightPx)
+{
+    sf::Vector2f desiredFocus = m_currentFocus;
+    
+    if (targetPos.x > m_currentFocus.x + m_deadZone.x) {
+        desiredFocus.x = targetPos.x - m_deadZone.x;
+    } else if (targetPos.x < m_currentFocus.x - m_deadZone.x) {
+        desiredFocus.x = targetPos.x + m_deadZone.x;
+    }
+
+    if (targetPos.y > m_currentFocus.y + m_deadZone.y) {
+        desiredFocus.y = targetPos.y - m_deadZone.y;
+    } else if (targetPos.y < m_currentFocus.y - m_deadZone.y) {
+        desiredFocus.y = targetPos.y + m_deadZone.y;
+    }
+
+    m_currentFocus += (desiredFocus - m_currentFocus) * m_lerpSpeed * dt;
+
+    m_currentMouseOffset += (targetMouseOffset - m_currentMouseOffset) * m_lerpSpeed * dt;
+
+    sf::Vector2f finalPos = m_currentFocus + m_currentMouseOffset;
+    
+    float halfWidth = m_view.getSize().x / 2.f;
+    float halfHeight = m_view.getSize().y / 2.f;
+
+    finalPos.x = std::clamp(finalPos.x, halfWidth, mapWidthPx - halfWidth);
+    finalPos.y = std::clamp(finalPos.y, halfHeight, mapHeightPx - halfHeight);
+
+    m_view.setCenter(finalPos);
+}
+
+const sf::View& Camera::GetView() const
+{
+    return m_view;
+}
+
+void Camera::SetSize(sf::Vector2f newSize)
+{
+    m_view.setSize(newSize);
+}
+
+void Camera::Zoom(float factor)
+{
+    m_view.zoom(factor);
+}
+Path to file: ./src/Core/Camera/Camera.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Core/Config.hpp"
+
+class Camera
+{
+public:
+    Camera(sf::Vector2f size);
+
+    void Update(sf::Vector2f targetPos, sf::Vector2f targetMouseOffset, float dt, float mapWidthPx,
+                float mapHeightPx);
+
+    void NewFunction(sf::Vector2f &targetPos, sf::Vector2f &desiredFocus);
+
+    const sf::View& GetView() const;
+    void SetSize(sf::Vector2f newSize);
+    void Zoom(float factor);
+
+private:
+    sf::View m_view;
+    float m_lerpSpeed;
+    sf::Vector2f m_deadZone;
+    sf::Vector2f m_currentFocus;
+    sf::Vector2f m_currentMouseOffset;
+};
+Path to file: ./src/Core/Config.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+namespace Config 
+{
+    inline constexpr int TEXTURE_TILE_SIZE = 32;
+    inline constexpr int WORLD_TILE_SIZE = 64;
+
+    enum class GameState {
+        MainMenu,
+        Tutorial,
+        Playing,
+        Paused,
+        GameOver,
+        Victory
+    };
+
+    enum class EntityType {
+        Parasite,
+        Human,
+        Bullet
+    };
+
+    enum class BlockNames {
+        Empty,
+        Wall,
+        Floor,
+        BlackWall,
+        Elevator,
+        Ventilation,
+        Glass
+    };
+
+    enum class CollisionType {
+        Empty,
+        Solid,
+        Ventilation,
+        Breakable
+    };
+
+    struct TileData {
+        CollisionType collision;
+        sf::IntRect textureRect;
+    };
+    
+    inline constexpr float WINDOW_WIDTH = 1080.f;
+    inline constexpr float WINDOW_HEIGHT = 720.f;
+    inline constexpr float FLOOR_Y = 600.f;
+    inline const sf::Color BG_COLOR = sf::Color(40, 40, 40);
+
+    inline constexpr float ENEMY_INITIAL_X = 400.f;
+    inline constexpr float ENEMY_INITIAL_Y = 400.f;
+    inline constexpr float ENEMY_SIZE = 40.f;
+    inline constexpr float ENEMY_START_VELOCITY_X = 200.f;
+    inline constexpr float ENEMY_START_VELOCITY_Y = 150.f;
+    inline constexpr float ENEMY_FLASH_TIME = 0.5f;
+    inline const sf::Color ENEMY_COLOR = sf::Color::Green;
+    inline const sf::Color ENEMY_FLASH_COLOR = sf::Color::Red;
+
+    inline constexpr float PARASITE_SCALE = 2.0f;
+    inline constexpr float PARASITE_INITIAL_X = 200.f;
+    inline constexpr float PARASITE_INITIAL_Y = 200.f;
+    inline constexpr float PARASITE_HITBOX_WIDTH = 32.f;
+    inline constexpr float PARASITE_HITBOX_HEIGHT = 32.f;
+    inline constexpr float PARASITE_MAX_SPEED = 300.f;
+    inline constexpr float PARASITE_ACCEL = 2000.f;
+    inline constexpr float PARASITE_FRICTION = 2000.f;
+    inline constexpr float PARASITE_GRAVITY = 2500.f;
+    inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
+    inline constexpr float PARASITE_MAX_HEALTH = 5.f; 
+    inline constexpr float MAX_FALL_SPEED = 1000.f;
+    inline constexpr int PARASITE_FRAME_W = 16;
+    inline constexpr int PARASITE_FRAME_H = 16;
+
+    inline constexpr float PARASITE_IDLE_FRAME_TIME = 0.25f;
+    
+
+    inline constexpr float PARASITE_DASH_FORCE = 1500.f;
+    inline constexpr float SCIENTIST_SCALE          = 2.0f;
+    inline constexpr float SCIENTIST_INITIAL_X      = 400.f;
+    inline constexpr float SCIENTIST_INITIAL_Y      = 400.f;
+    inline constexpr float SCIENTIST_HITBOX_LEFT   = 11.f;
+    inline constexpr float SCIENTIST_HITBOX_RIGHT  = 8.f;
+    inline constexpr float SCIENTIST_HITBOX_TOP    = 26.f;
+    inline constexpr float SCIENTIST_HITBOX_BOTTOM = 32.f;
+
+    inline constexpr float SCIENTIST_MAX_SPEED   = 300.f;
+    inline constexpr float SCIENTIST_ACCEL       = 1500.f;
+    inline constexpr float SCIENTIST_FRICTION    = 2000.f;
+    inline constexpr float SCIENTIST_GRAVITY     = 3500.f;
+    inline constexpr float SCIENTIST_JUMP_FORCE  = 1000.f;
+    inline constexpr float SCIENTIST_MAX_HEALTH  = 50.f;
+
+    inline constexpr int   SCIENTIST_FRAME_W = 16;
+    inline constexpr int   SCIENTIST_FRAME_H = 32;
+
+    inline constexpr float SCIENTIST_IDLE_FRAME_TIME = 0.40f;
+    inline constexpr float SCIENTIST_WALK_FRAME_TIME = 0.10f;
+    inline constexpr float PARASITE_DASH_FRAME_TIME = 0.04f;
+    inline constexpr float SCIENTIST_WALK_THRESHOLD  = 15.f;
+
+    inline constexpr float SCIENTIST_DECAY_TIME = 10.f;  
+
+    inline constexpr float DASH_COOLDOWN_TIME = 2.f;
+    inline constexpr float DASH_DURATION = 0.15f;
+
+    inline constexpr float CAMERA_LERP_FACTOR = 5.0f;
+    inline constexpr float CAMERA_ZOOM = 1.5f;
+    inline constexpr float CAMERA_LOOK_STRENGTH = 0.4f;
+    inline constexpr float CAMERA_DEAD_ZONE_WIDTH = 80.f;
+    inline constexpr float CAMERA_DEAD_ZONE_HEIGHT = 50.f;
+
+    inline const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
+    inline constexpr float EYE_SIZE = 12.f;
+    inline constexpr float PUPIL_SIZE = 6.f;
+    inline constexpr float EYE_OFFSET = 10.f;  
+    inline constexpr float PUPIL_OFFSET = 3.f;
+
+    inline constexpr float EPSILON = 0.1f;
+
+    inline constexpr float PHYSICS_FPS = 60.f;
+
+    inline constexpr float TIME_FOR_ONE_FRAME = 1.0f / PHYSICS_FPS;
+
+    inline constexpr float MENU_BUTTON_TEXT_SIZE = 50.f;
+
+    inline constexpr float PLAYER_HUD_WIDTH = 50.f;
+
+    inline constexpr float COOLDOWN_IN_HOST = 1.f;
+}
+Path to file: ./src/Core/GameContext.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Core/Map/Map.hpp"
+
+struct GameContext
+{
+    float dt;
+    sf::Vector2f mousePos;
+    Map* levelMap;
+};
+Path to file: ./src/Core/GameData.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include "States/StateManager/StateManager.hpp"
+
+struct GameData
+{
+    sf::RenderWindow window;
+    StateManager manager;
+    sf::Font headerFont;
+    sf::Font hudFont;
+};
+
+typedef std::shared_ptr<GameData> GameDataRef;
+Path to file: ./src/Core/Game/Game.cpp
+Code:
+#include "Core/Game/Game.hpp"
+#include "Core/Config.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+
+Game::Game() 
+{
+    m_data->window.create(sf::VideoMode::getDesktopMode(), "The Host", sf::Style::Fullscreen);
+    m_data->window.setKeyRepeatEnabled(false);
+    m_data->window.setVerticalSyncEnabled(true);
+    m_data->headerFont.loadFromFile("../assets/fonts/PressStart2P-Regular.ttf");
+    m_data->hudFont.loadFromFile("../assets/fonts/Sligoil-Micro.ttf");
+    m_data->manager.AddState(StateRef(new StateMainMenu(m_data)));
+}
+
+void Game::Run() 
+{
+    sf::Clock clock;
+    float accumulator = 0.0f;
+
+    while (m_data->window.isOpen()) 
+    {
+        m_data->manager.ProcessStateChanges();
+
+        ProcessEvents();
+
+        float frameTime = clock.restart().asSeconds();
+        if (frameTime > 0.25f) frameTime = 0.25f;
+        accumulator += frameTime;
+
+        while (accumulator >= m_dt) 
+        {
+            Update();
+            accumulator -= m_dt;
+        }
+
+        Render();
+    }
+}
+
+void Game::ProcessEvents()
+{
+    sf::Event event;
+    while (m_data->window.pollEvent(event)) 
+    {
+        if (event.type == sf::Event::Closed) {
+            m_data->window.close();
+        }
+        
+        if (!m_data->manager.isEmpty()) {
+            m_data->manager.GetActiveState()->HandleInput(event);
+        }
+    }
+}
+
+void Game::Update()
+{
+    if (!m_data->manager.isEmpty()) {
+        m_data->manager.GetActiveState()->Update(m_dt);
+    }
+}
+
+void Game::Render()
+{
+    m_data->window.clear(Config::BG_COLOR);
+    
+    if (!m_data->manager.isEmpty()) {
+        m_data->manager.GetActiveState()->Draw();
+    }
+
+    m_data->window.display();
+}
+Path to file: ./src/Core/Game/Game.hpp
+Code:
+#pragma once
+#include <memory>
+#include <SFML/Graphics.hpp>
+#include "Core/GameData.hpp"
+#include "Core/Config.hpp"
+
+class Game {
+public:
+    Game();
+    void Run();
+
+private:
+    void ProcessEvents();
+    void Update();
+    void Render();
+
+    GameDataRef m_data = std::make_shared<GameData>();
+    const float m_dt = 1.0f / Config::PHYSICS_FPS;
+};
+Path to file: ./src/Core/GameKeyboard/GameKeyboard.cpp
+Code:
+#include <SFML/Graphics.hpp>
+#include "GameKeyboard.hpp"
+
+bool GameKeyboard::IsJumpKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
+}
+bool GameKeyboard::IsLeftKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
+}
+bool GameKeyboard::IsRightKeyPressed()
+{
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
+}
+
+bool GameKeyboard::IsDashKeyPressed()
+{
+    return sf::Mouse::isButtonPressed(sf::Mouse::Left) ||
+           sf::Keyboard::isKeyPressed(sf::Keyboard::LShift);
+}
+
+bool GameKeyboard::IsHitboxesPressed(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::B && sf::Keyboard::isKeyPressed(sf::Keyboard::F3);
+}
+
+bool GameKeyboard::IsEventUp(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Up || event.key.code == sf::Keyboard::W;
+}
+
+bool GameKeyboard::IsEventDown(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Down || event.key.code == sf::Keyboard::S;
+}
+
+bool GameKeyboard::IsEventLeft(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::A;
+}
+
+bool GameKeyboard::IsEventRight(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Right || event.key.code == sf::Keyboard::D;
+}
+
+bool GameKeyboard::IsEventOpen(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Enter;
+}
+
+bool GameKeyboard::IsEventEscape(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::Escape;
+}
+Path to file: ./src/Core/GameKeyboard/GameKeyboard.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class GameKeyboard
+{
+public:
+    static bool IsEventUp(const sf::Event& event);
+    static bool IsEventDown(const sf::Event& event);
+    static bool IsEventLeft(const sf::Event& event);
+    static bool IsEventRight(const sf::Event& event);
+    static bool IsEventOpen(const sf::Event& event);
+    static bool IsEventEscape(const sf::Event& event);
+    static bool IsJumpKeyPressed();
+    static bool IsLeftKeyPressed();
+    static bool IsRightKeyPressed();
+    static bool IsDashKeyPressed();
+    static bool IsHitboxesPressed(const sf::Event& event);
+private:
+
+};
+Path to file: ./src/Core/Map/Map.cpp
+Code:
+#include "Core/Map/Map.hpp"
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <cmath>
+
+using namespace std;
+
+Map::Map() : m_width(0), m_height(0)
+{
+    if (!m_tileset.loadFromFile("../assets/images/tileset.png")) {
+        std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
+    }
+
+    m_Vertices.setPrimitiveType(sf::Quads);
+    
+    InitStringMappings();
+}
+
+void Map::InitStringMappings()
+{
+    m_stringToBlock[".."] = Config::BlockNames::Empty;
+    m_stringToBlock["wa"] = Config::BlockNames::Wall;
+    m_stringToBlock["fl"] = Config::BlockNames::Floor;
+    m_stringToBlock["bw"] = Config::BlockNames::BlackWall;
+    m_stringToBlock["el"] = Config::BlockNames::Elevator;
+    m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
+    m_stringToBlock["gl"] = Config::BlockNames::Glass;
+}
+
+Config::CollisionType Map::StringToColisionType(const string& s)
+{
+    if (s == "Empty")
+    {
+        return Config::CollisionType::Empty;
+    }
+    if (s == "Solid")
+    {
+        return Config::CollisionType::Solid;
+    }
+    if (s == "Ventilation")
+    {
+        return Config::CollisionType::Ventilation;
+    }
+    if (s == "Breakable")
+    {
+        return Config::CollisionType::Breakable;
+    }
+    return Config::CollisionType::Solid;
+} 
+
+void Map::ParseTileConfig(const string& code, const string collisionStr, const int col, const int row)
+{
+    Config::BlockNames blockName = m_stringToBlock[code];
+
+    Config::CollisionType type = StringToColisionType(collisionStr);
+
+    m_tileDictionary[blockName] = {type, sf::IntRect(col * Config::TEXTURE_TILE_SIZE, 
+                                                     row * Config::TEXTURE_TILE_SIZE, 
+                                                     Config::TEXTURE_TILE_SIZE, 
+                                                     Config::TEXTURE_TILE_SIZE)};
+}
+
+bool Map::LoadTileConfig(const string& filename)
+{
+    ifstream file(filename);
+    if(!file.is_open()) return false;
+
+    string line;
+
+    while (getline(file, line))
+    {
+        if (line.empty() || line[0] == '#')
+        {
+            continue;
+        }
+        stringstream ss(line);
+        string code, collisionStr;
+
+        int col, row;
+
+        if (ss >> code >> collisionStr >> col >> row)
+        {
+            if (m_stringToBlock.find(code) == m_stringToBlock.end()) {
+                std::cerr << "Внимание: Найден неизвестный код '" << code << "' в " << filename << std::endl;
+                continue;
+            }
+            ParseTileConfig(code, collisionStr, col, row);
+        }
+    }
+    return true;
+}
+
+void Map::LoadLeveFromLine(const string& line)
+{
+    stringstream ss(line);
+    string tileCode;
+    int curLineWidth = 0;
+
+    while (ss >> tileCode)
+    {
+        if (m_stringToBlock.find(tileCode) == m_stringToBlock.end())
+        {
+            std::cerr << "Предупреждение: Неизвестный тайл '" << tileCode << "'" << std::endl;
+            m_grid.push_back(Config::BlockNames::Empty);
+        }
+        else
+        {
+            m_grid.push_back(m_stringToBlock[tileCode]);
+        }
+        curLineWidth++;
+    }
+    if (m_width == 0) 
+    {
+        m_width = curLineWidth;
+    }
+    m_height++;
+}
+
+bool Map::LoadFromFile(const string& filename)
+{
+    ifstream file(filename);
+
+    if (!file.is_open())
+    {
+        std::cerr << "Ошибка: Не удалось загрузить карту " << filename << std::endl;
+        return false;
+    }
+
+    m_grid.clear();
+
+    string line;
+    m_height = 0;
+    m_width = 0;
+
+    while (getline(file, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        LoadLeveFromLine(line);
+    }
+
+    BuildVertexArray();
+
+    return true;
+}
+
+Config::BlockNames Map::GetTile(int x, int y) const
+{
+    if (y >= m_height)
+    {
+        return Config::BlockNames::Empty;
+    }
+    if (x < 0 || x >= m_width || y < 0)
+    {
+        return Config::BlockNames::BlackWall;
+    }
+
+    return m_grid[y * m_width + x];
+}
+
+const Config::TileData* Map::GetTileData(Config::BlockNames blockName) const
+{
+    auto it = m_tileDictionary.find(blockName);
+    if (it != m_tileDictionary.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+bool Map::IsSolid(int x, int y, Config::EntityType entityType) const 
+{
+    Config::BlockNames block = GetTile(x, y);
+    const Config::TileData* data = GetTileData(block);
+    
+    if (!data) return true; 
+
+    Config::CollisionType type = data->collision;
+
+    if (type == Config::CollisionType::Solid || type == Config::CollisionType::Breakable) return true;
+    if (type == Config::CollisionType::Empty) return false;
+    
+    if (type == Config::CollisionType::Ventilation) 
+    {
+        return entityType != Config::EntityType::Parasite; 
+    }
+
+    return false;
+}
+
+void Map::BuildVertexElement(int xTile, int yTile)
+{
+    Config::BlockNames blockName = GetTile(xTile, yTile);
+
+    const Config::TileData* tileData = GetTileData(blockName);
+    if (!tileData)
+    {
+        return;
+    }
+
+    int vertexElIdx = (xTile + yTile * m_width) * 4;
+
+    sf::Vertex* quad = &m_Vertices[vertexElIdx];
+    float wSize = Config::WORLD_TILE_SIZE;
+    float x = xTile * wSize;
+    float y = yTile * wSize;
+
+    quad[0].position = sf::Vector2f(x, y);
+    quad[1].position = sf::Vector2f(x + wSize, y);
+    quad[2].position = sf::Vector2f(x + wSize, y + wSize);
+    quad[3].position = sf::Vector2f(x, y + wSize);
+
+    sf::IntRect texRect = tileData->textureRect;
+    float tx = texRect.left;
+    float ty = texRect.top;
+    float tSize = texRect.width;
+
+    quad[0].texCoords = sf::Vector2f(tx, ty);
+    quad[1].texCoords = sf::Vector2f(tx + tSize, ty);
+    quad[2].texCoords = sf::Vector2f(tx + tSize, ty + tSize);
+    quad[3].texCoords = sf::Vector2f(tx, ty + tSize);
+}
+
+void Map::BuildVertexArray()
+{
+    m_Vertices.resize(m_width * m_height * 4);
+
+    for (int i = 0; i < m_width; ++i)
+    {
+        for (int j = 0; j < m_height; ++j)
+        {
+            BuildVertexElement(i, j);
+        }
+    }
+}
+
+bool Map::IsIntersectingWith(const sf::FloatRect& bounds, Config::BlockNames targetBlock) const
+{
+    int minX = std::floor(bounds.left / Config::WORLD_TILE_SIZE);
+    int maxX = std::floor((bounds.left + bounds.width) / Config::WORLD_TILE_SIZE);
+    int minY = std::floor(bounds.top / Config::WORLD_TILE_SIZE);
+    int maxY = std::floor((bounds.top + bounds.height) / Config::WORLD_TILE_SIZE);
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            if (GetTile(x, y) == targetBlock)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Map::IsBreakable(int x, int y) const
+{
+    const Config::TileData* data = GetTileData(GetTile(x, y));
+    return data && data->collision == Config::CollisionType::Breakable;
+}
+
+void Map::BreakTile(int x, int y)
+{
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
+    if (!IsBreakable(x, y)) return;
+
+    m_grid[y * m_width + x] = Config::BlockNames::Empty;
+    BuildVertexElement(x, y);
+}
+
+void Map::Draw(sf::RenderWindow& window) const
+{
+    window.draw(m_Vertices, &m_tileset);
+}
+
+Path to file: ./src/Core/Map/Map.hpp
+Code:
+#pragma once
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <SFML/Graphics.hpp>
+#include "Core/Config.hpp"
+
+class Map
+{
+public:
+    Map();
+
+    bool LoadTileConfig(const std::string& filename);
+    bool LoadFromFile(const std::string& filename);
+
+    Config::BlockNames GetTile(int x, int y) const;
+    bool IsSolid(int x, int y, Config::EntityType entityType) const;
+    bool IsBreakable(int x, int y) const;
+    
+    void BreakTile(int x, int y); 
+
+    int GetWidth() const { return m_width; }
+    int GetHeight() const { return m_height; }
+    int GetTileSize() const { return Config::WORLD_TILE_SIZE; }
+
+    void BuildVertexArray();
+    void Draw(sf::RenderWindow& window) const;
+
+    const Config::TileData* GetTileData(Config::BlockNames blockName) const;
+
+    bool IsIntersectingWith(const sf::FloatRect& bounds, Config::BlockNames targetBlock) const;
+
+    float GetWidthInPixels() const { return m_width * Config::WORLD_TILE_SIZE; }
+    float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
+    
+
+private:
+    std::vector<Config::BlockNames> m_grid;
+    int m_width;
+    int m_height;
+    int m_tileSize;
+
+    //TODO: приватные поля m_<name>
+
+    std::unordered_map<Config::BlockNames, Config::TileData> m_tileDictionary;
+
+    std::unordered_map<std::string, Config::BlockNames> m_stringToBlock;
+
+    void ParseTileConfig(const std::string& code, const std::string collisionStr, const int col, const int row);
+
+    void LoadLeveFromLine(const std::string& line);
+
+    Config::CollisionType StringToColisionType(const std::string& s);
+
+    void InitStringMappings();
+
+    void BuildVertexElement(int x, int y);
+
+    sf::Texture m_tileset;
+    sf::VertexArray m_Vertices;
+};
+Path to file: ./src/Entities/Character/Character.cpp
+Code:
+#include "Entities/Character/Character.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include <iostream>
+#include <cmath>
+
+Character::Character(float maxLife, sf::Vector2f /*position*/)
+    : LivingEntity(maxLife)
+{
+}
+void Character::InitHitbox(float width, float height, sf::Vector2f position)
+{
+    m_hitbox.setSize(sf::Vector2f(width, height));
+    m_hitbox.setOrigin(width / 2.f, height / 2.f);
+    m_hitbox.setPosition(position);
+    m_hitbox.setFillColor(sf::Color::Transparent);
+    m_hitbox.setOutlineColor(sf::Color::Red);
+    m_hitbox.setOutlineThickness(1.f);
+    m_spriteOffset = sf::Vector2f(0.f, 0.f);
+}
+
+void Character::InitHitboxFromCenter(float left, float right, float top, float bottom,
+                                     sf::Vector2f position)
+{
+    float w = left + right;
+    float h = top + bottom;
+
+    sf::Vector2f offset((right - left) / 2.f, (bottom - top) / 2.f);
+
+    m_hitbox.setSize(sf::Vector2f(w, h));
+    m_hitbox.setOrigin(w / 2.f, h / 2.f);
+    m_hitbox.setPosition(position + offset);
+
+    m_spriteOffset = -offset;
+
+    m_hitbox.setFillColor(sf::Color::Transparent);
+    m_hitbox.setOutlineColor(sf::Color::Red);
+    m_hitbox.setOutlineThickness(1.f);
+}
+
+void Character::InitSprite(const std::string& texturePath,
+                           int frameW, int frameH, float scale)
+{
+    if (!m_texture.loadFromFile(texturePath))
+    {
+        std::cerr << "Ошибка: Не удалось загрузить " << texturePath << std::endl;
+    }
+    m_texture.setSmooth(false);
+
+    m_sprite.setTexture(m_texture);
+    m_sprite.setScale(scale, scale);
+    m_sprite.setOrigin(frameW / 2.f, frameH / 2.f);
+    m_scale = scale;
+}
+
+
+bool Character::CheckMoveKeys(float dt)
+{
+    bool left  = GameKeyboard::IsLeftKeyPressed();
+    bool right = GameKeyboard::IsRightKeyPressed();
+
+    if (left && right)
+    {
+        return false;
+    }
+
+    if (left)
+    {
+        m_velocity.x -= m_accel * dt;
+        return true;
+    }
+
+    if (right)
+    {
+        m_velocity.x += m_accel * dt;
+        return true;
+    }
+
+    return false;
+}
+
+void Character::ResolveFriction(float dt)
+{
+    float f = m_isOnGround ? m_friction : m_friction * 0.3f;
+
+    if (m_velocity.x > 0.f)
+    {
+        m_velocity.x -= f * dt;
+
+        if (m_velocity.x < 0.f)
+        {
+            m_velocity.x = 0.f;
+        }
+    }
+    else
+    {
+        m_velocity.x += f * dt;
+
+        if (m_velocity.x > 0.f)
+        {
+            m_velocity.x = 0.f;
+        }
+    }
+}
+
+void Character::CheckMaxSpeed()
+{
+    if (m_velocity.x > m_maxSpeed)
+    {
+        m_velocity.x = m_maxSpeed;
+    }
+
+    if (m_velocity.x < -m_maxSpeed)
+    {
+        m_velocity.x = -m_maxSpeed;
+    }
+}
+
+void Character::UpdateHorizontal(float dt)
+{
+    bool isMoving = CheckMoveKeys(dt);
+
+    if (!isMoving)
+    {
+        ResolveFriction(dt);
+    }
+
+    CheckMaxSpeed();
+}
+
+void Character::UpdateVertical(float dt, bool allowInput)
+{
+    float curGravity = m_gravity;
+
+    if (allowInput && !GameKeyboard::IsJumpKeyPressed() && m_velocity.y < 0.f)
+    {
+        curGravity *= 2.f;
+    }
+
+    m_velocity.y += curGravity * dt;
+
+    if (m_velocity.y > Config::MAX_FALL_SPEED)
+    {
+        m_velocity.y = Config::MAX_FALL_SPEED;
+    }
+
+    if (allowInput && GameKeyboard::IsJumpKeyPressed() && m_isOnGround)
+    {
+        m_velocity.y = -m_jumpForce;
+        m_isOnGround = false;
+    }
+}
+
+void Character::UpdateMove(float dt)
+{
+    UpdateHorizontal(dt);
+    UpdateVertical(dt, m_isPlayerControlled);
+}
+
+
+void Character::ResolveCollisionsX(int x, const GameContext& ctx)
+{
+    int tileSize = ctx.levelMap->GetTileSize();
+    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
+
+    if (m_velocity.x > 0.f)
+    {
+        m_hitbox.setPosition(x * tileSize - (bounds.width / 2.f) - Config::EPSILON,
+                             m_hitbox.getPosition().y);
+        m_velocity.x = 0.f;
+    }
+    else if (m_velocity.x < 0.f)
+    {
+        m_hitbox.setPosition((x + 1) * tileSize + (bounds.width / 2.f) + Config::EPSILON,
+                             m_hitbox.getPosition().y);
+        m_velocity.x = 0.f;
+    }
+}
+
+void Character::ResolveCollisionsY(int y, const GameContext& ctx)
+{
+    int tileSize = ctx.levelMap->GetTileSize();
+    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
+
+    if (m_velocity.y > 0.f)
+    {
+        m_hitbox.setPosition(m_hitbox.getPosition().x,
+                             y * tileSize - (bounds.height / 2.f) - Config::EPSILON);
+        m_velocity.y = 0.f;
+        m_isOnGround = true;
+        OnLanding();
+    }
+    else if (m_velocity.y < 0.f)
+    {
+        m_hitbox.setPosition(m_hitbox.getPosition().x,
+                             (y + 1) * tileSize + (bounds.height / 2.f) + Config::EPSILON);
+        m_velocity.y = 0.f;
+    }
+}
+
+void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
+{
+    sf::FloatRect bounds = m_hitbox.getGlobalBounds();
+    int tileSize = ctx.levelMap->GetTileSize();
+
+    int minX = (int)std::floor(bounds.left / tileSize);
+    int maxX = (int)std::floor((bounds.left + bounds.width)  / tileSize);
+    int minY = (int)std::floor(bounds.top  / tileSize);
+    int maxY = (int)std::floor((bounds.top + bounds.height) / tileSize);
+
+    if (axis == Axis::Vertical)
+    {
+        m_isOnGround = false;
+    }
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            if (!ctx.levelMap->IsSolid(x, y, GetEntityType()))
+            {
+                continue;
+            }
+
+            if (TryBreakTile(x, y, ctx))
+            {
+                continue;
+            }
+
+            if (axis == Axis::Horizontal)
+            {
+                ResolveCollisionsX(x, ctx);
+            }
+            else
+            {
+                ResolveCollisionsY(y, ctx);
+            }
+        }
+    }
+}
+
+
+void Character::UpdateSpriteDirection()
+{
+    if (m_velocity.x > 0.f)
+    {
+        m_sprite.setScale(m_scale, m_scale);
+    }
+    else if (m_velocity.x < 0.f)
+    {
+        m_sprite.setScale(-m_scale, m_scale);
+    }
+}
+
+void Character::UpdateAnimation(float dt)
+{
+    const char* name = GetAnimationName();
+
+    if (name == nullptr)
+    {
+        return;
+    }
+
+    m_anim.Play(name);
+    m_anim.Update(dt);
+    m_anim.Apply(m_sprite);
+}
+
+void Character::ApplyMovement(const GameContext& ctx)
+{
+    float dt = ctx.dt;
+
+    m_hitbox.move(m_velocity.x * dt, 0.f);
+    ResolveCollisions(ctx, Axis::Horizontal);
+
+    m_hitbox.move(0.f, m_velocity.y * dt);
+    ResolveCollisions(ctx, Axis::Vertical);
+
+    UpdateSpriteDirection();
+    UpdateAnimation(dt);
+
+    sf::Vector2f eff = m_spriteOffset;
+
+    if (m_sprite.getScale().x < 0.f)
+    {
+        eff.x = -eff.x;
+    }
+
+    m_sprite.setPosition(m_hitbox.getPosition() + eff);
+}
+Path to file: ./src/Entities/Character/Character.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <string>
+#include "Entities/LivingEntity/LivingEntity.hpp"
+#include "Core/Animation/AnimationController.hpp"
+#include "Core/Map/Map.hpp"
+
+class Character : public LivingEntity
+{
+public:
+    Character(float maxLife, sf::Vector2f position);
+    virtual ~Character() = default;
+
+protected:
+    enum class Axis { Horizontal, Vertical };
+
+    void InitHitbox(float width, float height, sf::Vector2f position);
+    void InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position);
+    void InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
+
+    virtual void UpdateHorizontal(float dt);
+    virtual void UpdateVertical(float dt, bool allowInput);
+    virtual void UpdateMove(float dt);
+
+    bool CheckMoveKeys(float dt);
+    void ResolveFriction(float dt);
+    void CheckMaxSpeed();
+
+    void ResolveCollisions(const GameContext& ctx, Axis axis);
+    void ResolveCollisionsX(int x, const GameContext& ctx);
+    void ResolveCollisionsY(int y, const GameContext& ctx);
+
+    void UpdateSpriteDirection();
+    void UpdateAnimation(float dt);
+    void ApplyMovement(const GameContext& ctx);
+
+    virtual Config::EntityType GetEntityType() const = 0;
+    virtual const char* GetAnimationName() const = 0;
+    virtual void OnLanding() {}
+    virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
+
+    float m_accel     = 0.f;
+    float m_friction  = 0.f;
+    float m_jumpForce = 0.f;
+    float m_gravity   = 0.f;
+    float m_maxSpeed  = 0.f;
+    float m_scale     = 1.f;
+    bool  m_isOnGround = false;
+    sf::Vector2f m_spriteOffset{0.f, 0.f};
+
+    AnimationController m_anim;
+};
+Path to file: ./src/Entities/Enemy/Enemy.cpp
+Code:
+#include "Entities/Enemy/Enemy.hpp"
+#include "Core/Config.hpp"
+
+Enemy::Enemy(sf::Vector2f position) : LivingEntity(50.f)
+{
+    m_hitbox.setSize(sf::Vector2f(40.f, 40.f));
+    m_hitbox.setOrigin(20.f, 20.f);
+    m_hitbox.setPosition(position);
+    m_hitbox.setFillColor(sf::Color::Yellow);
+    m_hitbox.setOutlineColor(sf::Color::Red);
+    m_hitbox.setOutlineThickness(1.f);
+}
+
+void Enemy::Draw(sf::RenderWindow& window)
+{
+    window.draw(m_hitbox); 
+}
+
+void Enemy::Update(const GameContext& ctx)
+{
+    if (m_isDead) return;
+
+    if (m_isPlayerControlled)
+    {
+        m_decayTimer -= ctx.dt;
+
+        float speed = 150.f;
+        m_velocity.x = 0.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) m_velocity.x = -speed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) m_velocity.x = speed;
+
+        m_hitbox.move(m_velocity.x * ctx.dt, 0.f);
+        m_sprite.setPosition(m_hitbox.getPosition());
+    }
+}
+Path to file: ./src/Entities/Enemy/Enemy.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Entities/LivingEntity/LivingEntity.hpp"
+#include "Core/GameContext.hpp"
+
+class Enemy : public LivingEntity
+{
+public:
+    Enemy(sf::Vector2f position);
+    
+    void Update(const GameContext& ctx) override;
+
+    void Draw(sf::RenderWindow& window) override;
+
+    float GetDecayTimer() const override { return m_decayTimer; }
+    float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
+    void ResetDecayTimer() { m_decayTimer = m_maxDecayTimer; }
+
+private:
+    float m_maxDecayTimer = 15.f;
+    float m_decayTimer = 15.f;
+};
+Path to file: ./src/Entities/Entity/Entity.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Core/GameContext.hpp"
+
+class Entity
+{
+protected:
+    sf::RectangleShape m_hitbox;
+    sf::Sprite m_sprite;
+    sf::Texture m_texture;
+    sf::Vector2f m_velocity;
+public:
+    static void ToggleHitboxes()
+    {
+        m_showHitboxes = !m_showHitboxes;
+    }
+
+    virtual ~Entity() = default;
+
+    virtual void Update(const GameContext& ctx) = 0;
+
+    virtual void Draw(sf::RenderWindow& window)
+    {
+        window.draw(m_sprite);
+
+        if (m_showHitboxes)
+        {
+            window.draw(m_hitbox);
+        }
+    }
+
+    sf::FloatRect GetBounds() const
+    {
+        return m_hitbox.getGlobalBounds();
+    }
+
+    sf::Vector2f GetPosition() const {
+        return m_hitbox.getPosition();
+    }
+
+    void SetPosition(sf::Vector2f newPos) {
+        m_hitbox.setPosition(newPos);
+        m_sprite.setPosition(newPos);
+    }
+private:
+    inline static bool m_showHitboxes = false;
+};
+Path to file: ./src/Entities/Host/Host.cpp
+Code:
+#include "Entities/Host/Host.hpp"
+
+Host::Host(float maxLife, sf::Vector2f position, float decayTime)
+    : Character(maxLife, position)
+{
+    m_maxDecayTimer = decayTime;
+    m_decayTimer    = decayTime;
+}
+Path to file: ./src/Entities/Host/Host.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Entities/Character/Character.hpp"
+
+class Host : public Character
+{
+public:
+    Host(float maxLife, sf::Vector2f position, float decayTime);
+
+    void  ResetDecayTimer()                 { m_decayTimer = m_maxDecayTimer; }
+    float GetDecayTimer()    const override { return m_decayTimer; }
+    float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
+
+protected:
+    float m_decayTimer    = 0.f;
+    float m_maxDecayTimer = 0.f;
+};
+Path to file: ./src/Entities/LivingEntity/LivingEntity.hpp
+Code:
+#pragma once
+#include "Entities/Entity/Entity.hpp"
+
+class LivingEntity : public Entity
+{
+public:
+    LivingEntity(float maxLife) 
+        : m_maxLife(maxLife), m_life(maxLife), m_isDead(false), m_isPlayerControlled(false) {}
+
+    virtual ~LivingEntity() = default;
+
+    float GetLife() const { return m_life; }
+    float GetMaxLife() const { return m_maxLife; }
+    bool IsDead() const { return m_isDead; }
+
+    void SetPlayerControlled(bool isControlled) { m_isPlayerControlled = isControlled; }
+    bool IsPlayerControlled() const { return m_isPlayerControlled; }
+
+    virtual float GetDecayTimer() const { return 0.f; }
+    virtual float GetMaxDecayTimer() const { return 1.f; }
+
+    virtual void TakeDamage(float amount)
+    {
+        if (m_isDead) return;
+        m_life -= amount;
+        if (m_life <= 0.f)
+        {
+            m_life = 0.f;
+            Die();
+        }
+    }
+
+protected:
+    virtual void Die() 
+    {
+        m_isDead = true;
+    }
+
+    float m_life;
+    float m_maxLife;
+    bool m_isDead;
+    bool m_isPlayerControlled;
+};
+Path to file: ./src/Entities/Parasite/Parasite.cpp
+Code:
+#include "Entities/Parasite/Parasite.hpp"
+#include "Core/Config.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+
+Parasite::Parasite(sf::Vector2f position)
+    : Character(Config::PARASITE_MAX_HEALTH, position)
+{
+    m_accel     = Config::PARASITE_ACCEL;
+    m_friction  = Config::PARASITE_FRICTION;
+    m_jumpForce = Config::PARASITE_JUMP_FORCE;
+    m_gravity   = Config::PARASITE_GRAVITY;
+    m_maxSpeed  = Config::PARASITE_MAX_SPEED;
+
+    InitHitbox(Config::PARASITE_HITBOX_WIDTH,
+               Config::PARASITE_HITBOX_HEIGHT,
+               position);
+    InitSprite("../assets/animations/parasite.png",
+               Config::PARASITE_FRAME_W,
+               Config::PARASITE_FRAME_H,
+               Config::PARASITE_SCALE);
+
+    m_sprite.setPosition(position);
+
+    m_anim.Setup(m_texture,
+                 Config::PARASITE_FRAME_W,
+                 Config::PARASITE_FRAME_H);
+
+    m_anim.AddClip("idle", 5, Config::PARASITE_IDLE_FRAME_TIME);
+    m_anim.AddClip("dash", 3, Config::PARASITE_DASH_FRAME_TIME); 
+
+    m_anim.Play("idle");
+    m_anim.Apply(m_sprite);
+}
+
+bool Parasite::IsDashing() const
+{
+    return m_dashTimer > 0.f;
+}
+
+const char* Parasite::GetAnimationName() const
+{
+    if (m_dashTimer > 0.f)
+    {
+        return "dash";
+    }
+
+    return "idle";
+}
+
+void Parasite::ForceDash(sf::Vector2f targetPos)
+{
+    sf::Vector2f center = m_hitbox.getPosition();
+
+    float dx = targetPos.x - center.x;
+    float dy = targetPos.y - center.y;
+    float length = std::sqrt(dx * dx + dy * dy);
+
+    if (length == 0.f)
+    {
+        return;
+    }
+
+    m_velocity.x = (dx / length) * m_dashForce;
+    m_velocity.y = (dy / length) * m_dashForce;
+
+    m_dashCooldown = Config::DASH_COOLDOWN_TIME;
+    m_dashTimer    = Config::DASH_DURATION;
+    m_hasDash      = false;
+    m_isOnGround   = false;
+}
+
+void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
+{
+    if (m_dashCooldown > 0.f)
+    {
+        m_dashCooldown -= dt;
+    }
+
+    if (GameKeyboard::IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
+    {
+        ForceDash(mousePos);
+    }
+}
+
+void Parasite::UpdateDashTimer(float dt)
+{
+    if (m_dashTimer > 0.f)
+    {
+        m_dashTimer -= dt;
+
+        if (m_dashTimer <= 0.f)
+        {
+            m_velocity.x *= 0.5f;
+            m_velocity.y *= 0.5f;
+        }
+    }
+}
+
+void Parasite::HorizontalDash(float dt)
+{
+    float drag = m_friction * 3.f;
+
+    if (m_velocity.x > 0.f)
+    {
+        m_velocity.x -= drag * dt;
+        m_velocity.x = std::max(m_velocity.x, Config::PARASITE_MAX_SPEED);
+    }
+    else
+    {
+        m_velocity.x += drag * dt;
+        m_velocity.x = std::min(m_velocity.x, -Config::PARASITE_MAX_SPEED);
+    }
+}
+
+void Parasite::UpdateHorizontal(float dt)
+{
+    if (std::abs(m_velocity.x) > m_maxSpeed)
+    {
+        HorizontalDash(dt);
+    }
+    else
+    {
+        Character::UpdateHorizontal(dt);
+    }
+}
+
+void Parasite::UpdateMove(float dt)
+{
+    UpdateDashTimer(dt);
+
+    if (m_dashTimer <= 0.f)
+    {
+        UpdateHorizontal(dt);
+        UpdateVertical(dt, true);
+    }
+}
+
+bool Parasite::TryBreakTile(int x, int y, const GameContext& ctx)
+{
+    if (!IsDashing())
+    {
+        return false;
+    }
+
+    if (!ctx.levelMap->IsBreakable(x, y))
+    {
+        return false;
+    }
+
+    ctx.levelMap->BreakTile(x, y);
+    return true;
+}
+
+void Parasite::Update(const GameContext& ctx)
+{
+    if (!m_isPlayerControlled)
+    {
+        return;
+    }
+
+    UpdateDash(ctx.dt, ctx.mousePos);
+    UpdateMove(ctx.dt);
+    ApplyMovement(ctx);
+}
+Path to file: ./src/Entities/Parasite/Parasite.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <cmath>
+#include "Entities/Character/Character.hpp"
+
+class Parasite : public Character
+{
+public:
+    Parasite(sf::Vector2f position);
+
+    void Update(const GameContext& ctx) override;
+    bool IsDashing() const;
+    void ForceDash(sf::Vector2f targetPos);
+
+protected:
+    Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
+    const char*        GetAnimationName() const override;
+    void               OnLanding() override { m_hasDash = true; }
+    bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
+
+    void UpdateHorizontal(float dt) override;
+    void UpdateMove(float dt) override;
+
+private:
+    void HorizontalDash(float dt);
+    void UpdateDash(float dt, sf::Vector2f mousePos);
+    void UpdateDashTimer(float dt);
+
+    float m_dashCooldown = 0.f;
+    float m_dashForce    = Config::PARASITE_DASH_FORCE;
+    bool  m_hasDash      = true;
+    float m_dashTimer    = 0.f;
+};
+Path to file: ./src/Entities/Scientist/Scientist.cpp
+Code:
+#include "Entities/Scientist/Scientist.hpp"
+#include "Core/Config.hpp"
+#include <cmath>
+
+Scientist::Scientist(sf::Vector2f position)
+    : Host(Config::SCIENTIST_MAX_HEALTH, position, Config::SCIENTIST_DECAY_TIME)
+{
+    m_accel     = Config::SCIENTIST_ACCEL;
+    m_friction  = Config::SCIENTIST_FRICTION;
+    m_jumpForce = Config::SCIENTIST_JUMP_FORCE;
+    m_gravity   = Config::SCIENTIST_GRAVITY;
+    m_maxSpeed  = Config::SCIENTIST_MAX_SPEED;
+
+    
+    InitSprite("../assets/animations/scientist.png",
+        Config::SCIENTIST_FRAME_W,
+        Config::SCIENTIST_FRAME_H,
+        Config::SCIENTIST_SCALE);
+        
+    InitHitboxFromCenter(Config::SCIENTIST_HITBOX_LEFT,
+                        Config::SCIENTIST_HITBOX_RIGHT,
+                        Config::SCIENTIST_HITBOX_TOP,
+                        Config::SCIENTIST_HITBOX_BOTTOM,
+                        position);
+        
+    m_sprite.setPosition(position);
+
+    m_anim.Setup(m_texture,
+                 Config::SCIENTIST_FRAME_W,
+                 Config::SCIENTIST_FRAME_H);
+
+    m_anim.AddClip("idle", 3, Config::SCIENTIST_IDLE_FRAME_TIME);
+    m_anim.AddClip("walk", 3, Config::SCIENTIST_WALK_FRAME_TIME);
+
+    m_anim.Play("idle");
+    m_anim.Apply(m_sprite);
+}
+
+const char* Scientist::GetAnimationName() const
+{
+    if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
+        return "walk";
+
+    return "idle";
+}
+
+void Scientist::Update(const GameContext& ctx)
+{
+    if (m_isDead)
+    {
+        return;
+    }
+
+    if (m_isPlayerControlled)
+    {
+        m_decayTimer -= ctx.dt;
+        UpdateMove(ctx.dt);
+    }
+    else
+    {
+        UpdateVertical(ctx.dt, false);
+    }
+
+    ApplyMovement(ctx);
+}
+Path to file: ./src/Entities/Scientist/Scientist.hpp
+Code:
+#pragma once
+#include "Entities/Host/Host.hpp"
+
+class Scientist : public Host
+{
+public:
+    Scientist(sf::Vector2f position);
+
+    void Update(const GameContext& ctx) override;
+
+protected:
+    Config::EntityType GetEntityType() const override { return Config::EntityType::Human; }
+    const char*        GetAnimationName() const override;
+};
+Path to file: ./src/Entities/StateManger/PropertiesManager.cpp
+Code:
+#include "Core/../Entities/StateManger/PropertiesManager.hpp"
+
+PropertiesManager::PropertiesManager() {
+    m_states = {};
+}
+
+void PropertiesManager::SetVal(const std::string& name, bool val)
+{
+    m_states[name] = val;
+}
+
+bool PropertiesManager::GetValOfState(const std::string& name) const
+{
+    auto it = m_states.find(name);
+    return it != m_states.end() && it->second;
+}
+Path to file: ./src/Entities/StateManger/PropertiesManager.hpp
+Code:
+#pragma once
+#include <map>
+#include <string>
+
+class PropertiesManager
+{
+public:
+    PropertiesManager();
+    bool GetValOfState(const std::string& name) const;
+    void SetVal(const std::string& name, bool val);
+private:
+    std::map<std::string, bool> m_states;
+
+
+};
+Path to file: ./src/main.cpp
+Code:
+#include "Core/Game/Game.hpp"
+
+int main()
+{
+    Game game;
+    game.Run();
+    return 0;
+}
+Path to file: ./src/States/GameOver/StateGameOver.cpp
+Code:
+#include "States/GameOver/StateGameOver.hpp"
+
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+
+StateGameOver::StateGameOver(GameDataRef data) : m_data(data) {}
+
+void StateGameOver::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
+    m_darkOverlay.setFillColor(sf::Color(150, 0, 0, 150));
+
+    m_title.Init("YOU DIED", m_data->headerFont, 100, 200.f, windowSize.x);
+
+    m_menu.AddButton("Restart", m_data->headerFont, 400.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton("Main Menu", m_data->headerFont, 500.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
+}
+
+void StateGameOver::HandleInput(const sf::Event &event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        m_menu.HandleInput(event);
+    }
+}
+
+void StateGameOver::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateGameOver::Draw()
+{
+    m_data->window.setView(m_data->window.getDefaultView());
+
+    m_data->window.draw(m_darkOverlay);
+    m_title.Draw(m_data->window);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/GameOver/StateGameOver.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateGameOver : public State
+{
+public:
+    StateGameOver(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+
+    sf::RectangleShape m_darkOverlay;
+    MenuLabel m_title;
+    UIMenu m_menu;
+};
+Path to file: ./src/States/MainMenu/StateMainMenu.cpp
+Code:
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+#include "States/Tutorial/StateTutorial.hpp"
+
+StateMainMenu::StateMainMenu(GameDataRef data) : m_data(data) {}
+
+void StateMainMenu::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_title.Init("THE HOST", m_data->headerFont, 100, 150.f, windowSize.x);
+
+    m_menu.AddButton("Play", m_data->headerFont, 400.f, windowSize.x, [this]() {
+    m_data->manager.RemoveState();
+    m_data->manager.AddState(StateRef(new StateTutorial(m_data)), true);
+});
+
+    m_menu.AddButton("Exit", m_data->headerFont, 500.f, windowSize.x, [this]() {
+        m_data->window.close();
+    });
+}
+
+void StateMainMenu::HandleInput(const sf::Event& event)
+{
+    if (event.type == sf::Event::KeyPressed) {
+        m_menu.HandleInput(event);
+    }
+}
+
+void StateMainMenu::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateMainMenu::Draw()
+{
+    m_title.Draw(m_data->window);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/MainMenu/StateMainMenu.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateMainMenu : public State
+{
+public:
+    StateMainMenu(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+    
+    MenuLabel m_title;
+    
+    UIMenu m_menu;
+};
+Path to file: ./src/States/Pause/StatePause.cpp
+Code:
+#include "States/Pause/StatePause.hpp"
+
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+
+StatePause::StatePause(GameDataRef data) : m_data(data) {}
+
+void StatePause::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_backgroundTexture.create(windowSize.x, windowSize.y);
+    m_backgroundTexture.update(m_data->window);
+    m_backgroundSprite.setTexture(m_backgroundTexture);
+
+    m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
+    m_darkOverlay.setFillColor(sf::Color(0, 0, 0, 150));
+
+    m_title.Init("PAUSED", m_data->headerFont, 100, 200.f, windowSize.x);
+
+    m_menu.AddButton("Resume", m_data->headerFont, 400.f, windowSize.x,
+                     [this]() { m_data->manager.RemoveState(); });
+
+    m_menu.AddButton("Restart", m_data->headerFont, 500.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton("Main Menu", m_data->headerFont, 600.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
+}
+
+void StatePause::HandleInput(const sf::Event &event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        if (GameKeyboard::IsEventEscape(event))
+        {
+            m_data->manager.RemoveState();
+        }
+        else
+        {
+            m_menu.HandleInput(event);
+        }
+    }
+}
+
+void StatePause::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StatePause::Draw()
+{
+    m_data->window.draw(m_backgroundSprite);
+    m_data->window.draw(m_darkOverlay);
+
+    m_title.Draw(m_data->window);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/Pause/StatePause.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StatePause : public State
+{
+public:
+    StatePause(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+
+    sf::Texture m_backgroundTexture;
+    sf::Sprite m_backgroundSprite;
+    sf::RectangleShape m_darkOverlay;
+
+    MenuLabel m_title;
+    UIMenu m_menu;
+};
+Path to file: ./src/States/Playing/StatePlaying.cpp
+Code:
+#include "States/Playing/StatePlaying.hpp"
+#include "Entities/Scientist/Scientist.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "States/GameOver/StateGameOver.hpp"
+#include "States/Pause/StatePause.hpp"
+#include "States/Victory/StateVictory.hpp"
+
+StatePlaying::StatePlaying(GameDataRef data)
+    : m_data(data),
+      m_parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
+      m_camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM,
+                            Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM)),
+      m_currentHost(nullptr)
+
+{
+}
+
+void StatePlaying::Init()
+{
+    m_map.LoadTileConfig("../assets/map/tileset.txt");
+    m_map.LoadFromFile("../assets/map/level1.txt");
+
+    m_floatingHud.Init();
+    m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
+    m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
+
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
+    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
+
+    m_parasite.SetPlayerControlled(true);
+    m_playerAvatar = &m_parasite;
+    m_timeInCurrentHost = 0.f;
+}
+
+void StatePlaying::HandleInput(const sf::Event &event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        if (GameKeyboard::IsHitboxesPressed(event))
+        {
+            Entity::ToggleHitboxes();
+        }
+        if (GameKeyboard::IsEventEscape(event))
+        {
+            m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
+        }
+    }
+}
+
+void StatePlaying::UpdateCamera(float dt)
+{
+    sf::Vector2f targetPos = m_playerAvatar->GetPosition();
+    sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_data->window);
+    sf::Vector2u windowSize = m_data->window.getSize();
+
+    float normX = (mousePixelPos.x - (windowSize.x / 2.f)) / (windowSize.x / 2.f);
+    float normY = (mousePixelPos.y - (windowSize.y / 2.f)) / (windowSize.y / 2.f);
+
+    normX = std::clamp(normX, -1.f, 1.f);
+    normY = std::clamp(normY, -1.f, 1.f);
+
+    sf::Vector2f viewSize = m_camera.GetView().getSize();
+    float maxOffsetX = (viewSize.x / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+    float maxOffsetY = (viewSize.y / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+
+    sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
+
+    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
+                    m_map.GetHeightInPixels());
+}
+
+void StatePlaying::Update(float dt)
+{
+    UpdateCamera(dt);
+
+    GameContext ctx;
+    ctx.dt = dt;
+    ctx.mousePos =
+        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
+    ctx.levelMap = &m_map;
+
+    m_parasite.Update(ctx);
+
+    for (auto &enemy : m_hosts)
+    {
+        enemy->Update(ctx);
+    }
+
+    HandlePossession();
+    HandleEjection(ctx);
+
+    CleanDeadEnemies();
+
+    UpdateHUD();
+
+    CheckEndGameConditions();
+}
+
+void StatePlaying::HandlePossession()
+{
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
+        return;
+
+    for (auto &enemy : m_hosts)
+    {
+        if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
+        {
+            m_parasite.SetPlayerControlled(false);
+
+            enemy->SetPlayerControlled(true);
+            enemy->ResetDecayTimer();
+
+            m_playerAvatar = enemy.get();
+            m_currentHost = enemy.get();
+            m_timeInCurrentHost = 0.f;
+            break;
+        }
+    }
+}
+
+void StatePlaying::HandleEjection(const GameContext &ctx)
+{
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
+        return;
+
+    m_timeInCurrentHost += ctx.dt;
+
+    bool manualEject = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+    bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
+
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
+    {
+        manualEject = false;
+    }
+
+    if (manualEject || timeOut)
+    {
+        m_currentHost->SetPlayerControlled(false);
+        m_currentHost->TakeDamage(9999.f);
+
+        m_parasite.SetPosition(m_currentHost->GetPosition());
+        m_parasite.SetPlayerControlled(true);
+
+        if (manualEject)
+        {
+            m_parasite.ForceDash(ctx.mousePos);
+        }
+
+        m_playerAvatar = &m_parasite;
+        m_currentHost = nullptr;
+    }
+}
+
+void StatePlaying::UpdateHUD()
+{
+    m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
+
+    if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+    {
+        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
+                             sf::Color(220, 200, 0));
+    }
+    else
+    {
+        m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
+    }
+}
+
+void StatePlaying::CheckEndGameConditions()
+{
+
+    bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
+
+    bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
+
+    if (isParasiteDead || fellIntoPit)
+    {
+        m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
+        return;
+    }
+
+    if (m_currentHost != nullptr)
+    {
+        if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+        {
+            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+            return;
+        }
+    }
+
+}
+
+void StatePlaying::CleanDeadEnemies()
+{
+    m_hosts.erase(std::remove_if(
+        m_hosts.begin(), m_hosts.end(),
+        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }),
+        m_hosts.end()
+    );
+}
+
+void StatePlaying::Draw()
+{
+    m_data->window.setView(m_camera.GetView());
+    m_map.Draw(m_data->window);
+
+    for (auto &enemy : m_hosts)
+    {
+        if (!enemy->IsDead())
+        {
+            enemy->Draw(m_data->window);
+        }
+    }
+
+    if (m_parasite.IsPlayerControlled())
+    {
+        m_parasite.Draw(m_data->window);
+    }
+
+    m_floatingHud.Draw(m_data->window);
+
+    m_data->window.setView(m_data->window.getDefaultView());
+
+    m_screenHud.Draw(m_data->window);
+}
+Path to file: ./src/States/Playing/StatePlaying.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <memory>
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+#include "Core/Config.hpp"
+#include "Core/Map/Map.hpp"
+#include "Core/Camera/Camera.hpp"
+#include "Entities/Parasite/Parasite.hpp"
+#include "Entities/Host/Host.hpp"
+#include "UI/EntityHUD/EntityHUD.hpp"
+#include "UI/ScreenHUD/ScreenHUD.hpp"
+class StatePlaying : public State
+{
+public:
+    StatePlaying(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    void UpdateCamera(float dt);
+
+    void HandlePossession();
+    void HandleEjection(const GameContext& ctx);
+    void CleanDeadEnemies();
+    void UpdateHUD();
+
+    void CheckEndGameConditions();
+
+    GameDataRef m_data;
+    
+    Map m_map;
+    Camera m_camera;
+    EntityHUD m_floatingHud;
+    ScreenHUD m_screenHud;
+
+    Parasite m_parasite;
+    std::vector<std::unique_ptr<Host>>   m_hosts;
+
+
+    LivingEntity* m_playerAvatar;
+    Host* m_currentHost = nullptr;
+
+    float m_timeInCurrentHost;
+};
+Path to file: ./src/States/State.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class State
+{
+public:
+    virtual ~State() = default;
+
+    virtual void Init() = 0;
+
+    virtual void HandleInput(const sf::Event& event) = 0;
+
+    virtual void Update(float dt) = 0;
+    
+    virtual void Draw() = 0;
+
+    virtual void Pause() {}
+
+    virtual void Resume() {}
+};
+Path to file: ./src/States/StateManager/StateManager.cpp
+Code:
+#include "States/StateManager/StateManager.hpp"
+
+void StateManager::AddState(StateRef newState, bool isReplacing)
+{
+    this->m_isAdding = true;
+    this->m_isReplacing = isReplacing;
+    this->m_newState = std::move(newState);
+}
+
+void StateManager::RemoveState()
+{
+    this->m_isRemoving = true;
+}
+
+void StateManager::ProcessRemoveState()
+{
+    this->m_states.pop();
+    if (!this->m_states.empty())
+    {
+        this->m_states.top()->Resume();
+    }
+    this->m_isRemoving = false;    
+}
+
+void StateManager::ProcessAddState()
+{
+    if (!this->m_states.empty())
+    {
+        if (this->m_isReplacing)
+        {
+            this->m_states.pop();
+        }
+        else
+        {
+            this->m_states.top()->Pause();
+        }
+    }
+    this->m_states.push(std::move(m_newState));
+    this->m_states.top()->Init();
+    this->m_isAdding = false;    
+}
+
+void StateManager::ProcessStateChanges()
+{
+    if (this->m_isRemoving && !this->m_states.empty())
+    {
+        ProcessRemoveState();
+    }
+
+    if (this->m_isAdding)
+    {
+        ProcessAddState();
+    }
+}
+
+StateRef& StateManager::GetActiveState()
+{
+    return this->m_states.top();
+}
+Path to file: ./src/States/StateManager/StateManager.hpp
+Code:
+#pragma once
+#include <memory>
+#include <stack>
+#include "States/State.hpp"
+
+typedef std::unique_ptr<State> StateRef;
+
+class StateManager
+{
+public:
+    void AddState(StateRef newState, bool isReplacing = true);
+    void RemoveState();
+    void ProcessStateChanges();
+
+    StateRef& GetActiveState();
+    bool isEmpty() const { return m_states.empty(); }
+private:
+    void ProcessRemoveState();
+    void ProcessAddState();
+
+    std::stack<StateRef> m_states;
+    StateRef m_newState;
+
+    bool m_isRemoving = false;
+    bool m_isAdding = false;
+    bool m_isReplacing = false;
+};
+
+Path to file: ./src/States/Tutorial/StateTutorial.cpp
+Code:
+#include "States/Tutorial/StateTutorial.hpp"
+#include "States/Playing/StatePlaying.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
+
+StateTutorial::StateTutorial(GameDataRef data) : m_data(data) {}
+
+void StateTutorial::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_title.Init(L"КАК ИГРАТЬ", m_data->headerFont, 70, 50.f, windowSize.x);
+
+    m_instructions.setFont(m_data->headerFont);
+    m_instructions.setCharacterSize(30);
+    m_instructions.setFillColor(sf::Color::White);
+    
+    m_instructions.setString(
+        L"ЦЕЛЬ:\nДобраться до лифта в конце уровня.\n\n"
+        L"УПРАВЛЕНИЕ:\n"
+        L"A / D - Движение\n"
+        L"ПРОБЕЛ - Прыжок\n"
+        L"ЛКМ (Левый клик) - Рывок / Вселение во врага\n"
+        L"ПКМ (Правый клик) - Разорвать носителя и выпрыгнуть\n\n"
+        L"ВНИМАНИЕ:\n"
+        L"Падение в пропасть — мгновенная смерть.\n"
+        L"Тело носителя разлагается за 15 секунд!"
+    );
+
+    sf::FloatRect textRect = m_instructions.getLocalBounds();
+    m_instructions.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top);
+    m_instructions.setPosition(windowSize.x / 2.0f, 160.f);
+
+    m_menu.AddButton(L"Начать игру", m_data->headerFont, 550.f, windowSize.x, [this]() {
+        m_data->manager.RemoveState();
+        m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+    });
+
+    m_menu.AddButton(L"В главное меню", m_data->headerFont, 630.f, windowSize.x, [this]() {
+        m_data->manager.RemoveState();
+        m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+    });
+}
+
+void StateTutorial::HandleInput(const sf::Event& event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        if (GameKeyboard::IsEventEscape(event))
+        {
+            m_data->manager.RemoveState();
+            m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+        }
+        else
+        {
+            m_menu.HandleInput(event);
+        }
+    }
+}
+
+void StateTutorial::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateTutorial::Draw()
+{
+    m_data->window.clear(Config::BG_COLOR);
+    
+    m_title.Draw(m_data->window);
+    m_data->window.draw(m_instructions);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/Tutorial/StateTutorial.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateTutorial : public State
+{
+public:
+    StateTutorial(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+    
+    UIMenu m_menu;
+    MenuLabel m_title;
+    sf::Text m_instructions;
+};
+Path to file: ./src/States/UI/MenuButton/MenuButton.cpp
+Code:
+#include <SFML/Graphics.hpp>
+#include <functional>
+#include "MenuButton.hpp"
+#include "Core/Config.hpp"
+
+MenuButton::MenuButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> action) : m_action(action)
+{
+    m_text.setFont(font);
+    m_text.setString(text);
+    m_text.setCharacterSize(Config::MENU_BUTTON_TEXT_SIZE);
+
+    sf::FloatRect bounds = m_text.getLocalBounds();
+    m_text.setPosition(windowWidth / 2.f - bounds.width / 2.f, yPos);
+}
+
+void MenuButton::OnClick()
+{
+    if (m_action)
+    {
+        m_action();
+    }
+}
+
+void MenuButton::SetSelected(bool isSelected)
+{
+    m_text.setFillColor(isSelected ? sf::Color::Red : sf::Color::White);
+}
+
+void MenuButton::Draw(sf::RenderWindow& window)
+{
+    window.draw(m_text);
+}
+Path to file: ./src/States/UI/MenuButton/MenuButton.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <functional>
+
+class MenuButton
+{
+public:
+    MenuButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> action);
+
+    void OnClick();
+    void SetSelected(bool isSelected);
+    void Draw(sf::RenderWindow& window);
+private:
+    sf::Text m_text;
+    std::function<void()> m_action;
+};
+Path to file: ./src/States/UI/MenuLabel/MenuLabel.cpp
+Code:
+#include "MenuLabel.hpp"
+
+void MenuLabel::Init(const sf::String& text, const sf::Font& font, int size, float yPos, float windowWidth){
+    m_text.setFont(font);
+    m_text.setString(text);
+    m_text.setCharacterSize(size);
+    
+    sf::FloatRect bounds = m_text.getLocalBounds();
+    m_text.setPosition(windowWidth / 2.f - bounds.width / 2.f, yPos);
+}
+
+void MenuLabel::Draw(sf::RenderWindow& window)
+{
+    window.draw(m_text);
+}
+Path to file: ./src/States/UI/MenuLabel/MenuLabel.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class MenuLabel
+{
+public:
+    void Init(const sf::String& text, const sf::Font& font, int size, float yPos, float windowWidth);
+    void Draw(sf::RenderWindow& window);
+
+private:
+    sf::Text m_text;
+};
+Path to file: ./src/States/UI/UIMenu/UIMenu.cpp
+Code:
+#include "UIMenu.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+
+UIMenu::UIMenu() : m_selectedOption(0) {}
+
+void UIMenu::AddButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> onClick)
+{
+    m_buttons.emplace_back(text, font, yPos, windowWidth, onClick);
+}
+
+void UIMenu::MenuUp()
+{
+    if (m_buttons.empty()) return;
+    if (m_selectedOption > 0) m_selectedOption--;
+    else m_selectedOption = m_buttons.size() - 1;
+}
+
+void UIMenu::MenuDown()
+{
+    if (m_buttons.empty()) return;
+    if (m_selectedOption < m_buttons.size() - 1) m_selectedOption++;
+    else m_selectedOption = 0;
+}
+
+void UIMenu::HandleInput(const sf::Event& event)
+{
+    if (GameKeyboard::IsEventUp(event)) {
+        MenuUp();
+    }
+    else if (GameKeyboard::IsEventDown(event)) {
+        MenuDown();
+    } 
+    else if (GameKeyboard::IsEventOpen(event)) {
+        if (!m_buttons.empty()) {
+            m_buttons[m_selectedOption].OnClick();
+        }
+    }
+}
+
+void UIMenu::Update()
+{
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        m_buttons[i].SetSelected(i == m_selectedOption);
+    }
+}
+
+void UIMenu::Draw(sf::RenderWindow& window)
+{
+    for (auto& btn : m_buttons) {
+        btn.Draw(window);
+    }
+}
+Path to file: ./src/States/UI/UIMenu/UIMenu.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <functional>
+#include "States/UI/MenuButton/MenuButton.hpp"
+
+class UIMenu
+{
+public:
+    UIMenu();
+
+    void AddButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> onClick);    
+    void HandleInput(const sf::Event& event);
+    void Update();
+    void Draw(sf::RenderWindow& window);
+
+private:
+    void MenuUp();
+    void MenuDown();
+
+    std::vector<MenuButton> m_buttons;
+    int m_selectedOption;
+};
+Path to file: ./src/States/Victory/StateVictory.cpp
+Code:
+#include "States/Victory/StateVictory.hpp"
+
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+
+StateVictory::StateVictory(GameDataRef data) : m_data(data) {}
+
+void StateVictory::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
+    m_darkOverlay.setFillColor(sf::Color(0, 100, 0, 150));
+
+    m_title.Init("LEVEL CLEARED!", m_data->headerFont, 100, 200.f, windowSize.x);
+
+    m_menu.AddButton("Play Again", m_data->headerFont, 400.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton("Main Menu", m_data->headerFont, 500.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
+}
+
+void StateVictory::HandleInput(const sf::Event &event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        m_menu.HandleInput(event);
+    }
+}
+void StateVictory::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateVictory::Draw()
+{
+    m_data->window.setView(m_data->window.getDefaultView());
+    m_data->window.draw(m_darkOverlay);
+    m_title.Draw(m_data->window);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/Victory/StateVictory.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateVictory : public State
+{
+public:
+    StateVictory(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+
+    sf::RectangleShape m_darkOverlay;
+    MenuLabel m_title;
+    UIMenu m_menu;
+};
+Path to file: ./src/UI/EntityHUD/EntityHUD.cpp
+Code:
+#include "EntityHUD.hpp"
+#include <algorithm>
+#include "Core/Config.hpp"
+
+EntityHUD::EntityHUD() : m_maxWidth(Config::PLAYER_HUD_WIDTH) {}
+
+void EntityHUD::Init()
+{
+    m_bgBar.setSize(sf::Vector2f(m_maxWidth, 6.f));
+    m_bgBar.setOrigin(m_maxWidth / 2.f, 3.f);
+    m_bgBar.setFillColor(sf::Color(50, 50, 50, 200));
+
+    m_fgBar.setSize(sf::Vector2f(m_maxWidth, 6.f));
+    m_fgBar.setOrigin(m_maxWidth / 2.f, 3.f);
+}
+
+void EntityHUD::SetPosition(sf::Vector2f entityPosition)
+{
+    sf::Vector2f hudPos = sf::Vector2f(entityPosition.x, entityPosition.y - 40.f);
+    m_bgBar.setPosition(hudPos);
+    m_fgBar.setPosition(hudPos);
+}
+
+void EntityHUD::Update(float currentValue, float maxValue, sf::Color barColor)
+{
+    if (maxValue <= 0) return;
+
+    float percentage = std::clamp(currentValue / maxValue, 0.f, 1.f);
+
+    m_fgBar.setSize(sf::Vector2f(m_maxWidth * percentage, 6.f));
+    m_fgBar.setFillColor(barColor);
+}
+
+void EntityHUD::Draw(sf::RenderWindow& window)
+{
+    window.draw(m_bgBar);
+    window.draw(m_fgBar);
+}
+Path to file: ./src/UI/EntityHUD/EntityHUD.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class EntityHUD
+{
+public:
+    EntityHUD();
+
+    void Init(); 
+
+    void SetPosition(sf::Vector2f entityPosition);
+
+    void Update(float currentValue, float maxValue, sf::Color barColor);
+    void Draw(sf::RenderWindow& window);
+
+private:
+    sf::RectangleShape m_bgBar; 
+    sf::RectangleShape m_fgBar; 
+    
+    float m_maxWidth;
+};
+Path to file: ./src/UI/ScreenHUD/ScreenHUD.cpp
+Code:
+#include "ScreenHUD.hpp"
+
+void ScreenHUD::Init(const sf::Font& font, float windowWidth)
+{
+    m_hintText.setFont(font);
+    m_hintText.setCharacterSize(24);
+    m_hintText.setFillColor(sf::Color::White);
+    m_hintText.setOutlineColor(sf::Color::Black);
+    m_hintText.setOutlineThickness(2.f);
+    
+    m_hintText.setPosition(20.f, 20.f); 
+}
+
+void ScreenHUD::SetHintText(const std::string& text)
+{
+    m_hintText.setString(text);
+}
+
+void ScreenHUD::Draw(sf::RenderWindow& window)
+{
+    window.draw(m_hintText);
+}
+Path to file: ./src/UI/ScreenHUD/ScreenHUD.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <string>
+
+class ScreenHUD
+{
+public:
+    void Init(const sf::Font& font, float windowWidth);
+    
+    void SetHintText(const std::string& text);
+    
+    void Draw(sf::RenderWindow& window);
+
+private:
+    sf::Text m_hintText;
+};

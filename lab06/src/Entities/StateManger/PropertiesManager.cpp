@@ -1,16 +1,33 @@
-#include "Core/../Entities/StateManger/PropertiesManager.hpp"
+#include "Entities/StateManager/PropertiesManager.hpp"
 
-PropertiesManager::PropertiesManager() {
-    m_states = {};
+void PropertiesManager::SetBool(const std::string& name, bool val) {
+    m_bools[name] = val;
+}
+bool PropertiesManager::GetBool(const std::string& name, bool defaultVal) const {
+    auto it = m_bools.find(name);
+    return (it != m_bools.end()) ? it->second : defaultVal;
 }
 
-void PropertiesManager::SetVal(const std::string& name, bool val)
-{
-    m_states[name] = val;
+void PropertiesManager::SetInt(const std::string& name, int val) {
+    m_ints[name] = val;
+}
+int PropertiesManager::GetInt(const std::string& name, int defaultVal) const {
+    auto it = m_ints.find(name);
+    return (it != m_ints.end()) ? it->second : defaultVal;
 }
 
-bool PropertiesManager::GetValOfState(const std::string& name) const
-{
-    auto it = m_states.find(name);
-    return it != m_states.end() && it->second;
+void PropertiesManager::SetFloat(const std::string& name, float val) {
+    m_floats[name] = val;
+}
+float PropertiesManager::GetFloat(const std::string& name, float defaultVal) const {
+    auto it = m_floats.find(name);
+    return (it != m_floats.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetString(const std::string& name, const std::string& val) {
+    m_strings[name] = val;
+}
+std::string PropertiesManager::GetString(const std::string& name, const std::string& defaultVal) const {
+    auto it = m_strings.find(name);
+    return (it != m_strings.end()) ? it->second : defaultVal;
 }
