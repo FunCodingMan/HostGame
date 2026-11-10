@@ -4,6 +4,7 @@
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
+#include <algorithm>
 
 StatePlaying::StatePlaying(GameDataRef data)
     : m_data(data),
@@ -11,7 +12,6 @@ StatePlaying::StatePlaying(GameDataRef data)
       m_camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM,
                             Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM)),
       m_currentHost(nullptr)
-
 {
 }
 
@@ -27,6 +27,9 @@ void StatePlaying::Init()
     m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
     m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
     m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
+
+    m_syringes.push_back(std::make_unique<Syringe>(sf::Vector2f(500.f, 500.f)));
+    m_syringes.push_back(std::make_unique<Syringe>(sf::Vector2f(700.f, 500.f)));
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
@@ -87,13 +90,25 @@ void StatePlaying::Update(float dt)
         enemy->Update(ctx);
     }
 
+    for (auto &syringe : m_syringes)
+    {
+        syringe->Update(ctx);
+    }
+
     HandlePossession();
     HandleEjection(ctx);
+    
+    HandleItems();
 
     CleanDeadEnemies();
 
-    UpdateHUD();
+    m_syringes.erase(
+        std::remove_if(m_syringes.begin(), m_syringes.end(), 
+            [](const auto& s) { return s->IsCollected(); }),
+        m_syringes.end()
+    );
 
+    UpdateHUD();
     CheckEndGameConditions();
 }
 
@@ -152,26 +167,50 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
     }
 }
 
+void StatePlaying::HandleItems()
+{
+    for (auto& syringe : m_syringes)
+    {
+        if (syringe->IsCollected()) continue;
+
+        if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
+        {
+            if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+            {
+                syringe->Collect();
+                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE); 
+            }
+        }
+    }
+}
+
 void StatePlaying::UpdateHUD()
 {
     m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
 
+    std::string avatarName = m_playerAvatar->GetProperties().GetString("name", "Unknown");
+    bool isInElevator = m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
+        if (!isInElevator) {
+            m_screenHud.SetHintText("Host: " + avatarName + "\nRMB: Eject");
+        }
         m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
                              sf::Color(220, 200, 0));
     }
     else
     {
+        if (!isInElevator) {
+            m_screenHud.SetHintText("Form: " + avatarName + "\nLMB: Possess");
+        }
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
 }
 
 void StatePlaying::CheckEndGameConditions()
 {
-
     bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
-
     bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
 
     if (isParasiteDead || fellIntoPit)
@@ -180,15 +219,20 @@ void StatePlaying::CheckEndGameConditions()
         return;
     }
 
-    if (m_currentHost != nullptr)
+    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
     {
-        if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+        int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
+        
+        if (access >= 1) 
         {
             m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
             return;
         }
+        else
+        {
+            m_screenHud.SetHintText("ACCESS DENIED!\nNeed a Scientist body!");
+        }
     }
-
 }
 
 void StatePlaying::CleanDeadEnemies()
@@ -211,6 +255,11 @@ void StatePlaying::Draw()
         {
             enemy->Draw(m_data->window);
         }
+    }
+
+    for (auto &syringe : m_syringes)
+    {
+        syringe->Draw(m_data->window);
     }
 
     if (m_parasite.IsPlayerControlled())

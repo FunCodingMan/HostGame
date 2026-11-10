@@ -115,6 +115,11 @@ namespace Config
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
 
+    inline constexpr float SYRINGE_HITBOX_SIZE = 24.f;
+    inline constexpr float SYRINGE_DECAY_RESTORE = 5.f;     
+    inline constexpr float SYRINGE_FLOAT_SPEED = 4.f;        
+    inline constexpr float SYRINGE_FLOAT_AMPLITUDE = 5.f;
+
     inline constexpr float CAMERA_LERP_FACTOR = 5.0f;
     inline constexpr float CAMERA_ZOOM = 1.5f;
     inline constexpr float CAMERA_LOOK_STRENGTH = 0.4f;

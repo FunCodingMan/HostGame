@@ -11,6 +11,7 @@
 #include "Entities/Host/Host.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+#include "Entities/Items/Syringe/Syringe.hpp"
 class StatePlaying : public State
 {
 public:
@@ -31,6 +32,8 @@ private:
 
     void CheckEndGameConditions();
 
+    void HandleItems(); 
+
     GameDataRef m_data;
     
     Map m_map;
@@ -46,4 +49,6 @@ private:
     Host* m_currentHost = nullptr;
 
     float m_timeInCurrentHost;
+
+    std::vector<std::unique_ptr<Syringe>> m_syringes;
 };

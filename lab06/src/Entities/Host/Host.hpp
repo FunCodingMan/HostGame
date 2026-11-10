@@ -10,6 +10,7 @@ public:
     void  ResetDecayTimer()                 { m_decayTimer = m_maxDecayTimer; }
     float GetDecayTimer()    const override { return m_decayTimer; }
     float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
+    void AddDecayTime(float time);
 
 protected:
     float m_decayTimer    = 0.f;
