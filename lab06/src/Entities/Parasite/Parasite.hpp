@@ -10,7 +10,7 @@ public:
 
     void Update(const GameContext& ctx) override;
     bool IsDashing() const;
-    void ForceDash(sf::Vector2f targetPos);
+    void ForceDash(const GameContext& ctx);
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
@@ -25,7 +25,7 @@ protected:
 
 private:
     void HorizontalDash(float dt);
-    void UpdateDash(float dt, sf::Vector2f mousePos);
+    void UpdateDash(const GameContext& ctx);
     void UpdateDashTimer(float dt);
 
     float m_dashCooldown = 0.f;

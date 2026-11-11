@@ -151,6 +151,7 @@ namespace Config
     inline constexpr const char* SOUND_ID_HOST = "host";
     inline constexpr const char* SOUND_ID_JUMP = "jump";
     inline constexpr const char* SOUND_ID_LOSE = "lose";
+    inline constexpr const char* SOUND_ID_DASH = "dash";
     inline constexpr const char* SOUND_ID_SMASH = "smash";
     inline constexpr const char* SOUND_ID_WALK = "walk";
     inline constexpr const char* SOUND_ID_WIN = "win";
@@ -163,6 +164,7 @@ namespace Config
     inline constexpr const char* SOUND_PATH_HOST        = "../assets/sounds/host.wav";
     inline constexpr const char* SOUND_PATH_JUMP        = "../assets/sounds/jump.wav";
     inline constexpr const char* SOUND_PATH_LOSE        = "../assets/sounds/loose.wav";
+    inline constexpr const char* SOUND_PATH_DASH        = "../assets/sounds/dash.wav";
     inline constexpr const char* SOUND_PATH_SMASH       = "../assets/sounds/smash_floor.wav";
     inline constexpr const char* SOUND_PATH_WALK        = "../assets/sounds/walk.wav";
     inline constexpr const char* SOUND_PATH_WIN         = "../assets/sounds/win.wav";
@@ -175,6 +177,7 @@ namespace Config
     inline constexpr float VOL_HOST = 90.f;
     inline constexpr float VOL_JUMP = 40.f;
     inline constexpr float VOL_LOSE = 90.f;
+    inline constexpr float VOL_DASH = 30.f;
     inline constexpr float VOL_SMASH = 10.f;
     inline constexpr float VOL_WALK = 40.f;
     inline constexpr float VOL_WIN = 90.f;

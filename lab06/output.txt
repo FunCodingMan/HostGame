@@ -239,6 +239,17 @@ namespace Config
     inline constexpr int TEXTURE_TILE_SIZE = 32;
     inline constexpr int WORLD_TILE_SIZE = 64;
 
+    enum class EntityState
+    {
+        None,
+        Idle,
+        Walk,
+        Jump,
+        Fall,
+        Dash,
+        Dead
+    };
+
     enum class GameState {
         MainMenu,
         Tutorial,
@@ -337,6 +348,11 @@ namespace Config
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
 
+    inline constexpr float SYRINGE_HITBOX_SIZE = 24.f;
+    inline constexpr float SYRINGE_DECAY_RESTORE = 5.f;     
+    inline constexpr float SYRINGE_FLOAT_SPEED = 4.f;        
+    inline constexpr float SYRINGE_FLOAT_AMPLITUDE = 5.f;
+
     inline constexpr float CAMERA_LERP_FACTOR = 5.0f;
     inline constexpr float CAMERA_ZOOM = 1.5f;
     inline constexpr float CAMERA_LOOK_STRENGTH = 0.4f;
@@ -360,18 +376,61 @@ namespace Config
     inline constexpr float PLAYER_HUD_WIDTH = 50.f;
 
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
+
+    inline constexpr const char* SOUND_ID_BREAK_GLASS = "break_glass";
+    inline constexpr const char* SOUND_ID_BUTTON = "button";
+    inline constexpr const char* SOUND_ID_COLLECT = "collect";
+    inline constexpr const char* SOUND_ID_DEATH = "death";
+    inline constexpr const char* SOUND_ID_HOST = "host";
+    inline constexpr const char* SOUND_ID_JUMP = "jump";
+    inline constexpr const char* SOUND_ID_LOSE = "lose";
+    inline constexpr const char* SOUND_ID_SMASH = "smash";
+    inline constexpr const char* SOUND_ID_WALK = "walk";
+    inline constexpr const char* SOUND_ID_WIN = "win";
+    inline constexpr const char* MUSIC_ID_BGM = "bgm_level1";
+
+    inline constexpr const char* SOUND_PATH_BREAK_GLASS = "../assets/sounds/break_glass.wav";
+    inline constexpr const char* SOUND_PATH_BUTTON      = "../assets/sounds/button_sound.wav";
+    inline constexpr const char* SOUND_PATH_COLLECT     = "../assets/sounds/collect_syringe.wav";
+    inline constexpr const char* SOUND_PATH_DEATH       = "../assets/sounds/death.wav";
+    inline constexpr const char* SOUND_PATH_HOST        = "../assets/sounds/host.wav";
+    inline constexpr const char* SOUND_PATH_JUMP        = "../assets/sounds/jump.wav";
+    inline constexpr const char* SOUND_PATH_LOSE        = "../assets/sounds/loose.wav";
+    inline constexpr const char* SOUND_PATH_SMASH       = "../assets/sounds/smash_floor.wav";
+    inline constexpr const char* SOUND_PATH_WALK        = "../assets/sounds/walk.wav";
+    inline constexpr const char* SOUND_PATH_WIN         = "../assets/sounds/win.wav";
+    inline constexpr const char* MUSIC_PATH_BGM         = "../assets/sounds/music.ogg";
+
+    inline constexpr float VOL_BREAK_GLASS = 70.f;
+    inline constexpr float VOL_BUTTON = 70.f;
+    inline constexpr float VOL_COLLECT = 90.f;
+    inline constexpr float VOL_DEATH = 100.f;
+    inline constexpr float VOL_HOST = 90.f;
+    inline constexpr float VOL_JUMP = 40.f;
+    inline constexpr float VOL_LOSE = 90.f;
+    inline constexpr float VOL_SMASH = 10.f;
+    inline constexpr float VOL_WALK = 40.f;
+    inline constexpr float VOL_WIN = 90.f;
+    inline constexpr float VOL_BGM = 5.f;
+
+    inline constexpr float STEP_SOUND_INTERVAL = 0.35f;
+    inline constexpr float WALK_SOUND_VELOCITY = 15.f;
+    inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
+    inline constexpr float EJECT_DAMAGE = 9999.f;
 }
 Path to file: ./src/Core/GameContext.hpp
 Code:
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "Core/Map/Map.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
 
 struct GameContext
 {
     float dt;
     sf::Vector2f mousePos;
     Map* levelMap;
+    SoundManager* audio;
 };
 Path to file: ./src/Core/GameData.hpp
 Code:
@@ -379,6 +438,7 @@ Code:
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include "States/StateManager/StateManager.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
 
 struct GameData
 {
@@ -386,6 +446,7 @@ struct GameData
     StateManager manager;
     sf::Font headerFont;
     sf::Font hudFont;
+    SoundManager sound;
 };
 
 typedef std::shared_ptr<GameData> GameDataRef;
@@ -395,6 +456,8 @@ Code:
 #include "Core/Config.hpp"
 #include "States/MainMenu/StateMainMenu.hpp"
 
+using namespace Config;
+
 Game::Game() 
 {
     m_data->window.create(sf::VideoMode::getDesktopMode(), "The Host", sf::Style::Fullscreen);
@@ -402,6 +465,20 @@ Game::Game()
     m_data->window.setVerticalSyncEnabled(true);
     m_data->headerFont.loadFromFile("../assets/fonts/PressStart2P-Regular.ttf");
     m_data->hudFont.loadFromFile("../assets/fonts/Sligoil-Micro.ttf");
+
+    m_data->sound.LoadSound(SOUND_ID_BREAK_GLASS, SOUND_PATH_BREAK_GLASS, VOL_BREAK_GLASS);
+    m_data->sound.LoadSound(SOUND_ID_BUTTON,      SOUND_PATH_BUTTON,      VOL_BUTTON);
+    m_data->sound.LoadSound(SOUND_ID_COLLECT,     SOUND_PATH_COLLECT,     VOL_COLLECT);
+    m_data->sound.LoadSound(SOUND_ID_DEATH,       SOUND_PATH_DEATH,       VOL_DEATH);
+    m_data->sound.LoadSound(SOUND_ID_HOST,        SOUND_PATH_HOST,        VOL_HOST);
+    m_data->sound.LoadSound(SOUND_ID_JUMP,        SOUND_PATH_JUMP,        VOL_JUMP);
+    m_data->sound.LoadSound(SOUND_ID_LOSE,        SOUND_PATH_LOSE,        VOL_LOSE);
+    m_data->sound.LoadSound(SOUND_ID_SMASH,       SOUND_PATH_SMASH,       VOL_SMASH);
+    m_data->sound.LoadSound(SOUND_ID_WALK,        SOUND_PATH_WALK,        VOL_WALK);
+    m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
+
+    m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
+
     m_data->manager.AddState(StateRef(new StateMainMenu(m_data)));
 }
 
@@ -762,6 +839,14 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
     return false;
 }
 
+bool Map::IsSolidAt(sf::Vector2f worldPos) const
+{
+    int tx = static_cast<int>(std::floor(worldPos.x / Config::WORLD_TILE_SIZE));
+    int ty = static_cast<int>(std::floor(worldPos.y / Config::WORLD_TILE_SIZE));
+
+    return IsSolid(tx, ty, Config::EntityType::Parasite);
+}
+
 void Map::BuildVertexElement(int xTile, int yTile)
 {
     Config::BlockNames blockName = GetTile(xTile, yTile);
@@ -867,6 +952,7 @@ public:
 
     Config::BlockNames GetTile(int x, int y) const;
     bool IsSolid(int x, int y, Config::EntityType entityType) const;
+    bool IsSolidAt(sf::Vector2f worldPos) const;
     bool IsBreakable(int x, int y) const;
     
     void BreakTile(int x, int y); 
@@ -911,17 +997,181 @@ private:
     sf::Texture m_tileset;
     sf::VertexArray m_Vertices;
 };
+Path to file: ./src/Core/Sound/SoundManager/SoundManager.cpp
+Code:
+#include "Core/Sound/SoundManager/SoundManager.hpp"
+#include <iostream>
+
+
+bool SoundManager::LoadSound(const std::string& id, const std::string& filepath, float volume)
+{
+    auto buffer = std::make_unique<sf::SoundBuffer>();
+    if (!buffer->loadFromFile(filepath))
+    {
+        std::cerr << "Audio Error: Could not load sound '" << filepath << "'\n";
+        return false;
+    }
+
+    sf::Sound sound;
+    sound.setBuffer(*buffer);
+    sound.setVolume(volume);
+
+    m_soundBuffers[id] = std::move(buffer);
+    m_sounds[id] = sound;
+    
+    return true;
+}
+
+void SoundManager::PlaySound(const std::string& id)
+{
+    auto it = m_sounds.find(id);
+    if (it != m_sounds.end())
+    {
+        it->second.play();
+    }
+    else
+    {
+        std::cerr << "Audio Warning: Try to play unknown sound '" << id << "'\n";
+    }
+}
+
+void SoundManager::SetSoundVolume(const std::string& id, float volume)
+{
+    auto it = m_sounds.find(id);
+    if (it != m_sounds.end())
+    {
+        it->second.setVolume(volume);
+    }
+}
+
+bool SoundManager::LoadMusic(const std::string& id, const std::string& filepath, float volume)
+{
+    auto music = std::make_unique<sf::Music>();
+    if (!music->openFromFile(filepath))
+    {
+        std::cerr << "Audio Error: Could not load music '" << filepath << "'\n";
+        return false;
+    }
+
+    music->setVolume(volume);
+    m_musics[id] = std::move(music);
+
+    return true;
+}
+
+void SoundManager::PlayMusic(const std::string& id, bool loop)
+{
+    auto it = m_musics.find(id);
+    if (it != m_musics.end())
+    {
+        it->second->setLoop(loop);
+        
+        if (it->second->getStatus() != sf::Music::Playing) 
+        {
+            it->second->play();
+        }
+    }
+}
+
+void SoundManager::StopMusic(const std::string& id)
+{
+    auto it = m_musics.find(id);
+    if (it != m_musics.end())
+    {
+        it->second->stop();
+    }
+}
+
+void SoundManager::SetMusicVolume(const std::string& id, float volume)
+{
+    auto it = m_musics.find(id);
+    if (it != m_musics.end())
+    {
+        it->second->setVolume(volume);
+    }
+}
+Path to file: ./src/Core/Sound/SoundManager/SoundManager.hpp
+Code:
+#pragma once
+#include <SFML/Audio.hpp>
+#include <unordered_map>
+#include <string>
+#include <memory>
+
+class SoundManager 
+{
+public:
+    SoundManager() = default;
+    ~SoundManager() = default;
+;
+
+    bool LoadSound(const std::string& id, const std::string& filepath, float volume = 100.f);
+    void PlaySound(const std::string& id);
+    void SetSoundVolume(const std::string& id, float volume);
+
+    bool LoadMusic(const std::string& id, const std::string& filepath, float volume = 100.f);
+    void PlayMusic(const std::string& id, bool loop = true);
+    void StopMusic(const std::string& id);
+    void SetMusicVolume(const std::string& id, float volume);
+
+private:
+    std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> m_soundBuffers;
+    std::unordered_map<std::string, sf::Sound> m_sounds;
+
+    std::unordered_map<std::string, std::unique_ptr<sf::Music>> m_musics;
+};
+Path to file: ./src/Core/Utils/StringUtils/StringUtils.hpp
+Code:
+#pragma once
+#include <SFML/System/String.hpp>
+#include <string>
+
+namespace StringUtils {
+
+    inline sf::String ToSfStringFromUtf8(const std::string& utf8Str) {
+        return sf::String::fromUtf8(utf8Str.begin(), utf8Str.end());
+    }
+
+    inline std::string ToUtf8(const sf::String& str) {
+        auto utf8 = str.toUtf8();
+        return std::string(utf8.begin(), utf8.end());
+    }
+
+}
 Path to file: ./src/Entities/Character/Character.cpp
 Code:
 #include "Entities/Character/Character.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
 #include <iostream>
 #include <cmath>
+
+using namespace Config;
 
 Character::Character(float maxLife, sf::Vector2f /*position*/)
     : LivingEntity(maxLife)
 {
+    m_stateManager.SetOnStateChanged([this](Config::EntityState newState) {
+        switch (newState)
+        {
+            case EntityState::Idle:
+                m_anim.Play("idle"); 
+                break;
+            case EntityState::Walk: 
+                m_anim.Play("walk"); 
+                break;
+            case EntityState::Dash: 
+                m_anim.Play("dash"); 
+                break;
+            case EntityState::Dead:
+                m_anim.Play("dead"); 
+                break;
+            default:
+                break;
+        }
+    });
 }
+
 void Character::InitHitbox(float width, float height, sf::Vector2f position)
 {
     m_hitbox.setSize(sf::Vector2f(width, height));
@@ -933,8 +1183,7 @@ void Character::InitHitbox(float width, float height, sf::Vector2f position)
     m_spriteOffset = sf::Vector2f(0.f, 0.f);
 }
 
-void Character::InitHitboxFromCenter(float left, float right, float top, float bottom,
-                                     sf::Vector2f position)
+void Character::InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position)
 {
     float w = left + right;
     float h = top + bottom;
@@ -952,8 +1201,7 @@ void Character::InitHitboxFromCenter(float left, float right, float top, float b
     m_hitbox.setOutlineThickness(1.f);
 }
 
-void Character::InitSprite(const std::string& texturePath,
-                           int frameW, int frameH, float scale)
+void Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
 {
     if (!m_texture.loadFromFile(texturePath))
     {
@@ -966,7 +1214,6 @@ void Character::InitSprite(const std::string& texturePath,
     m_sprite.setOrigin(frameW / 2.f, frameH / 2.f);
     m_scale = scale;
 }
-
 
 bool Character::CheckMoveKeys(float dt)
 {
@@ -1030,19 +1277,19 @@ void Character::CheckMaxSpeed()
     }
 }
 
-void Character::UpdateHorizontal(float dt)
+void Character::UpdateHorizontal(const GameContext& ctx)
 {
-    bool isMoving = CheckMoveKeys(dt);
+    bool isMoving = CheckMoveKeys(ctx.dt);
 
     if (!isMoving)
     {
-        ResolveFriction(dt);
+        ResolveFriction(ctx.dt);
     }
 
     CheckMaxSpeed();
 }
 
-void Character::UpdateVertical(float dt, bool allowInput)
+void Character::UpdateVertical(const GameContext& ctx, bool allowInput)
 {
     float curGravity = m_gravity;
 
@@ -1051,7 +1298,7 @@ void Character::UpdateVertical(float dt, bool allowInput)
         curGravity *= 2.f;
     }
 
-    m_velocity.y += curGravity * dt;
+    m_velocity.y += curGravity * ctx.dt;
 
     if (m_velocity.y > Config::MAX_FALL_SPEED)
     {
@@ -1062,15 +1309,18 @@ void Character::UpdateVertical(float dt, bool allowInput)
     {
         m_velocity.y = -m_jumpForce;
         m_isOnGround = false;
+        
+        if (const char* sound = GetJumpSound()) {
+            ctx.audio->PlaySound(sound);
+        }
     }
 }
 
-void Character::UpdateMove(float dt)
+void Character::UpdateMove(const GameContext& ctx)
 {
-    UpdateHorizontal(dt);
-    UpdateVertical(dt, m_isPlayerControlled);
+    UpdateHorizontal(ctx);
+    UpdateVertical(ctx, m_isPlayerControlled);
 }
-
 
 void Character::ResolveCollisionsX(int x, const GameContext& ctx)
 {
@@ -1098,10 +1348,19 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
 
     if (m_velocity.y > 0.f)
     {
+        float impactVelocity = m_velocity.y;
         m_hitbox.setPosition(m_hitbox.getPosition().x,
                              y * tileSize - (bounds.height / 2.f) - Config::EPSILON);
         m_velocity.y = 0.f;
         m_isOnGround = true;
+
+        if (impactVelocity > Config::MAX_FALL_SPEED * Config::SMASH_FALL_SPEED_RATIO) 
+        {
+            if (const char* sound = GetLandSound()) {
+                ctx.audio->PlaySound(sound); 
+            }
+        }
+
         OnLanding();
     }
     else if (m_velocity.y < 0.f)
@@ -1153,7 +1412,6 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
     }
 }
 
-
 void Character::UpdateSpriteDirection()
 {
     if (m_velocity.x > 0.f)
@@ -1168,30 +1426,36 @@ void Character::UpdateSpriteDirection()
 
 void Character::UpdateAnimation(float dt)
 {
-    const char* name = GetAnimationName();
-
-    if (name == nullptr)
-    {
-        return;
-    }
-
-    m_anim.Play(name);
     m_anim.Update(dt);
     m_anim.Apply(m_sprite);
 }
 
 void Character::ApplyMovement(const GameContext& ctx)
 {
-    float dt = ctx.dt;
-
-    m_hitbox.move(m_velocity.x * dt, 0.f);
+    m_hitbox.move(m_velocity.x * ctx.dt, 0.f);
     ResolveCollisions(ctx, Axis::Horizontal);
 
-    m_hitbox.move(0.f, m_velocity.y * dt);
+    m_hitbox.move(0.f, m_velocity.y * ctx.dt);
     ResolveCollisions(ctx, Axis::Vertical);
 
     UpdateSpriteDirection();
-    UpdateAnimation(dt);
+    UpdateAnimation(ctx.dt);
+
+    if (m_isOnGround && std::abs(m_velocity.x) > Config::WALK_SOUND_VELOCITY) 
+    {
+        m_stepTimer -= ctx.dt;
+        if (m_stepTimer <= 0.f)
+        {
+            if (const char* sound = GetWalkSound()) {
+                ctx.audio->PlaySound(sound); 
+            }
+            m_stepTimer = Config::STEP_SOUND_INTERVAL; 
+        }
+    }
+    else
+    {
+        m_stepTimer = 0.f;
+    }
 
     sf::Vector2f eff = m_spriteOffset;
 
@@ -1207,26 +1471,32 @@ Code:
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
-#include "Entities/LivingEntity/LivingEntity.hpp"
+#include "Entities/LivingEntity/LivingEntity.hpp"                             
 #include "Core/Animation/AnimationController.hpp"
 #include "Core/Map/Map.hpp"
+#include "Entities/StateManager/EntityStateManager/EntityStateManager.hpp"
 
 class Character : public LivingEntity
 {
 public:
     Character(float maxLife, sf::Vector2f position);
     virtual ~Character() = default;
+    EntityStateManager& GetStateManager() { return m_stateManager; }
+    const EntityStateManager& GetStateManager() const { return m_stateManager; }
 
 protected:
+    virtual const char* GetJumpSound() const { return nullptr; }
+    virtual const char* GetLandSound() const { return nullptr; }
+    virtual const char* GetWalkSound() const { return nullptr; }
     enum class Axis { Horizontal, Vertical };
 
     void InitHitbox(float width, float height, sf::Vector2f position);
     void InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position);
     void InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
 
-    virtual void UpdateHorizontal(float dt);
-    virtual void UpdateVertical(float dt, bool allowInput);
-    virtual void UpdateMove(float dt);
+    virtual void UpdateHorizontal(const GameContext& ctx);
+    virtual void UpdateVertical(const GameContext& ctx, bool allowInput);
+    virtual void UpdateMove(const GameContext& ctx);
 
     bool CheckMoveKeys(float dt);
     void ResolveFriction(float dt);
@@ -1241,7 +1511,6 @@ protected:
     void ApplyMovement(const GameContext& ctx);
 
     virtual Config::EntityType GetEntityType() const = 0;
-    virtual const char* GetAnimationName() const = 0;
     virtual void OnLanding() {}
     virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
 
@@ -1254,7 +1523,11 @@ protected:
     bool  m_isOnGround = false;
     sf::Vector2f m_spriteOffset{0.f, 0.f};
 
+    float m_stepTimer = 0.f;
+
     AnimationController m_anim;
+
+    EntityStateManager m_stateManager;
 };
 Path to file: ./src/Entities/Enemy/Enemy.cpp
 Code:
@@ -1376,6 +1649,15 @@ Host::Host(float maxLife, sf::Vector2f position, float decayTime)
     m_maxDecayTimer = decayTime;
     m_decayTimer    = decayTime;
 }
+
+void Host::AddDecayTime(float time)
+{
+        m_decayTimer += time;
+        if (m_decayTimer > m_maxDecayTimer) 
+        {
+            m_decayTimer = m_maxDecayTimer;
+        }
+}
 Path to file: ./src/Entities/Host/Host.hpp
 Code:
 #pragma once
@@ -1390,15 +1672,74 @@ public:
     void  ResetDecayTimer()                 { m_decayTimer = m_maxDecayTimer; }
     float GetDecayTimer()    const override { return m_decayTimer; }
     float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
+    void AddDecayTime(float time);
 
 protected:
     float m_decayTimer    = 0.f;
     float m_maxDecayTimer = 0.f;
 };
+Path to file: ./src/Entities/Items/Syringe/Syringe.cpp
+Code:
+#include "Entities/Items/Syringe/Syringe.hpp"
+#include "Core/Config.hpp"
+#include <cmath>
+#include <iostream>
+
+Syringe::Syringe(sf::Vector2f position) : m_startPos(position)
+{
+    m_hitbox.setSize(sf::Vector2f(Config::SYRINGE_HITBOX_SIZE, Config::SYRINGE_HITBOX_SIZE));
+    m_hitbox.setOrigin(Config::SYRINGE_HITBOX_SIZE / 2.f, Config::SYRINGE_HITBOX_SIZE / 2.f);
+    m_hitbox.setPosition(position);
+    
+    m_hitbox.setFillColor(sf::Color::Transparent);
+    m_hitbox.setOutlineColor(sf::Color::Cyan);
+    m_hitbox.setOutlineThickness(1.f);
+
+    if (!m_texture.loadFromFile("../assets/images/syringe.png"))
+    {
+        std::cerr << "Warning: Could not load syringe.png\n";
+    }
+    m_texture.setSmooth(false);
+    m_sprite.setTexture(m_texture);
+    
+    m_sprite.setOrigin(m_texture.getSize().x / 2.f, m_texture.getSize().y / 2.f);
+    m_sprite.setPosition(position);
+}
+
+void Syringe::Update(const GameContext& ctx)
+{
+    if (m_isCollected) return;
+
+    m_floatTimer += ctx.dt * Config::SYRINGE_FLOAT_SPEED;
+    float yOffset = std::sin(m_floatTimer) * Config::SYRINGE_FLOAT_AMPLITUDE;
+
+    m_hitbox.setPosition(m_startPos.x, m_startPos.y + yOffset);
+    m_sprite.setPosition(m_hitbox.getPosition());
+}
+Path to file: ./src/Entities/Items/Syringe/Syringe.hpp
+Code:
+#pragma once
+#include "Entities/Entity/Entity.hpp"
+
+class Syringe : public Entity
+{
+public:
+    Syringe(sf::Vector2f position);
+
+    void Update(const GameContext& ctx) override;
+    
+    bool IsCollected() const { return m_isCollected; }
+    void Collect() { m_isCollected = true; }
+private:
+    bool m_isCollected = false;
+    float m_floatTimer = 0.f;
+    sf::Vector2f m_startPos;
+};
 Path to file: ./src/Entities/LivingEntity/LivingEntity.hpp
 Code:
 #pragma once
 #include "Entities/Entity/Entity.hpp"
+#include "Entities/StateManager/PropertiesManager/PropertiesManager.hpp"
 
 class LivingEntity : public Entity
 {
@@ -1429,6 +1770,9 @@ public:
         }
     }
 
+    PropertiesManager& GetProperties() { return m_properties; }
+    const PropertiesManager& GetProperties() const { return m_properties; }
+
 protected:
     virtual void Die() 
     {
@@ -1439,12 +1783,19 @@ protected:
     float m_maxLife;
     bool m_isDead;
     bool m_isPlayerControlled;
+
+    PropertiesManager m_properties;
 };
 Path to file: ./src/Entities/Parasite/Parasite.cpp
 Code:
 #include "Entities/Parasite/Parasite.hpp"
 #include "Core/Config.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace Config;
+using namespace StringUtils;
 
 Parasite::Parasite(sf::Vector2f position)
     : Character(Config::PARASITE_MAX_HEALTH, position)
@@ -1474,21 +1825,14 @@ Parasite::Parasite(sf::Vector2f position)
 
     m_anim.Play("idle");
     m_anim.Apply(m_sprite);
+
+    GetProperties().SetSfString("name", ToSfStringFromUtf8("Паразит"));
+    m_properties.SetInt("access_level", 0);
 }
 
 bool Parasite::IsDashing() const
 {
-    return m_dashTimer > 0.f;
-}
-
-const char* Parasite::GetAnimationName() const
-{
-    if (m_dashTimer > 0.f)
-    {
-        return "dash";
-    }
-
-    return "idle";
+    return m_stateManager.GetState() == Config::EntityState::Dash;
 }
 
 void Parasite::ForceDash(sf::Vector2f targetPos)
@@ -1508,9 +1852,10 @@ void Parasite::ForceDash(sf::Vector2f targetPos)
     m_velocity.y = (dy / length) * m_dashForce;
 
     m_dashCooldown = Config::DASH_COOLDOWN_TIME;
-    m_dashTimer    = Config::DASH_DURATION;
     m_hasDash      = false;
     m_isOnGround   = false;
+
+    m_stateManager.SetState(EntityState::Dash);
 }
 
 void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
@@ -1528,14 +1873,14 @@ void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
 
 void Parasite::UpdateDashTimer(float dt)
 {
-    if (m_dashTimer > 0.f)
+    if (m_stateManager.GetState() == EntityState::Dash)
     {
-        m_dashTimer -= dt;
-
-        if (m_dashTimer <= 0.f)
+        if (m_stateManager.GetTimeInState() >= Config::DASH_DURATION)
         {
             m_velocity.x *= 0.5f;
             m_velocity.y *= 0.5f;
+            
+            m_stateManager.SetState(EntityState::Idle);
         }
     }
 }
@@ -1556,26 +1901,22 @@ void Parasite::HorizontalDash(float dt)
     }
 }
 
-void Parasite::UpdateHorizontal(float dt)
+void Parasite::UpdateHorizontal(const GameContext& ctx)
 {
-    if (std::abs(m_velocity.x) > m_maxSpeed)
-    {
-        HorizontalDash(dt);
-    }
-    else
-    {
-        Character::UpdateHorizontal(dt);
+    if (std::abs(m_velocity.x) > m_maxSpeed) {
+        HorizontalDash(ctx.dt);
+    } else {
+        Character::UpdateHorizontal(ctx);
     }
 }
-
-void Parasite::UpdateMove(float dt)
+void Parasite::UpdateMove(const GameContext& ctx)
 {
-    UpdateDashTimer(dt);
+    m_stateManager.Update(ctx.dt);
+    UpdateDashTimer(ctx.dt);
 
-    if (m_dashTimer <= 0.f)
-    {
-        UpdateHorizontal(dt);
-        UpdateVertical(dt, true);
+    if (m_stateManager.GetState() != EntityState::Dash) {
+        UpdateHorizontal(ctx);
+        UpdateVertical(ctx, true);
     }
 }
 
@@ -1592,6 +1933,7 @@ bool Parasite::TryBreakTile(int x, int y, const GameContext& ctx)
     }
 
     ctx.levelMap->BreakTile(x, y);
+    ctx.audio->PlaySound(SOUND_ID_BREAK_GLASS);
     return true;
 }
 
@@ -1603,7 +1945,7 @@ void Parasite::Update(const GameContext& ctx)
     }
 
     UpdateDash(ctx.dt, ctx.mousePos);
-    UpdateMove(ctx.dt);
+    UpdateMove(ctx);
     ApplyMovement(ctx);
 }
 Path to file: ./src/Entities/Parasite/Parasite.hpp
@@ -1624,12 +1966,14 @@ public:
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
-    const char*        GetAnimationName() const override;
     void               OnLanding() override { m_hasDash = true; }
     bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
 
-    void UpdateHorizontal(float dt) override;
-    void UpdateMove(float dt) override;
+    void UpdateHorizontal(const GameContext& ctx) override;
+    void UpdateMove(const GameContext& ctx) override;
+    const char* GetJumpSound() const override { return Config::SOUND_ID_JUMP; }
+    const char* GetLandSound() const override { return Config::SOUND_ID_SMASH; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_WALK; }
 
 private:
     void HorizontalDash(float dt);
@@ -1639,13 +1983,16 @@ private:
     float m_dashCooldown = 0.f;
     float m_dashForce    = Config::PARASITE_DASH_FORCE;
     bool  m_hasDash      = true;
-    float m_dashTimer    = 0.f;
 };
 Path to file: ./src/Entities/Scientist/Scientist.cpp
 Code:
 #include "Entities/Scientist/Scientist.hpp"
 #include "Core/Config.hpp"
 #include <cmath>
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace Config;
+using namespace StringUtils;
 
 Scientist::Scientist(sf::Vector2f position)
     : Host(Config::SCIENTIST_MAX_HEALTH, position, Config::SCIENTIST_DECAY_TIME)
@@ -1656,7 +2003,6 @@ Scientist::Scientist(sf::Vector2f position)
     m_gravity   = Config::SCIENTIST_GRAVITY;
     m_maxSpeed  = Config::SCIENTIST_MAX_SPEED;
 
-    
     InitSprite("../assets/animations/scientist.png",
         Config::SCIENTIST_FRAME_W,
         Config::SCIENTIST_FRAME_H,
@@ -1677,17 +2023,12 @@ Scientist::Scientist(sf::Vector2f position)
     m_anim.AddClip("idle", 3, Config::SCIENTIST_IDLE_FRAME_TIME);
     m_anim.AddClip("walk", 3, Config::SCIENTIST_WALK_FRAME_TIME);
 
-    m_anim.Play("idle");
-    m_anim.Apply(m_sprite);
+    m_properties.SetSfString("name", ToSfStringFromUtf8("Учёный"));
+    m_properties.SetInt("access_level", 1);
+
+    m_stateManager.SetState(EntityState::Idle);
 }
 
-const char* Scientist::GetAnimationName() const
-{
-    if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
-        return "walk";
-
-    return "idle";
-}
 
 void Scientist::Update(const GameContext& ctx)
 {
@@ -1695,15 +2036,31 @@ void Scientist::Update(const GameContext& ctx)
     {
         return;
     }
+    m_stateManager.Update(ctx.dt);
 
     if (m_isPlayerControlled)
     {
         m_decayTimer -= ctx.dt;
-        UpdateMove(ctx.dt);
+        UpdateMove(ctx);
     }
     else
     {
-        UpdateVertical(ctx.dt, false);
+        UpdateVertical(ctx, false);
+    }
+
+    if (m_isOnGround)
+    {
+        if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
+        {
+            m_stateManager.SetState(EntityState::Walk);
+        }
+        else
+        {
+            m_stateManager.SetState(EntityState::Idle);
+        }
+    }
+    else 
+    {
     }
 
     ApplyMovement(ctx);
@@ -1722,43 +2079,144 @@ public:
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Human; }
-    const char*        GetAnimationName() const override;
 };
-Path to file: ./src/Entities/StateManger/PropertiesManager.cpp
+Path to file: ./src/Entities/StateManager/EntityStateManager/EntityStateManager.cpp
 Code:
-#include "Core/../Entities/StateManger/PropertiesManager.hpp"
+#include "Entities/StateManager/EntityStateManager/EntityStateManager.hpp"
+#include "Core/Config.hpp"
 
-PropertiesManager::PropertiesManager() {
-    m_states = {};
-}
+using namespace Config;
 
-void PropertiesManager::SetVal(const std::string& name, bool val)
+EntityStateManager::EntityStateManager()
+    : m_currentState(Config::EntityState::None), m_timeInState(0.f)
 {
-    m_states[name] = val;
 }
 
-bool PropertiesManager::GetValOfState(const std::string& name) const
+void EntityStateManager::SetState(EntityState newState)
 {
-    auto it = m_states.find(name);
-    return it != m_states.end() && it->second;
+    if (m_currentState == newState) return;
+
+    m_currentState = newState;
+    m_timeInState = 0.f;
+
+    if (m_onStateChanged)
+    {
+        m_onStateChanged(m_currentState);
+    }
 }
-Path to file: ./src/Entities/StateManger/PropertiesManager.hpp
+
+void EntityStateManager::Update(float dt)
+{
+    m_timeInState += dt;
+}
+
+void EntityStateManager::SetOnStateChanged(std::function<void(EntityState)> callback)
+{
+    m_onStateChanged = callback;
+}
+Path to file: ./src/Entities/StateManager/EntityStateManager/EntityStateManager.hpp
 Code:
 #pragma once
-#include <map>
-#include <string>
-
-class PropertiesManager
+#include <functional>
+#include "Core/Config.hpp"
+class EntityStateManager
 {
 public:
-    PropertiesManager();
-    bool GetValOfState(const std::string& name) const;
-    void SetVal(const std::string& name, bool val);
+    EntityStateManager();
+
+    void SetState(Config::EntityState newState);
+    
+    Config::EntityState GetState() const { return m_currentState; }
+
+    float GetTimeInState() const { return m_timeInState; }
+
+    void Update(float dt);
+
+    void SetOnStateChanged(std::function<void(Config::EntityState)> callback);
+
 private:
-    std::map<std::string, bool> m_states;
-
-
+    Config::EntityState m_currentState;
+    float m_timeInState;
+    std::function<void(Config::EntityState)> m_onStateChanged;
 };
+Path to file: ./src/Entities/StateManager/PropertiesManager/PropertiesManager.cpp
+Code:
+#include "Entities/StateManager/PropertiesManager/PropertiesManager.hpp"
+
+
+void PropertiesManager::SetBool(const std::string& name, bool val) {
+    m_bools[name] = val;
+}
+bool PropertiesManager::GetBool(const std::string& name, bool defaultVal) const {
+    auto it = m_bools.find(name);
+    return (it != m_bools.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetInt(const std::string& name, int val) {
+    m_ints[name] = val;
+}
+int PropertiesManager::GetInt(const std::string& name, int defaultVal) const {
+    auto it = m_ints.find(name);
+    return (it != m_ints.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetFloat(const std::string& name, float val) {
+    m_floats[name] = val;
+}
+float PropertiesManager::GetFloat(const std::string& name, float defaultVal) const {
+    auto it = m_floats.find(name);
+    return (it != m_floats.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetString(const std::string& name, const std::string& val) {
+    m_strings[name] = val;
+}
+std::string PropertiesManager::GetString(const std::string& name, const std::string& defaultVal) const {
+    auto it = m_strings.find(name);
+    return (it != m_strings.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetSfString(const std::string& name, const sf::String& val) {
+    m_sfStrings[name] = val;
+}
+sf::String PropertiesManager::GetSfString(const std::string& name, const sf::String& defaultVal) const {
+    auto it = m_sfStrings.find(name);
+    return (it != m_sfStrings.end()) ? it->second : defaultVal;
+}
+Path to file: ./src/Entities/StateManager/PropertiesManager/PropertiesManager.hpp
+Code:
+    #pragma once
+    #include <unordered_map>
+    #include <string>
+    #include <SFML/System/String.hpp>
+
+    class PropertiesManager
+    {
+    public:
+        PropertiesManager() = default;
+
+        void SetBool(const std::string& name, bool val);
+        bool GetBool(const std::string& name, bool defaultVal = false) const;
+
+        void SetInt(const std::string& name, int val);
+        int GetInt(const std::string& name, int defaultVal = 0) const;
+
+        void SetFloat(const std::string& name, float val);
+        float GetFloat(const std::string& name, float defaultVal = 0.0f) const;
+
+        void SetString(const std::string& name, const std::string& val);
+        std::string GetString(const std::string& name, const std::string& defaultVal = "") const;
+
+        void SetSfString(const std::string& name, const sf::String& val);
+        sf::String GetSfString(const std::string& name, const sf::String& defaultVal = "") const;
+
+    private:
+        std::unordered_map<std::string, bool> m_bools;
+        std::unordered_map<std::string, int> m_ints;
+        std::unordered_map<std::string, float> m_floats;
+        std::unordered_map<std::string, std::string> m_strings;
+        std::unordered_map<std::string, sf::String> m_sfStrings;
+    };
 Path to file: ./src/main.cpp
 Code:
 #include "Core/Game/Game.hpp"
@@ -1775,6 +2233,9 @@ Code:
 
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "States/Playing/StatePlaying.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StateGameOver::StateGameOver(GameDataRef data) : m_data(data) {}
 
@@ -1784,17 +2245,17 @@ void StateGameOver::Init()
 
     m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
     m_darkOverlay.setFillColor(sf::Color(150, 0, 0, 150));
+    m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+    m_title.Init(ToSfStringFromUtf8("ТЫ УМЕР"), m_data->headerFont, 100, 200.f, windowSize.x);
 
-    m_title.Init("YOU DIED", m_data->headerFont, 100, 200.f, windowSize.x);
-
-    m_menu.AddButton("Restart", m_data->headerFont, 400.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Рестарт"), m_data->headerFont, 400.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
                          m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
                      });
 
-    m_menu.AddButton("Main Menu", m_data->headerFont, 500.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Главное меню"), m_data->headerFont, 500.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
@@ -1806,7 +2267,7 @@ void StateGameOver::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        m_menu.HandleInput(event);
+        m_menu.HandleInput(event, m_data->sound);
     }
 }
 
@@ -1861,14 +2322,14 @@ void StateMainMenu::Init()
 {
     auto windowSize = m_data->window.getSize();
 
-    m_title.Init("THE HOST", m_data->headerFont, 100, 150.f, windowSize.x);
+    m_title.Init(L"Носитель", m_data->headerFont, 100, 150.f, windowSize.x);
 
-    m_menu.AddButton("Play", m_data->headerFont, 400.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Играть", m_data->headerFont, 400.f, windowSize.x, [this]() {
     m_data->manager.RemoveState();
     m_data->manager.AddState(StateRef(new StateTutorial(m_data)), true);
 });
 
-    m_menu.AddButton("Exit", m_data->headerFont, 500.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Выход", m_data->headerFont, 500.f, windowSize.x, [this]() {
         m_data->window.close();
     });
 }
@@ -1876,7 +2337,7 @@ void StateMainMenu::Init()
 void StateMainMenu::HandleInput(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyPressed) {
-        m_menu.HandleInput(event);
+        m_menu.HandleInput(event, m_data->sound);
     }
 }
 
@@ -1923,6 +2384,9 @@ Code:
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "States/Playing/StatePlaying.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StatePause::StatePause(GameDataRef data) : m_data(data) {}
 
@@ -1937,23 +2401,25 @@ void StatePause::Init()
     m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
     m_darkOverlay.setFillColor(sf::Color(0, 0, 0, 150));
 
-    m_title.Init("PAUSED", m_data->headerFont, 100, 200.f, windowSize.x);
+    m_title.Init(ToSfStringFromUtf8("ПАУЗА"), m_data->headerFont, 100, 200.f, windowSize.x);
 
-    m_menu.AddButton("Resume", m_data->headerFont, 400.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Продолжить"), m_data->headerFont, 400.f, windowSize.x,
                      [this]() { m_data->manager.RemoveState(); });
 
-    m_menu.AddButton("Restart", m_data->headerFont, 500.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Рестарт"), m_data->headerFont, 500.f, windowSize.x,
                      [this]()
                      {
-                         m_data->manager.RemoveState();
-                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                        m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+                        m_data->manager.RemoveState();
+                        m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
                      });
 
-    m_menu.AddButton("Main Menu", m_data->headerFont, 600.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Главное меню"), m_data->headerFont, 600.f, windowSize.x,
                      [this]()
                      {
-                         m_data->manager.RemoveState();
-                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                        m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+                        m_data->manager.RemoveState();
+                        m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
                      });
 }
 
@@ -1967,7 +2433,7 @@ void StatePause::HandleInput(const sf::Event &event)
         }
         else
         {
-            m_menu.HandleInput(event);
+            m_menu.HandleInput(event, m_data->sound);
         }
     }
 }
@@ -2016,12 +2482,21 @@ private:
 };
 Path to file: ./src/States/Playing/StatePlaying.cpp
 Code:
-#include "States/Playing/StatePlaying.hpp"
+#include "StatePlaying.hpp"
 #include "Entities/Scientist/Scientist.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
+#include "Core/Config.hpp"
+#include <algorithm> 
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <array>
+
+using namespace StringUtils;
 
 StatePlaying::StatePlaying(GameDataRef data)
     : m_data(data),
@@ -2029,7 +2504,6 @@ StatePlaying::StatePlaying(GameDataRef data)
       m_camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM,
                             Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM)),
       m_currentHost(nullptr)
-
 {
 }
 
@@ -2046,21 +2520,84 @@ void StatePlaying::Init()
     m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
     m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
 
+    LoadSyringes("../assets/map/syringes_level1.txt");
+
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
     m_timeInCurrentHost = 0.f;
+
+    m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
+}
+
+bool StatePlaying::IsSyringeSpawnBlocked(sf::Vector2f pos) const
+{
+    const float half = Config::SYRINGE_HITBOX_SIZE / 2.f;
+
+    const std::array<sf::Vector2f, 5> probes = {{
+        { pos.x - half, pos.y - half }, // TL
+        { pos.x + half, pos.y - half }, // TR
+        { pos.x - half, pos.y + half }, // BL
+        { pos.x + half, pos.y + half }, // BR
+        { pos.x,        pos.y        }  // center
+    }};
+
+    for (const auto& p : probes)
+        if (m_map.IsSolidAt(p))
+            return true;
+
+    return false;
+}
+
+
+void StatePlaying::LoadSyringes(const std::string& path)
+{
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        std::cerr << "[Syringe] Could not open '" << path << "'\n";
+        return;
+    }
+
+    std::string line;
+    int lineNum = 0;
+
+    while (std::getline(file, line))
+    {
+        ++lineNum;
+
+        if (line.empty() || line[0] == '#') continue;
+
+        std::istringstream ss(line);
+        float x, y;
+        if (!(ss >> x >> y))
+        {
+            std::cerr << "[Syringe] " << path << ":" << lineNum
+                      << " invalid format (expected 'x y'): \"" << line << "\"\n";
+            continue;
+        }
+
+        sf::Vector2f pos(x, y);
+
+        if (IsSyringeSpawnBlocked(pos))
+        {
+            std::cerr << "[Syringe] " << path << ":" << lineNum
+                      << " cannot spawn at (" << x << ", " << y
+                      << "): tile is occupied by a solid block\n";
+            continue;
+        }
+
+        m_syringes.push_back(std::make_unique<Syringe>(pos));
+    }
 }
 
 void StatePlaying::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        if (GameKeyboard::IsHitboxesPressed(event))
-        {
+        if (GameKeyboard::IsHitboxesPressed(event)) {
             Entity::ToggleHitboxes();
         }
-        if (GameKeyboard::IsEventEscape(event))
-        {
+        if (GameKeyboard::IsEventEscape(event)) {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
         }
     }
@@ -2084,8 +2621,7 @@ void StatePlaying::UpdateCamera(float dt)
 
     sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
 
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
-                    m_map.GetHeightInPixels());
+    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(), m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
@@ -2094,31 +2630,37 @@ void StatePlaying::Update(float dt)
 
     GameContext ctx;
     ctx.dt = dt;
-    ctx.mousePos =
-        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
+    ctx.mousePos = m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
     ctx.levelMap = &m_map;
+    ctx.audio = &m_data->sound;
 
     m_parasite.Update(ctx);
 
-    for (auto &enemy : m_hosts)
-    {
+    for (auto &enemy : m_hosts) {
         enemy->Update(ctx);
+    }
+    for (auto &syringe : m_syringes) {
+        syringe->Update(ctx);
     }
 
     HandlePossession();
     HandleEjection(ctx);
+    HandleItems(ctx);
 
     CleanDeadEnemies();
 
-    UpdateHUD();
+    m_syringes.erase(
+        std::remove_if(m_syringes.begin(), m_syringes.end(), [](const auto& s) { return s->IsCollected(); }),
+        m_syringes.end()
+    );
 
+    UpdateHUD();
     CheckEndGameConditions();
 }
 
 void StatePlaying::HandlePossession()
 {
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
-        return;
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing()) return;
 
     for (auto &enemy : m_hosts)
     {
@@ -2132,6 +2674,8 @@ void StatePlaying::HandlePossession()
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
             m_timeInCurrentHost = 0.f;
+            
+            m_data->sound.PlaySound(Config::SOUND_ID_HOST); 
             break;
         }
     }
@@ -2139,29 +2683,28 @@ void StatePlaying::HandlePossession()
 
 void StatePlaying::HandleEjection(const GameContext &ctx)
 {
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
-        return;
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost) return;
 
     m_timeInCurrentHost += ctx.dt;
 
     bool manualEject = sf::Mouse::isButtonPressed(sf::Mouse::Right);
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
 
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
-    {
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST) {
         manualEject = false;
     }
 
     if (manualEject || timeOut)
     {
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(9999.f);
+        m_currentHost->TakeDamage(Config::EJECT_DAMAGE); 
+        
+        ctx.audio->PlaySound(Config::SOUND_ID_DEATH); 
 
         m_parasite.SetPosition(m_currentHost->GetPosition());
         m_parasite.SetPlayerControlled(true);
 
-        if (manualEject)
-        {
+        if (manualEject) {
             m_parasite.ForceDash(ctx.mousePos);
         }
 
@@ -2170,52 +2713,76 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
     }
 }
 
+void StatePlaying::HandleItems(const GameContext &ctx)
+{
+    for (auto& syringe : m_syringes)
+    {
+        if (syringe->IsCollected()) continue;
+
+        if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
+        {
+            if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+            {
+                syringe->Collect();
+                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE); 
+                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT); 
+            }
+        }
+    }
+}
+
 void StatePlaying::UpdateHUD()
 {
     m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
 
+    sf::String avatarName = m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
+    bool isInElevator = m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
-                             sf::Color(220, 200, 0));
+        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName + ToSfStringFromUtf8("\nПКМ: Высвободиться"));
+        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(), sf::Color(220, 200, 0));
     }
     else
     {
+        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName + ToSfStringFromUtf8("\nЛКМ: Вселиться"));
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
 }
 
 void StatePlaying::CheckEndGameConditions()
 {
-
     bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
-
     bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
 
     if (isParasiteDead || fellIntoPit)
     {
+        m_data->sound.PlaySound(Config::SOUND_ID_LOSE);
+        m_data->sound.PlaySound(Config::SOUND_ID_DEATH);
         m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
         return;
     }
 
-    if (m_currentHost != nullptr)
+    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
     {
-        if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+        int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
+        if (access >= 1) 
         {
+            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
             m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
             return;
         }
+        else
+        {
+            m_screenHud.SetHintText(ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
+        }
     }
-
 }
 
 void StatePlaying::CleanDeadEnemies()
 {
-    m_hosts.erase(std::remove_if(
-        m_hosts.begin(), m_hosts.end(),
-        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }),
-        m_hosts.end()
-    );
+    m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
+        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }), m_hosts.end());
 }
 
 void StatePlaying::Draw()
@@ -2223,23 +2790,20 @@ void StatePlaying::Draw()
     m_data->window.setView(m_camera.GetView());
     m_map.Draw(m_data->window);
 
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead())
-        {
-            enemy->Draw(m_data->window);
-        }
+    for (auto &enemy : m_hosts) {
+        if (!enemy->IsDead()) enemy->Draw(m_data->window);
     }
 
-    if (m_parasite.IsPlayerControlled())
-    {
+    for (auto &syringe : m_syringes) {
+        syringe->Draw(m_data->window); 
+    }
+
+    if (m_parasite.IsPlayerControlled()) {
         m_parasite.Draw(m_data->window);
     }
 
     m_floatingHud.Draw(m_data->window);
-
     m_data->window.setView(m_data->window.getDefaultView());
-
     m_screenHud.Draw(m_data->window);
 }
 Path to file: ./src/States/Playing/StatePlaying.hpp
@@ -2255,8 +2819,10 @@ Code:
 #include "Core/Camera/Camera.hpp"
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Host/Host.hpp"
+#include "Entities/Items/Syringe/Syringe.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+
 class StatePlaying : public State
 {
 public:
@@ -2272,10 +2838,12 @@ private:
 
     void HandlePossession();
     void HandleEjection(const GameContext& ctx);
+    void HandleItems(const GameContext& ctx);
     void CleanDeadEnemies();
     void UpdateHUD();
-
     void CheckEndGameConditions();
+    void LoadSyringes(const std::string& path);
+    bool IsSyringeSpawnBlocked(sf::Vector2f pos) const;
 
     GameDataRef m_data;
     
@@ -2285,8 +2853,8 @@ private:
     ScreenHUD m_screenHud;
 
     Parasite m_parasite;
-    std::vector<std::unique_ptr<Host>>   m_hosts;
-
+    std::vector<std::unique_ptr<Host>>    m_hosts;
+    std::vector<std::unique_ptr<Syringe>> m_syringes;
 
     LivingEntity* m_playerAvatar;
     Host* m_currentHost = nullptr;
@@ -2413,6 +2981,9 @@ Code:
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Config.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StateTutorial::StateTutorial(GameDataRef data) : m_data(data) {}
 
@@ -2420,37 +2991,48 @@ void StateTutorial::Init()
 {
     auto windowSize = m_data->window.getSize();
 
-    m_title.Init(L"КАК ИГРАТЬ", m_data->headerFont, 70, 50.f, windowSize.x);
+    m_title.Init(
+        ToSfStringFromUtf8("КАК ИГРАТЬ"),
+        m_data->headerFont, 70, 50.f, windowSize.x
+    );
 
     m_instructions.setFont(m_data->headerFont);
     m_instructions.setCharacterSize(30);
     m_instructions.setFillColor(sf::Color::White);
-    
-    m_instructions.setString(
-        L"ЦЕЛЬ:\nДобраться до лифта в конце уровня.\n\n"
-        L"УПРАВЛЕНИЕ:\n"
-        L"A / D - Движение\n"
-        L"ПРОБЕЛ - Прыжок\n"
-        L"ЛКМ (Левый клик) - Рывок / Вселение во врага\n"
-        L"ПКМ (Правый клик) - Разорвать носителя и выпрыгнуть\n\n"
-        L"ВНИМАНИЕ:\n"
-        L"Падение в пропасть — мгновенная смерть.\n"
-        L"Тело носителя разлагается за 15 секунд!"
-    );
+
+    m_instructions.setString(ToSfStringFromUtf8(
+        "ЦЕЛЬ:\nДобраться до лифта в конце уровня.\n\n"
+        "УПРАВЛЕНИЕ:\n"
+        "A / D - Движение\n"
+        "ПРОБЕЛ - Прыжок\n"
+        "ЛКМ (Левый клик) - Рывок / Вселение во врага\n"
+        "ПКМ (Правый клик) - Разорвать носителя и выпрыгнуть\n\n"
+        "ВНИМАНИЕ:\n"
+        "Падение в пропасть — мгновенная смерть.\n"
+        "Тело носителя разлагается за 15 секунд!"
+    ));
 
     sf::FloatRect textRect = m_instructions.getLocalBounds();
     m_instructions.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top);
     m_instructions.setPosition(windowSize.x / 2.0f, 160.f);
 
-    m_menu.AddButton(L"Начать игру", m_data->headerFont, 550.f, windowSize.x, [this]() {
-        m_data->manager.RemoveState();
-        m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
-    });
+    m_menu.AddButton(
+        ToSfStringFromUtf8("Начать игру"),
+        m_data->headerFont, 550.f, windowSize.x,
+        [this]() {
+            m_data->manager.RemoveState();
+            m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+        }
+    );
 
-    m_menu.AddButton(L"В главное меню", m_data->headerFont, 630.f, windowSize.x, [this]() {
-        m_data->manager.RemoveState();
-        m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
-    });
+    m_menu.AddButton(
+        ToSfStringFromUtf8("В главное меню"),
+        m_data->headerFont, 630.f, windowSize.x,
+        [this]() {
+            m_data->manager.RemoveState();
+            m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+        }
+    );
 }
 
 void StateTutorial::HandleInput(const sf::Event& event)
@@ -2464,7 +3046,7 @@ void StateTutorial::HandleInput(const sf::Event& event)
         }
         else
         {
-            m_menu.HandleInput(event);
+            m_menu.HandleInput(event, m_data->sound);
         }
     }
 }
@@ -2477,7 +3059,7 @@ void StateTutorial::Update(float dt)
 void StateTutorial::Draw()
 {
     m_data->window.clear(Config::BG_COLOR);
-    
+
     m_title.Draw(m_data->window);
     m_data->window.draw(m_instructions);
     m_menu.Draw(m_data->window);
@@ -2595,6 +3177,9 @@ Path to file: ./src/States/UI/UIMenu/UIMenu.cpp
 Code:
 #include "UIMenu.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
+
+using namespace Config;
 
 UIMenu::UIMenu() : m_selectedOption(0) {}
 
@@ -2617,16 +3202,19 @@ void UIMenu::MenuDown()
     else m_selectedOption = 0;
 }
 
-void UIMenu::HandleInput(const sf::Event& event)
+void UIMenu::HandleInput(const sf::Event& event, SoundManager& sound)
 {
     if (GameKeyboard::IsEventUp(event)) {
         MenuUp();
+        sound.PlaySound(SOUND_ID_BUTTON);
     }
     else if (GameKeyboard::IsEventDown(event)) {
         MenuDown();
+        sound.PlaySound(SOUND_ID_BUTTON);
     } 
     else if (GameKeyboard::IsEventOpen(event)) {
         if (!m_buttons.empty()) {
+            sound.PlaySound(SOUND_ID_BUTTON);
             m_buttons[m_selectedOption].OnClick();
         }
     }
@@ -2652,6 +3240,7 @@ Code:
 #include <vector>
 #include <functional>
 #include "States/UI/MenuButton/MenuButton.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
 
 class UIMenu
 {
@@ -2659,7 +3248,7 @@ public:
     UIMenu();
 
     void AddButton(const sf::String& text, const sf::Font& font, float yPos, float windowWidth, std::function<void()> onClick);    
-    void HandleInput(const sf::Event& event);
+    void HandleInput(const sf::Event& event, SoundManager& sound);
     void Update();
     void Draw(sf::RenderWindow& window);
 
@@ -2676,6 +3265,9 @@ Code:
 
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "States/Playing/StatePlaying.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StateVictory::StateVictory(GameDataRef data) : m_data(data) {}
 
@@ -2686,16 +3278,16 @@ void StateVictory::Init()
     m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
     m_darkOverlay.setFillColor(sf::Color(0, 100, 0, 150));
 
-    m_title.Init("LEVEL CLEARED!", m_data->headerFont, 100, 200.f, windowSize.x);
-
-    m_menu.AddButton("Play Again", m_data->headerFont, 400.f, windowSize.x,
+    m_title.Init(ToSfStringFromUtf8("УРОВЕНЬ ПРОЙДЕН!"), m_data->headerFont, 100, 200.f, windowSize.x);
+    m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+    m_menu.AddButton(ToSfStringFromUtf8("Играть снова"), m_data->headerFont, 400.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
                          m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
                      });
 
-    m_menu.AddButton("Main Menu", m_data->headerFont, 500.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Главное меню"), m_data->headerFont, 500.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
@@ -2707,7 +3299,7 @@ void StateVictory::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        m_menu.HandleInput(event);
+        m_menu.HandleInput(event, m_data->sound);
     }
 }
 void StateVictory::Update(float dt)
@@ -2826,7 +3418,7 @@ void ScreenHUD::Init(const sf::Font& font, float windowWidth)
     m_hintText.setPosition(20.f, 20.f); 
 }
 
-void ScreenHUD::SetHintText(const std::string& text)
+void ScreenHUD::SetHintText(const sf::String& text)
 {
     m_hintText.setString(text);
 }
@@ -2846,7 +3438,7 @@ class ScreenHUD
 public:
     void Init(const sf::Font& font, float windowWidth);
     
-    void SetHintText(const std::string& text);
+    void SetHintText(const sf::String& text);
     
     void Draw(sf::RenderWindow& window);
 

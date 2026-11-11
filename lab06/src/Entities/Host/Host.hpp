@@ -11,7 +11,7 @@ public:
     float GetDecayTimer()    const override { return m_decayTimer; }
     float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
     void AddDecayTime(float time);
-
+    void SetMaxDecayTime(float time) { m_maxDecayTimer = time; m_decayTimer = time; }
 protected:
     float m_decayTimer    = 0.f;
     float m_maxDecayTimer = 0.f;

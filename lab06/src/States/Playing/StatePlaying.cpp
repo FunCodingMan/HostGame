@@ -221,7 +221,7 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
         m_parasite.SetPlayerControlled(true);
 
         if (manualEject) {
-            m_parasite.ForceDash(ctx.mousePos);
+            m_parasite.ForceDash(ctx);
         }
 
         m_playerAvatar = &m_parasite;

@@ -45,8 +45,11 @@ bool Parasite::IsDashing() const
     return m_stateManager.GetState() == Config::EntityState::Dash;
 }
 
-void Parasite::ForceDash(sf::Vector2f targetPos)
+void Parasite::ForceDash(const GameContext& ctx)
 {
+    ctx.audio->PlaySound(Config::SOUND_ID_DASH);
+    sf::Vector2f targetPos = ctx.mousePos;
+
     sf::Vector2f center = m_hitbox.getPosition();
 
     float dx = targetPos.x - center.x;
@@ -68,16 +71,16 @@ void Parasite::ForceDash(sf::Vector2f targetPos)
     m_stateManager.SetState(EntityState::Dash);
 }
 
-void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
+void Parasite::UpdateDash(const GameContext& ctx)
 {
     if (m_dashCooldown > 0.f)
     {
-        m_dashCooldown -= dt;
+        m_dashCooldown -= ctx.dt;
     }
 
     if (GameKeyboard::IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
     {
-        ForceDash(mousePos);
+        ForceDash(ctx);
     }
 }
 
@@ -154,7 +157,7 @@ void Parasite::Update(const GameContext& ctx)
         return;
     }
 
-    UpdateDash(ctx.dt, ctx.mousePos);
+    UpdateDash(ctx);
     UpdateMove(ctx);
     ApplyMovement(ctx);
 }

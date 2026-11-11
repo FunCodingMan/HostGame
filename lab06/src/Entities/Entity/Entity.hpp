@@ -42,6 +42,8 @@ public:
         m_hitbox.setPosition(newPos);
         m_sprite.setPosition(newPos);
     }
+
+    sf::Vector2f GetVelocity() const { return m_velocity; }
 private:
     inline static bool m_showHitboxes = false;
 };
