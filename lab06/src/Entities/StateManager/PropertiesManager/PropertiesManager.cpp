@@ -1,5 +1,6 @@
 #include "Entities/StateManager/PropertiesManager/PropertiesManager.hpp"
 
+
 void PropertiesManager::SetBool(const std::string& name, bool val) {
     m_bools[name] = val;
 }
@@ -30,4 +31,12 @@ void PropertiesManager::SetString(const std::string& name, const std::string& va
 std::string PropertiesManager::GetString(const std::string& name, const std::string& defaultVal) const {
     auto it = m_strings.find(name);
     return (it != m_strings.end()) ? it->second : defaultVal;
+}
+
+void PropertiesManager::SetSfString(const std::string& name, const sf::String& val) {
+    m_sfStrings[name] = val;
+}
+sf::String PropertiesManager::GetSfString(const std::string& name, const sf::String& defaultVal) const {
+    auto it = m_sfStrings.find(name);
+    return (it != m_sfStrings.end()) ? it->second : defaultVal;
 }

@@ -6,6 +6,9 @@
 #include "States/Victory/StateVictory.hpp"
 #include "Core/Config.hpp"
 #include <algorithm> 
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StatePlaying::StatePlaying(GameDataRef data)
     : m_data(data),
@@ -184,17 +187,17 @@ void StatePlaying::UpdateHUD()
 {
     m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
 
-    std::string avatarName = m_playerAvatar->GetProperties().GetString("name", "Unknown");
+    sf::String avatarName = m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
     bool isInElevator = m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
 
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
-        if (!isInElevator) m_screenHud.SetHintText("Host: " + avatarName + "\nRMB: Eject");
+        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName + ToSfStringFromUtf8("\nПКМ: Высвободиться"));
         m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(), sf::Color(220, 200, 0));
     }
     else
     {
-        if (!isInElevator) m_screenHud.SetHintText("Form: " + avatarName + "\nLMB: Possess");
+        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName + ToSfStringFromUtf8("\nЛКМ: Вселиться"));
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
 }
@@ -223,7 +226,7 @@ void StatePlaying::CheckEndGameConditions()
         }
         else
         {
-            m_screenHud.SetHintText("ACCESS DENIED!\nNeed a Scientist body!");
+            m_screenHud.SetHintText(ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
         }
     }
 }

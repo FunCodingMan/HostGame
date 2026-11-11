@@ -1,8 +1,10 @@
 #include "Entities/Scientist/Scientist.hpp"
 #include "Core/Config.hpp"
 #include <cmath>
+#include "Core/Utils/StringUtils/StringUtils.hpp"
 
 using namespace Config;
+using namespace StringUtils;
 
 Scientist::Scientist(sf::Vector2f position)
     : Host(Config::SCIENTIST_MAX_HEALTH, position, Config::SCIENTIST_DECAY_TIME)
@@ -33,7 +35,7 @@ Scientist::Scientist(sf::Vector2f position)
     m_anim.AddClip("idle", 3, Config::SCIENTIST_IDLE_FRAME_TIME);
     m_anim.AddClip("walk", 3, Config::SCIENTIST_WALK_FRAME_TIME);
 
-    m_properties.SetString("name", "Scientist");
+    m_properties.SetSfString("name", ToSfStringFromUtf8("Учёный"));
     m_properties.SetInt("access_level", 1);
 
     m_stateManager.SetState(EntityState::Idle);

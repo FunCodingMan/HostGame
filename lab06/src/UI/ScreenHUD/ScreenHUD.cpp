@@ -11,7 +11,7 @@ void ScreenHUD::Init(const sf::Font& font, float windowWidth)
     m_hintText.setPosition(20.f, 20.f); 
 }
 
-void ScreenHUD::SetHintText(const std::string& text)
+void ScreenHUD::SetHintText(const sf::String& text)
 {
     m_hintText.setString(text);
 }

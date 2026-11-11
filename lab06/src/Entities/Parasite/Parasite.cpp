@@ -2,8 +2,10 @@
 #include "Core/Config.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Config.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
 
 using namespace Config;
+using namespace StringUtils;
 
 Parasite::Parasite(sf::Vector2f position)
     : Character(Config::PARASITE_MAX_HEALTH, position)
@@ -34,7 +36,7 @@ Parasite::Parasite(sf::Vector2f position)
     m_anim.Play("idle");
     m_anim.Apply(m_sprite);
 
-    GetProperties().SetString("name", "Parasite");
+    GetProperties().SetSfString("name", ToSfStringFromUtf8("Паразит"));
     m_properties.SetInt("access_level", 0);
 }
 

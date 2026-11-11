@@ -21,7 +21,7 @@ public:
     void SetMusicVolume(const std::string& id, float volume);
 
 private:
-        std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> m_soundBuffers;
+    std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> m_soundBuffers;
     std::unordered_map<std::string, sf::Sound> m_sounds;
 
     std::unordered_map<std::string, std::unique_ptr<sf::Music>> m_musics;

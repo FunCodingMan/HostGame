@@ -7,7 +7,7 @@ class ScreenHUD
 public:
     void Init(const sf::Font& font, float windowWidth);
     
-    void SetHintText(const std::string& text);
+    void SetHintText(const sf::String& text);
     
     void Draw(sf::RenderWindow& window);
 

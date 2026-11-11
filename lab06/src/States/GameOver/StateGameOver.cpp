@@ -2,6 +2,9 @@
 
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "States/Playing/StatePlaying.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+
+using namespace StringUtils;
 
 StateGameOver::StateGameOver(GameDataRef data) : m_data(data) {}
 
@@ -12,16 +15,16 @@ void StateGameOver::Init()
     m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
     m_darkOverlay.setFillColor(sf::Color(150, 0, 0, 150));
     m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
-    m_title.Init(L"ТЫ УМЕР", m_data->headerFont, 100, 200.f, windowSize.x);
+    m_title.Init(ToSfStringFromUtf8("ТЫ УМЕР"), m_data->headerFont, 100, 200.f, windowSize.x);
 
-    m_menu.AddButton(L"Рестарт", m_data->headerFont, 400.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Рестарт"), m_data->headerFont, 400.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
                          m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
                      });
 
-    m_menu.AddButton(L"Главное меню", m_data->headerFont, 500.f, windowSize.x,
+    m_menu.AddButton(ToSfStringFromUtf8("Главное меню"), m_data->headerFont, 500.f, windowSize.x,
                      [this]()
                      {
                          m_data->manager.RemoveState();
