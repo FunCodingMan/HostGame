@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iostream>
 #include <array>
+#include "Core/LevelLoader/LevelLoader.hpp"
 
 using namespace StringUtils;
 
@@ -32,78 +33,17 @@ void StatePlaying::Init()
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
     m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
 
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
+    m_hosts.clear();
+    m_syringes.clear();
 
-    LoadSyringes("../assets/map/syringes_level1.txt");
+    LevelLoader::LoadEnemies  ("../assets/map/enemies_level1.txt",  m_hosts,    m_map);
+    LevelLoader::LoadSyringes ("../assets/map/syringes_level1.txt", m_syringes, m_map);
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
     m_timeInCurrentHost = 0.f;
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
-}
-
-bool StatePlaying::IsSyringeSpawnBlocked(sf::Vector2f pos) const
-{
-    const float half = Config::SYRINGE_HITBOX_SIZE / 2.f;
-
-    const std::array<sf::Vector2f, 5> probes = {{
-        { pos.x - half, pos.y - half }, // TL
-        { pos.x + half, pos.y - half }, // TR
-        { pos.x - half, pos.y + half }, // BL
-        { pos.x + half, pos.y + half }, // BR
-        { pos.x,        pos.y        }  // center
-    }};
-
-    for (const auto& p : probes)
-        if (m_map.IsSolidAt(p))
-            return true;
-
-    return false;
-}
-
-
-void StatePlaying::LoadSyringes(const std::string& path)
-{
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        std::cerr << "[Syringe] Could not open '" << path << "'\n";
-        return;
-    }
-
-    std::string line;
-    int lineNum = 0;
-
-    while (std::getline(file, line))
-    {
-        ++lineNum;
-
-        if (line.empty() || line[0] == '#') continue;
-
-        std::istringstream ss(line);
-        float x, y;
-        if (!(ss >> x >> y))
-        {
-            std::cerr << "[Syringe] " << path << ":" << lineNum
-                      << " invalid format (expected 'x y'): \"" << line << "\"\n";
-            continue;
-        }
-
-        sf::Vector2f pos(x, y);
-
-        if (IsSyringeSpawnBlocked(pos))
-        {
-            std::cerr << "[Syringe] " << path << ":" << lineNum
-                      << " cannot spawn at (" << x << ", " << y
-                      << "): tile is occupied by a solid block\n";
-            continue;
-        }
-
-        m_syringes.push_back(std::make_unique<Syringe>(pos));
-    }
 }
 
 void StatePlaying::HandleInput(const sf::Event &event)

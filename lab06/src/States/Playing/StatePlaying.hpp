@@ -32,8 +32,6 @@ private:
     void CleanDeadEnemies();
     void UpdateHUD();
     void CheckEndGameConditions();
-    void LoadSyringes(const std::string& path);
-    bool IsSyringeSpawnBlocked(sf::Vector2f pos) const;
 
     GameDataRef m_data;
     
