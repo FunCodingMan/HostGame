@@ -191,6 +191,14 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
     return false;
 }
 
+bool Map::IsSolidAt(sf::Vector2f worldPos) const
+{
+    int tx = static_cast<int>(std::floor(worldPos.x / Config::WORLD_TILE_SIZE));
+    int ty = static_cast<int>(std::floor(worldPos.y / Config::WORLD_TILE_SIZE));
+
+    return IsSolid(tx, ty, Config::EntityType::Parasite);
+}
+
 void Map::BuildVertexElement(int xTile, int yTile)
 {
     Config::BlockNames blockName = GetTile(xTile, yTile);

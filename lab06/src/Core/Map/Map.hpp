@@ -15,6 +15,7 @@ public:
 
     Config::BlockNames GetTile(int x, int y) const;
     bool IsSolid(int x, int y, Config::EntityType entityType) const;
+    bool IsSolidAt(sf::Vector2f worldPos) const;
     bool IsBreakable(int x, int y) const;
     
     void BreakTile(int x, int y); 
