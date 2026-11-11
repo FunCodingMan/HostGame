@@ -8,14 +8,14 @@ void StateMainMenu::Init()
 {
     auto windowSize = m_data->window.getSize();
 
-    m_title.Init("THE HOST", m_data->headerFont, 100, 150.f, windowSize.x);
+    m_title.Init(L"Носитель", m_data->headerFont, 100, 150.f, windowSize.x);
 
-    m_menu.AddButton("Play", m_data->headerFont, 400.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Играть", m_data->headerFont, 400.f, windowSize.x, [this]() {
     m_data->manager.RemoveState();
     m_data->manager.AddState(StateRef(new StateTutorial(m_data)), true);
 });
 
-    m_menu.AddButton("Exit", m_data->headerFont, 500.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Выход", m_data->headerFont, 500.f, windowSize.x, [this]() {
         m_data->window.close();
     });
 }

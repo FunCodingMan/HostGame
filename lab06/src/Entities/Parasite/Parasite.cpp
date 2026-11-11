@@ -33,6 +33,9 @@ Parasite::Parasite(sf::Vector2f position)
 
     m_anim.Play("idle");
     m_anim.Apply(m_sprite);
+
+    GetProperties().SetString("name", "Parasite");
+    m_properties.SetInt("access_level", 0);
 }
 
 bool Parasite::IsDashing() const

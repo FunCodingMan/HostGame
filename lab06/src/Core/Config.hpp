@@ -170,12 +170,12 @@ namespace Config
 
     inline constexpr float VOL_BREAK_GLASS = 70.f;
     inline constexpr float VOL_BUTTON = 70.f;
-    inline constexpr float VOL_COLLECT = 80.f;
+    inline constexpr float VOL_COLLECT = 90.f;
     inline constexpr float VOL_DEATH = 100.f;
     inline constexpr float VOL_HOST = 90.f;
     inline constexpr float VOL_JUMP = 40.f;
     inline constexpr float VOL_LOSE = 90.f;
-    inline constexpr float VOL_SMASH = 200.f;
+    inline constexpr float VOL_SMASH = 10.f;
     inline constexpr float VOL_WALK = 40.f;
     inline constexpr float VOL_WIN = 90.f;
     inline constexpr float VOL_BGM = 5.f;
