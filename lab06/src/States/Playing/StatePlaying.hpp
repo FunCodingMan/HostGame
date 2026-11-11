@@ -9,9 +9,10 @@
 #include "Core/Camera/Camera.hpp"
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Host/Host.hpp"
+#include "Entities/Items/Syringe/Syringe.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
-#include "Entities/Items/Syringe/Syringe.hpp"
+
 class StatePlaying : public State
 {
 public:
@@ -27,12 +28,10 @@ private:
 
     void HandlePossession();
     void HandleEjection(const GameContext& ctx);
+    void HandleItems(const GameContext& ctx);
     void CleanDeadEnemies();
     void UpdateHUD();
-
     void CheckEndGameConditions();
-
-    void HandleItems(); 
 
     GameDataRef m_data;
     
@@ -42,13 +41,11 @@ private:
     ScreenHUD m_screenHud;
 
     Parasite m_parasite;
-    std::vector<std::unique_ptr<Host>>   m_hosts;
-
+    std::vector<std::unique_ptr<Host>>    m_hosts;
+    std::vector<std::unique_ptr<Syringe>> m_syringes;
 
     LivingEntity* m_playerAvatar;
     Host* m_currentHost = nullptr;
 
     float m_timeInCurrentHost;
-
-    std::vector<std::unique_ptr<Syringe>> m_syringes;
 };

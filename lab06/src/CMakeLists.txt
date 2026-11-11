@@ -10,8 +10,8 @@ list(REMOVE_ITEM SRC "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 add_library(game_core ${SRC})
 
 # 3. Подключаем к нашей библиотеке SFML
-target_link_libraries(game_core PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(game_core PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
 
 # 4. Указываем библиотеке, где искать заголовочные файлы
 target_include_directories(game_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-#update
+#update 

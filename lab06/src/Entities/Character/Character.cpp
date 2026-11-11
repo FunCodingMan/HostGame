@@ -29,18 +29,9 @@ Character::Character(float maxLife, sf::Vector2f /*position*/)
         }
     });
 }
+
 void Character::InitHitbox(float width, float height, sf::Vector2f position)
 {
-    m_stateManager.SetOnStateChanged([this](EntityState newState) {
-        switch (newState)
-        {
-            case EntityState::Idle: m_anim.Play("idle"); break;
-            case EntityState::Walk: m_anim.Play("walk"); break;
-            case EntityState::Dash: m_anim.Play("dash"); break;
-            case EntityState::Dead: m_anim.Play("dead"); break;
-            default: break;
-        }
-    });
     m_hitbox.setSize(sf::Vector2f(width, height));
     m_hitbox.setOrigin(width / 2.f, height / 2.f);
     m_hitbox.setPosition(position);
@@ -50,8 +41,7 @@ void Character::InitHitbox(float width, float height, sf::Vector2f position)
     m_spriteOffset = sf::Vector2f(0.f, 0.f);
 }
 
-void Character::InitHitboxFromCenter(float left, float right, float top, float bottom,
-                                     sf::Vector2f position)
+void Character::InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position)
 {
     float w = left + right;
     float h = top + bottom;
@@ -69,8 +59,7 @@ void Character::InitHitboxFromCenter(float left, float right, float top, float b
     m_hitbox.setOutlineThickness(1.f);
 }
 
-void Character::InitSprite(const std::string& texturePath,
-                           int frameW, int frameH, float scale)
+void Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
 {
     if (!m_texture.loadFromFile(texturePath))
     {
@@ -83,7 +72,6 @@ void Character::InitSprite(const std::string& texturePath,
     m_sprite.setOrigin(frameW / 2.f, frameH / 2.f);
     m_scale = scale;
 }
-
 
 bool Character::CheckMoveKeys(float dt)
 {
@@ -147,19 +135,19 @@ void Character::CheckMaxSpeed()
     }
 }
 
-void Character::UpdateHorizontal(float dt)
+void Character::UpdateHorizontal(const GameContext& ctx)
 {
-    bool isMoving = CheckMoveKeys(dt);
+    bool isMoving = CheckMoveKeys(ctx.dt);
 
     if (!isMoving)
     {
-        ResolveFriction(dt);
+        ResolveFriction(ctx.dt);
     }
 
     CheckMaxSpeed();
 }
 
-void Character::UpdateVertical(float dt, bool allowInput)
+void Character::UpdateVertical(const GameContext& ctx, bool allowInput)
 {
     float curGravity = m_gravity;
 
@@ -168,7 +156,7 @@ void Character::UpdateVertical(float dt, bool allowInput)
         curGravity *= 2.f;
     }
 
-    m_velocity.y += curGravity * dt;
+    m_velocity.y += curGravity * ctx.dt;
 
     if (m_velocity.y > Config::MAX_FALL_SPEED)
     {
@@ -179,15 +167,18 @@ void Character::UpdateVertical(float dt, bool allowInput)
     {
         m_velocity.y = -m_jumpForce;
         m_isOnGround = false;
+        
+        if (const char* sound = GetJumpSound()) {
+            ctx.audio->PlaySound(sound);
+        }
     }
 }
 
-void Character::UpdateMove(float dt)
+void Character::UpdateMove(const GameContext& ctx)
 {
-    UpdateHorizontal(dt);
-    UpdateVertical(dt, m_isPlayerControlled);
+    UpdateHorizontal(ctx);
+    UpdateVertical(ctx, m_isPlayerControlled);
 }
-
 
 void Character::ResolveCollisionsX(int x, const GameContext& ctx)
 {
@@ -215,10 +206,19 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
 
     if (m_velocity.y > 0.f)
     {
+        float impactVelocity = m_velocity.y;
         m_hitbox.setPosition(m_hitbox.getPosition().x,
                              y * tileSize - (bounds.height / 2.f) - Config::EPSILON);
         m_velocity.y = 0.f;
         m_isOnGround = true;
+
+        if (impactVelocity > Config::MAX_FALL_SPEED * Config::SMASH_FALL_SPEED_RATIO) 
+        {
+            if (const char* sound = GetLandSound()) {
+                ctx.audio->PlaySound(sound); 
+            }
+        }
+
         OnLanding();
     }
     else if (m_velocity.y < 0.f)
@@ -270,7 +270,6 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
     }
 }
 
-
 void Character::UpdateSpriteDirection()
 {
     if (m_velocity.x > 0.f)
@@ -291,16 +290,30 @@ void Character::UpdateAnimation(float dt)
 
 void Character::ApplyMovement(const GameContext& ctx)
 {
-    float dt = ctx.dt;
-
-    m_hitbox.move(m_velocity.x * dt, 0.f);
+    m_hitbox.move(m_velocity.x * ctx.dt, 0.f);
     ResolveCollisions(ctx, Axis::Horizontal);
 
-    m_hitbox.move(0.f, m_velocity.y * dt);
+    m_hitbox.move(0.f, m_velocity.y * ctx.dt);
     ResolveCollisions(ctx, Axis::Vertical);
 
     UpdateSpriteDirection();
-    UpdateAnimation(dt);
+    UpdateAnimation(ctx.dt);
+
+    if (m_isOnGround && std::abs(m_velocity.x) > Config::WALK_SOUND_VELOCITY) 
+    {
+        m_stepTimer -= ctx.dt;
+        if (m_stepTimer <= 0.f)
+        {
+            if (const char* sound = GetWalkSound()) {
+                ctx.audio->PlaySound(sound); 
+            }
+            m_stepTimer = Config::STEP_SOUND_INTERVAL; 
+        }
+    }
+    else
+    {
+        m_stepTimer = 0.f;
+    }
 
     sf::Vector2f eff = m_spriteOffset;
 

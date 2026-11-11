@@ -25,15 +25,17 @@ void StatePause::Init()
     m_menu.AddButton("Restart", m_data->headerFont, 500.f, windowSize.x,
                      [this]()
                      {
-                         m_data->manager.RemoveState();
-                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                        m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+                        m_data->manager.RemoveState();
+                        m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
                      });
 
     m_menu.AddButton("Main Menu", m_data->headerFont, 600.f, windowSize.x,
                      [this]()
                      {
-                         m_data->manager.RemoveState();
-                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                        m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+                        m_data->manager.RemoveState();
+                        m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
                      });
 }
 
@@ -47,7 +49,7 @@ void StatePause::HandleInput(const sf::Event &event)
         }
         else
         {
-            m_menu.HandleInput(event);
+            m_menu.HandleInput(event, m_data->sound);
         }
     }
 }

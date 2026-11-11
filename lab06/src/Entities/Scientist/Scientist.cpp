@@ -51,11 +51,11 @@ void Scientist::Update(const GameContext& ctx)
     if (m_isPlayerControlled)
     {
         m_decayTimer -= ctx.dt;
-        UpdateMove(ctx.dt);
+        UpdateMove(ctx);
     }
     else
     {
-        UpdateVertical(ctx.dt, false);
+        UpdateVertical(ctx, false);
     }
 
     if (m_isOnGround)

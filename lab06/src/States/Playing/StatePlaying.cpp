@@ -1,10 +1,11 @@
-#include "States/Playing/StatePlaying.hpp"
+#include "StatePlaying.hpp"
 #include "Entities/Scientist/Scientist.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
-#include <algorithm>
+#include "Core/Config.hpp"
+#include <algorithm> 
 
 StatePlaying::StatePlaying(GameDataRef data)
     : m_data(data),
@@ -34,18 +35,18 @@ void StatePlaying::Init()
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
     m_timeInCurrentHost = 0.f;
+
+    m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
 }
 
 void StatePlaying::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        if (GameKeyboard::IsHitboxesPressed(event))
-        {
+        if (GameKeyboard::IsHitboxesPressed(event)) {
             Entity::ToggleHitboxes();
         }
-        if (GameKeyboard::IsEventEscape(event))
-        {
+        if (GameKeyboard::IsEventEscape(event)) {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
         }
     }
@@ -69,8 +70,7 @@ void StatePlaying::UpdateCamera(float dt)
 
     sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
 
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
-                    m_map.GetHeightInPixels());
+    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(), m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
@@ -79,32 +79,27 @@ void StatePlaying::Update(float dt)
 
     GameContext ctx;
     ctx.dt = dt;
-    ctx.mousePos =
-        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
+    ctx.mousePos = m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
     ctx.levelMap = &m_map;
+    ctx.audio = &m_data->sound;
 
     m_parasite.Update(ctx);
 
-    for (auto &enemy : m_hosts)
-    {
+    for (auto &enemy : m_hosts) {
         enemy->Update(ctx);
     }
-
-    for (auto &syringe : m_syringes)
-    {
+    for (auto &syringe : m_syringes) {
         syringe->Update(ctx);
     }
 
     HandlePossession();
     HandleEjection(ctx);
-    
-    HandleItems();
+    HandleItems(ctx);
 
     CleanDeadEnemies();
 
     m_syringes.erase(
-        std::remove_if(m_syringes.begin(), m_syringes.end(), 
-            [](const auto& s) { return s->IsCollected(); }),
+        std::remove_if(m_syringes.begin(), m_syringes.end(), [](const auto& s) { return s->IsCollected(); }),
         m_syringes.end()
     );
 
@@ -114,8 +109,7 @@ void StatePlaying::Update(float dt)
 
 void StatePlaying::HandlePossession()
 {
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
-        return;
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing()) return;
 
     for (auto &enemy : m_hosts)
     {
@@ -129,6 +123,8 @@ void StatePlaying::HandlePossession()
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
             m_timeInCurrentHost = 0.f;
+            
+            m_data->sound.PlaySound(Config::SOUND_ID_HOST); 
             break;
         }
     }
@@ -136,29 +132,28 @@ void StatePlaying::HandlePossession()
 
 void StatePlaying::HandleEjection(const GameContext &ctx)
 {
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
-        return;
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost) return;
 
     m_timeInCurrentHost += ctx.dt;
 
     bool manualEject = sf::Mouse::isButtonPressed(sf::Mouse::Right);
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
 
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
-    {
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST) {
         manualEject = false;
     }
 
     if (manualEject || timeOut)
     {
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(9999.f);
+        m_currentHost->TakeDamage(Config::EJECT_DAMAGE); 
+        
+        ctx.audio->PlaySound(Config::SOUND_ID_DEATH); 
 
         m_parasite.SetPosition(m_currentHost->GetPosition());
         m_parasite.SetPlayerControlled(true);
 
-        if (manualEject)
-        {
+        if (manualEject) {
             m_parasite.ForceDash(ctx.mousePos);
         }
 
@@ -167,7 +162,7 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
     }
 }
 
-void StatePlaying::HandleItems()
+void StatePlaying::HandleItems(const GameContext &ctx)
 {
     for (auto& syringe : m_syringes)
     {
@@ -179,6 +174,7 @@ void StatePlaying::HandleItems()
             {
                 syringe->Collect();
                 m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE); 
+                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT); 
             }
         }
     }
@@ -193,17 +189,12 @@ void StatePlaying::UpdateHUD()
 
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
-        if (!isInElevator) {
-            m_screenHud.SetHintText("Host: " + avatarName + "\nRMB: Eject");
-        }
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
-                             sf::Color(220, 200, 0));
+        if (!isInElevator) m_screenHud.SetHintText("Host: " + avatarName + "\nRMB: Eject");
+        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(), sf::Color(220, 200, 0));
     }
     else
     {
-        if (!isInElevator) {
-            m_screenHud.SetHintText("Form: " + avatarName + "\nLMB: Possess");
-        }
+        if (!isInElevator) m_screenHud.SetHintText("Form: " + avatarName + "\nLMB: Possess");
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
 }
@@ -215,6 +206,8 @@ void StatePlaying::CheckEndGameConditions()
 
     if (isParasiteDead || fellIntoPit)
     {
+        m_data->sound.PlaySound(Config::SOUND_ID_LOSE);
+        m_data->sound.PlaySound(Config::SOUND_ID_DEATH);
         m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
         return;
     }
@@ -222,9 +215,9 @@ void StatePlaying::CheckEndGameConditions()
     if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
     {
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
-        
         if (access >= 1) 
         {
+            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
             m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
             return;
         }
@@ -237,11 +230,8 @@ void StatePlaying::CheckEndGameConditions()
 
 void StatePlaying::CleanDeadEnemies()
 {
-    m_hosts.erase(std::remove_if(
-        m_hosts.begin(), m_hosts.end(),
-        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }),
-        m_hosts.end()
-    );
+    m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
+        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }), m_hosts.end());
 }
 
 void StatePlaying::Draw()
@@ -249,27 +239,19 @@ void StatePlaying::Draw()
     m_data->window.setView(m_camera.GetView());
     m_map.Draw(m_data->window);
 
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead())
-        {
-            enemy->Draw(m_data->window);
-        }
+    for (auto &enemy : m_hosts) {
+        if (!enemy->IsDead()) enemy->Draw(m_data->window);
     }
 
-    for (auto &syringe : m_syringes)
-    {
-        syringe->Draw(m_data->window);
+    for (auto &syringe : m_syringes) {
+        syringe->Draw(m_data->window); 
     }
 
-    if (m_parasite.IsPlayerControlled())
-    {
+    if (m_parasite.IsPlayerControlled()) {
         m_parasite.Draw(m_data->window);
     }
 
     m_floatingHud.Draw(m_data->window);
-
     m_data->window.setView(m_data->window.getDefaultView());
-
     m_screenHud.Draw(m_data->window);
 }

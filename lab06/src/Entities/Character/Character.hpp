@@ -15,15 +15,18 @@ public:
     const EntityStateManager& GetStateManager() const { return m_stateManager; }
 
 protected:
+    virtual const char* GetJumpSound() const { return nullptr; }
+    virtual const char* GetLandSound() const { return nullptr; }
+    virtual const char* GetWalkSound() const { return nullptr; }
     enum class Axis { Horizontal, Vertical };
 
     void InitHitbox(float width, float height, sf::Vector2f position);
     void InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position);
     void InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
 
-    virtual void UpdateHorizontal(float dt);
-    virtual void UpdateVertical(float dt, bool allowInput);
-    virtual void UpdateMove(float dt);
+    virtual void UpdateHorizontal(const GameContext& ctx);
+    virtual void UpdateVertical(const GameContext& ctx, bool allowInput);
+    virtual void UpdateMove(const GameContext& ctx);
 
     bool CheckMoveKeys(float dt);
     void ResolveFriction(float dt);
@@ -49,6 +52,8 @@ protected:
     float m_scale     = 1.f;
     bool  m_isOnGround = false;
     sf::Vector2f m_spriteOffset{0.f, 0.f};
+
+    float m_stepTimer = 0.f;
 
     AnimationController m_anim;
 

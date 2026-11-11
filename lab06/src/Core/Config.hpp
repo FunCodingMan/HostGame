@@ -143,4 +143,45 @@ namespace Config
     inline constexpr float PLAYER_HUD_WIDTH = 50.f;
 
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
+
+    inline constexpr const char* SOUND_ID_BREAK_GLASS = "break_glass";
+    inline constexpr const char* SOUND_ID_BUTTON = "button";
+    inline constexpr const char* SOUND_ID_COLLECT = "collect";
+    inline constexpr const char* SOUND_ID_DEATH = "death";
+    inline constexpr const char* SOUND_ID_HOST = "host";
+    inline constexpr const char* SOUND_ID_JUMP = "jump";
+    inline constexpr const char* SOUND_ID_LOSE = "lose";
+    inline constexpr const char* SOUND_ID_SMASH = "smash";
+    inline constexpr const char* SOUND_ID_WALK = "walk";
+    inline constexpr const char* SOUND_ID_WIN = "win";
+    inline constexpr const char* MUSIC_ID_BGM = "bgm_level1";
+
+    inline constexpr const char* SOUND_PATH_BREAK_GLASS = "../assets/sounds/break_glass.wav";
+    inline constexpr const char* SOUND_PATH_BUTTON      = "../assets/sounds/button_sound.wav";
+    inline constexpr const char* SOUND_PATH_COLLECT     = "../assets/sounds/collect_syringe.wav";
+    inline constexpr const char* SOUND_PATH_DEATH       = "../assets/sounds/death.wav";
+    inline constexpr const char* SOUND_PATH_HOST        = "../assets/sounds/host.wav";
+    inline constexpr const char* SOUND_PATH_JUMP        = "../assets/sounds/jump.wav";
+    inline constexpr const char* SOUND_PATH_LOSE        = "../assets/sounds/loose.wav";
+    inline constexpr const char* SOUND_PATH_SMASH       = "../assets/sounds/smash_floor.wav";
+    inline constexpr const char* SOUND_PATH_WALK        = "../assets/sounds/walk.wav";
+    inline constexpr const char* SOUND_PATH_WIN         = "../assets/sounds/win.wav";
+    inline constexpr const char* MUSIC_PATH_BGM         = "../assets/sounds/music.ogg";
+
+    inline constexpr float VOL_BREAK_GLASS = 70.f;
+    inline constexpr float VOL_BUTTON = 70.f;
+    inline constexpr float VOL_COLLECT = 80.f;
+    inline constexpr float VOL_DEATH = 100.f;
+    inline constexpr float VOL_HOST = 90.f;
+    inline constexpr float VOL_JUMP = 40.f;
+    inline constexpr float VOL_LOSE = 90.f;
+    inline constexpr float VOL_SMASH = 200.f;
+    inline constexpr float VOL_WALK = 40.f;
+    inline constexpr float VOL_WIN = 90.f;
+    inline constexpr float VOL_BGM = 5.f;
+
+    inline constexpr float STEP_SOUND_INTERVAL = 0.35f;
+    inline constexpr float WALK_SOUND_VELOCITY = 15.f;
+    inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
+    inline constexpr float EJECT_DAMAGE = 9999.f;
 }

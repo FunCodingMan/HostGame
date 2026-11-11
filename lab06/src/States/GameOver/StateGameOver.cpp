@@ -33,7 +33,7 @@ void StateGameOver::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        m_menu.HandleInput(event);
+        m_menu.HandleInput(event, m_data->sound);
     }
 }
 

@@ -17,8 +17,11 @@ protected:
     void               OnLanding() override { m_hasDash = true; }
     bool               TryBreakTile(int x, int y, const GameContext& ctx) override;
 
-    void UpdateHorizontal(float dt) override;
-    void UpdateMove(float dt) override;
+    void UpdateHorizontal(const GameContext& ctx) override;
+    void UpdateMove(const GameContext& ctx) override;
+    const char* GetJumpSound() const override { return Config::SOUND_ID_JUMP; }
+    const char* GetLandSound() const override { return Config::SOUND_ID_SMASH; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_WALK; }
 
 private:
     void HorizontalDash(float dt);

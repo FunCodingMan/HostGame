@@ -1,5 +1,8 @@
 #include "UIMenu.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Config.hpp"
+
+using namespace Config;
 
 UIMenu::UIMenu() : m_selectedOption(0) {}
 
@@ -22,16 +25,19 @@ void UIMenu::MenuDown()
     else m_selectedOption = 0;
 }
 
-void UIMenu::HandleInput(const sf::Event& event)
+void UIMenu::HandleInput(const sf::Event& event, SoundManager& sound)
 {
     if (GameKeyboard::IsEventUp(event)) {
         MenuUp();
+        sound.PlaySound(SOUND_ID_BUTTON);
     }
     else if (GameKeyboard::IsEventDown(event)) {
         MenuDown();
+        sound.PlaySound(SOUND_ID_BUTTON);
     } 
     else if (GameKeyboard::IsEventOpen(event)) {
         if (!m_buttons.empty()) {
+            sound.PlaySound(SOUND_ID_BUTTON);
             m_buttons[m_selectedOption].OnClick();
         }
     }

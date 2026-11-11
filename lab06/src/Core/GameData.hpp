@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include "States/StateManager/StateManager.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
 
 struct GameData
 {
@@ -9,6 +10,7 @@ struct GameData
     StateManager manager;
     sf::Font headerFont;
     sf::Font hudFont;
+    SoundManager sound;
 };
 
 typedef std::shared_ptr<GameData> GameDataRef;

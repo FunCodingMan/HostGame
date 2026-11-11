@@ -54,7 +54,7 @@ void StateTutorial::HandleInput(const sf::Event& event)
         }
         else
         {
-            m_menu.HandleInput(event);
+            m_menu.HandleInput(event, m_data->sound);   
         }
     }
 }

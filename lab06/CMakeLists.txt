@@ -14,7 +14,7 @@ add_subdirectory(src)
 add_executable(app src/main.cpp)
 
 # 3. Линкуем к нашему приложению нашу же библиотеку game_core и SFML
-target_link_libraries(app PRIVATE game_core sfml-graphics sfml-window sfml-system)
+target_link_libraries(app PRIVATE game_core sfml-graphics sfml-window sfml-system sfml-audio)
 
 # 4. Чтобы main.cpp мог подключать заголовочные файлы
 target_include_directories(app PRIVATE src) 

@@ -106,27 +106,22 @@ void Parasite::HorizontalDash(float dt)
     }
 }
 
-void Parasite::UpdateHorizontal(float dt)
+void Parasite::UpdateHorizontal(const GameContext& ctx)
 {
-    if (std::abs(m_velocity.x) > m_maxSpeed)
-    {
-        HorizontalDash(dt);
-    }
-    else
-    {
-        Character::UpdateHorizontal(dt);
+    if (std::abs(m_velocity.x) > m_maxSpeed) {
+        HorizontalDash(ctx.dt);
+    } else {
+        Character::UpdateHorizontal(ctx);
     }
 }
-
-void Parasite::UpdateMove(float dt)
+void Parasite::UpdateMove(const GameContext& ctx)
 {
-    m_stateManager.Update(dt);
-    UpdateDashTimer(dt);
+    m_stateManager.Update(ctx.dt);
+    UpdateDashTimer(ctx.dt);
 
-    if (m_stateManager.GetState() != EntityState::Dash)
-    {
-        UpdateHorizontal(dt);
-        UpdateVertical(dt, true);
+    if (m_stateManager.GetState() != EntityState::Dash) {
+        UpdateHorizontal(ctx);
+        UpdateVertical(ctx, true);
     }
 }
 
@@ -143,6 +138,7 @@ bool Parasite::TryBreakTile(int x, int y, const GameContext& ctx)
     }
 
     ctx.levelMap->BreakTile(x, y);
+    ctx.audio->PlaySound(SOUND_ID_BREAK_GLASS);
     return true;
 }
 
@@ -154,6 +150,6 @@ void Parasite::Update(const GameContext& ctx)
     }
 
     UpdateDash(ctx.dt, ctx.mousePos);
-    UpdateMove(ctx.dt);
+    UpdateMove(ctx);
     ApplyMovement(ctx);
 }

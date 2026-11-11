@@ -2,6 +2,8 @@
 #include "Core/Config.hpp"
 #include "States/MainMenu/StateMainMenu.hpp"
 
+using namespace Config;
+
 Game::Game() 
 {
     m_data->window.create(sf::VideoMode::getDesktopMode(), "The Host", sf::Style::Fullscreen);
@@ -9,6 +11,20 @@ Game::Game()
     m_data->window.setVerticalSyncEnabled(true);
     m_data->headerFont.loadFromFile("../assets/fonts/PressStart2P-Regular.ttf");
     m_data->hudFont.loadFromFile("../assets/fonts/Sligoil-Micro.ttf");
+
+    m_data->sound.LoadSound(SOUND_ID_BREAK_GLASS, SOUND_PATH_BREAK_GLASS, VOL_BREAK_GLASS);
+    m_data->sound.LoadSound(SOUND_ID_BUTTON,      SOUND_PATH_BUTTON,      VOL_BUTTON);
+    m_data->sound.LoadSound(SOUND_ID_COLLECT,     SOUND_PATH_COLLECT,     VOL_COLLECT);
+    m_data->sound.LoadSound(SOUND_ID_DEATH,       SOUND_PATH_DEATH,       VOL_DEATH);
+    m_data->sound.LoadSound(SOUND_ID_HOST,        SOUND_PATH_HOST,        VOL_HOST);
+    m_data->sound.LoadSound(SOUND_ID_JUMP,        SOUND_PATH_JUMP,        VOL_JUMP);
+    m_data->sound.LoadSound(SOUND_ID_LOSE,        SOUND_PATH_LOSE,        VOL_LOSE);
+    m_data->sound.LoadSound(SOUND_ID_SMASH,       SOUND_PATH_SMASH,       VOL_SMASH);
+    m_data->sound.LoadSound(SOUND_ID_WALK,        SOUND_PATH_WALK,        VOL_WALK);
+    m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
+
+    m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
+
     m_data->manager.AddState(StateRef(new StateMainMenu(m_data)));
 }
 
