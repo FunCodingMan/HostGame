@@ -1,4 +1,4 @@
 # <Type> <x> <y> [decay]
-Scientist 200 300
+Scientist 416 286
 Scientist 600 400
 Scientist 800 400

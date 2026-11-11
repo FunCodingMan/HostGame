@@ -12,6 +12,7 @@
 #include <iostream>
 #include <array>
 #include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 
 using namespace StringUtils;
 
@@ -31,6 +32,7 @@ void StatePlaying::Init()
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
+    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());  
     m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
 
     m_hosts.clear();
@@ -52,6 +54,10 @@ void StatePlaying::HandleInput(const sf::Event &event)
     {
         if (GameKeyboard::IsHitboxesPressed(event)) {
             Entity::ToggleHitboxes();
+        }
+        if (GameKeyboard::IsCoordsTogglePressed(event))
+        {
+            DebugOverlay::ToggleMouseCoords();        
         }
         if (GameKeyboard::IsEventEscape(event)) {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
@@ -261,4 +267,5 @@ void StatePlaying::Draw()
     m_floatingHud.Draw(m_data->window);
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
+    DebugOverlay::Draw(m_data->window, m_camera.GetView()); 
 }

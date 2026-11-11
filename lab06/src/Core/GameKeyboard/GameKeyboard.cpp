@@ -58,3 +58,7 @@ bool GameKeyboard::IsEventEscape(const sf::Event& event)
 {
     return event.key.code == sf::Keyboard::Escape;
 }
+bool GameKeyboard::IsCoordsTogglePressed(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::C && sf::Keyboard::isKeyPressed(sf::Keyboard::F3);
+}

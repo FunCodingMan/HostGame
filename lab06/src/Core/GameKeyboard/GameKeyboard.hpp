@@ -15,6 +15,7 @@ public:
     static bool IsRightKeyPressed();
     static bool IsDashKeyPressed();
     static bool IsHitboxesPressed(const sf::Event& event);
+    static bool IsCoordsTogglePressed(const sf::Event& event);
 private:
 
 };
