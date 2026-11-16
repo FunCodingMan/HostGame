@@ -1,6 +1,8 @@
 #include "Core/Game/Game.hpp"
 #include "Core/Config.hpp"
 #include "States/MainMenu/StateMainMenu.hpp"
+#include <fstream>
+#include <iostream>
 
 using namespace Config;
 
@@ -26,7 +28,33 @@ Game::Game()
 
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
+    LoadLevelsConfig();
+
     m_data->manager.AddState(StateRef(new StateMainMenu(m_data)));
+}
+
+void Game::LoadLevelsConfig()
+{
+    std::ifstream levelsFile("../assets/map/levels.txt");
+    if (levelsFile.is_open())
+    {
+        std::string levelName;
+        while (levelsFile >> levelName)
+        {
+            if (levelName[0] == '#')
+            {
+                std::string temp;
+                std::getline(levelsFile, temp);
+                continue;
+            }
+            m_data->levels.push_back(levelName);
+        }
+    }
+    else
+    {
+        std::cerr << "Внимание: Не удалось открыть ../assets/map/levels.txt. Используем уровни по умолчанию.\n";
+        m_data->levels = {"tutorial", "level1"};
+    }
 }
 
 void Game::Run() 

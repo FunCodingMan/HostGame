@@ -19,9 +19,15 @@ bool LevelLoader::IsBoundsBlocked(const Map& map, const sf::FloatRect& bounds)
     int maxY = static_cast<int>(std::floor((bounds.top  + bounds.height) / ts));
 
     for (int ty = minY; ty <= maxY; ++ty)
+    {
         for (int tx = minX; tx <= maxX; ++tx)
+        {
             if (map.IsSolid(tx, ty, Config::EntityType::Parasite))
+            {
                 return true;
+            }
+        }
+    }
 
     return false;
 }
@@ -45,7 +51,8 @@ void LevelLoader::LoadEnemies(const std::string& path,
         std::istringstream ss(line);
         std::string type;
         float x, y;
-        if (!(ss >> type >> x >> y)) {
+        if (!(ss >> type >> x >> y))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " invalid format (expected 'Type x y [decay]')\n";
             continue;
@@ -53,9 +60,12 @@ void LevelLoader::LoadEnemies(const std::string& path,
 
         sf::Vector2f pos(x, y);
         std::unique_ptr<Host> enemy;
-        if (type == "Scientist") {
+        if (type == "Scientist")
+        {
             enemy = std::make_unique<Scientist>(pos);
-        } else {
+        } 
+        else
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " unknown enemy type '" << type << "'\n";
             continue;
@@ -64,7 +74,8 @@ void LevelLoader::LoadEnemies(const std::string& path,
         float customDecay = 0.f;
         if (ss >> customDecay) enemy->SetMaxDecayTime(customDecay);
 
-        if (IsBoundsBlocked(map, enemy->GetBounds())) {
+        if (IsBoundsBlocked(map, enemy->GetBounds()))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " cannot spawn " << type << " at (" << x << "," << y
                       << "): hitbox overlaps a solid tile\n";
@@ -80,7 +91,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
                                const Map& map)
 {
     std::ifstream file(path);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "[LevelLoader] Cannot open syringes file '" << path << "'\n";
         return;
     }
@@ -94,7 +106,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
 
         std::istringstream ss(line);
         float x, y;
-        if (!(ss >> x >> y)) {
+        if (!(ss >> x >> y))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " invalid format (expected 'x y')\n";
             continue;
@@ -103,7 +116,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
         sf::FloatRect bounds(x - half, y - half,
                              Config::SYRINGE_HITBOX_SIZE,
                              Config::SYRINGE_HITBOX_SIZE);
-        if (IsBoundsBlocked(map, bounds)) {
+        if (IsBoundsBlocked(map, bounds))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " cannot spawn syringe at (" << x << "," << y
                       << "): hitbox overlaps a solid tile\n";

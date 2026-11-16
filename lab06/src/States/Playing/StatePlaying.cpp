@@ -1,18 +1,20 @@
 #include "StatePlaying.hpp"
-#include "Entities/Scientist/Scientist.hpp"
+
+#include <algorithm>
+#include <array>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
+#include "Core/Config.hpp"
+#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include "Entities/Scientist/Scientist.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
-#include "Core/Config.hpp"
-#include <algorithm> 
-#include "Core/Utils/StringUtils/StringUtils.hpp"
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <array>
-#include "Core/LevelLoader/LevelLoader.hpp"
-#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 
 using namespace StringUtils;
 
@@ -27,39 +29,55 @@ StatePlaying::StatePlaying(GameDataRef data)
 
 void StatePlaying::Init()
 {
+    GameKeyboard::EnableAll();
+
+    std::string levelName = m_data->GetCurrentLevelName();
+
     m_map.LoadTileConfig("../assets/map/tileset.txt");
-    m_map.LoadFromFile("../assets/map/level1.txt");
+    m_map.LoadFromFile("../assets/map/" + levelName + ".txt");
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
-    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());  
-    m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
+    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
 
     m_hosts.clear();
     m_syringes.clear();
 
-    LevelLoader::LoadEnemies  ("../assets/map/enemies_level1.txt",  m_hosts,    m_map);
-    LevelLoader::LoadSyringes ("../assets/map/syringes_level1.txt", m_syringes, m_map);
+    LevelLoader::LoadEnemies("../assets/map/enemies_" + levelName + ".txt", m_hosts, m_map);
+    LevelLoader::LoadSyringes("../assets/map/syringes_" + levelName + ".txt", m_syringes, m_map);
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
     m_timeInCurrentHost = 0.f;
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
+
+    if (levelName == "tutorial")
+    {
+        m_tutorial.Init(m_data->headerFont, m_data->window.getSize().x);
+        m_screenHud.SetHintText(ToSfStringFromUtf8("Обучение"));
+    }
+    else
+    {
+        m_screenHud.SetHintText(ToSfStringFromUtf8("Уровень: ") + ToSfStringFromUtf8(levelName) +
+                                ToSfStringFromUtf8("\nЛКМ: Рывок | ПКМ: Выход"));
+    }
 }
 
 void StatePlaying::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        if (GameKeyboard::IsHitboxesPressed(event)) {
+        if (GameKeyboard::IsHitboxesPressed(event))
+        {
             Entity::ToggleHitboxes();
         }
         if (GameKeyboard::IsCoordsTogglePressed(event))
         {
-            DebugOverlay::ToggleMouseCoords();        
+            DebugOverlay::ToggleMouseCoords();
         }
-        if (GameKeyboard::IsEventEscape(event)) {
+        if (GameKeyboard::IsEventEscape(event))
+        {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
         }
     }
@@ -83,7 +101,8 @@ void StatePlaying::UpdateCamera(float dt)
 
     sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
 
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(), m_map.GetHeightInPixels());
+    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
+                    m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
@@ -92,16 +111,19 @@ void StatePlaying::Update(float dt)
 
     GameContext ctx;
     ctx.dt = dt;
-    ctx.mousePos = m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
+    ctx.mousePos =
+        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
     ctx.levelMap = &m_map;
     ctx.audio = &m_data->sound;
 
     m_parasite.Update(ctx);
 
-    for (auto &enemy : m_hosts) {
+    for (auto &enemy : m_hosts)
+    {
         enemy->Update(ctx);
     }
-    for (auto &syringe : m_syringes) {
+    for (auto &syringe : m_syringes)
+    {
         syringe->Update(ctx);
     }
 
@@ -111,18 +133,22 @@ void StatePlaying::Update(float dt)
 
     CleanDeadEnemies();
 
-    m_syringes.erase(
-        std::remove_if(m_syringes.begin(), m_syringes.end(), [](const auto& s) { return s->IsCollected(); }),
-        m_syringes.end()
-    );
-
+    m_syringes.erase(std::remove_if(m_syringes.begin(), m_syringes.end(),
+                                    [](const auto &s) { return s->IsCollected(); }),
+                     m_syringes.end());
+    if (m_data->GetCurrentLevelName() == "tutorial") {
+        bool syringeCollected = m_syringes.empty(); 
+        
+        m_tutorial.Update(dt, m_parasite, m_currentHost, syringeCollected);
+    }
     UpdateHUD();
     CheckEndGameConditions();
 }
 
 void StatePlaying::HandlePossession()
 {
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing()) return;
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
+        return;
 
     for (auto &enemy : m_hosts)
     {
@@ -136,8 +162,8 @@ void StatePlaying::HandlePossession()
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
             m_timeInCurrentHost = 0.f;
-            
-            m_data->sound.PlaySound(Config::SOUND_ID_HOST); 
+
+            m_data->sound.PlaySound(Config::SOUND_ID_HOST);
             break;
         }
     }
@@ -145,28 +171,31 @@ void StatePlaying::HandlePossession()
 
 void StatePlaying::HandleEjection(const GameContext &ctx)
 {
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost) return;
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
+        return;
 
     m_timeInCurrentHost += ctx.dt;
 
-    bool manualEject = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+    bool manualEject = GameKeyboard::IsEjectKeyPressed();
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
 
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST) {
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
+    {
         manualEject = false;
     }
 
     if (manualEject || timeOut)
     {
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE); 
-        
-        ctx.audio->PlaySound(Config::SOUND_ID_DEATH); 
+        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
+
+        ctx.audio->PlaySound(Config::SOUND_ID_DEATH);
 
         m_parasite.SetPosition(m_currentHost->GetPosition());
         m_parasite.SetPlayerControlled(true);
 
-        if (manualEject) {
+        if (manualEject)
+        {
             m_parasite.ForceDash(ctx);
         }
 
@@ -177,17 +206,18 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
 
 void StatePlaying::HandleItems(const GameContext &ctx)
 {
-    for (auto& syringe : m_syringes)
+    for (auto &syringe : m_syringes)
     {
-        if (syringe->IsCollected()) continue;
+        if (syringe->IsCollected())
+            continue;
 
         if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
         {
             if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
             {
                 syringe->Collect();
-                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE); 
-                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT); 
+                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
+                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT);
             }
         }
     }
@@ -197,17 +227,24 @@ void StatePlaying::UpdateHUD()
 {
     m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
 
-    sf::String avatarName = m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
-    bool isInElevator = m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+    sf::String avatarName =
+        m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
+    bool isInElevator =
+        m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
 
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
-        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName + ToSfStringFromUtf8("\nПКМ: Высвободиться"));
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(), sf::Color(220, 200, 0));
+        if (!isInElevator)
+            m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
+                                    ToSfStringFromUtf8("\nПКМ: Высвободиться"));
+        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
+                             sf::Color(220, 200, 0));
     }
     else
     {
-        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName + ToSfStringFromUtf8("\nЛКМ: Вселиться"));
+        if (!isInElevator)
+            m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
+                                    ToSfStringFromUtf8("\nЛКМ: Вселиться"));
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
 }
@@ -228,15 +265,24 @@ void StatePlaying::CheckEndGameConditions()
     if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
     {
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
-        if (access >= 1) 
+        if (access >= 1)
         {
-            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
-            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+            m_data->currentLevelIndex++;
+
+            if (m_data->currentLevelIndex < m_data->levels.size())
+            {
+                m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+            }
+            else
+            {
+                m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+            }
             return;
         }
         else
         {
-            m_screenHud.SetHintText(ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
+            m_screenHud.SetHintText(
+                ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
         }
     }
 }
@@ -244,7 +290,9 @@ void StatePlaying::CheckEndGameConditions()
 void StatePlaying::CleanDeadEnemies()
 {
     m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }), m_hosts.end());
+                                 [](const std::unique_ptr<Host> &enemy)
+                                 { return enemy->IsDead(); }),
+                  m_hosts.end());
 }
 
 void StatePlaying::Draw()
@@ -252,20 +300,29 @@ void StatePlaying::Draw()
     m_data->window.setView(m_camera.GetView());
     m_map.Draw(m_data->window);
 
-    for (auto &enemy : m_hosts) {
-        if (!enemy->IsDead()) enemy->Draw(m_data->window);
+    for (auto &enemy : m_hosts)
+    {
+        if (!enemy->IsDead())
+            enemy->Draw(m_data->window);
     }
 
-    for (auto &syringe : m_syringes) {
-        syringe->Draw(m_data->window); 
+    for (auto &syringe : m_syringes)
+    {
+        syringe->Draw(m_data->window);
     }
 
-    if (m_parasite.IsPlayerControlled()) {
+    if (m_parasite.IsPlayerControlled())
+    {
         m_parasite.Draw(m_data->window);
     }
 
     m_floatingHud.Draw(m_data->window);
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
-    DebugOverlay::Draw(m_data->window, m_camera.GetView()); 
+    DebugOverlay::Draw(m_data->window, m_camera.GetView());
+
+    if (m_data->GetCurrentLevelName() == "tutorial")
+    {
+        m_tutorial.Draw(m_data->window);
+    }
 }

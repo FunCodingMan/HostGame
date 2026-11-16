@@ -11,6 +11,15 @@ struct GameData
     sf::Font headerFont;
     sf::Font hudFont;
     SoundManager sound;
+    std::vector<std::string> levels;
+    int currentLevelIndex = 0;
+    
+    std::string GetCurrentLevelName() const {
+        if (currentLevelIndex >= 0 && currentLevelIndex < levels.size()) {
+            return levels[currentLevelIndex];
+        }
+        return "";
+    }
 };
 
 typedef std::shared_ptr<GameData> GameDataRef;

@@ -12,6 +12,7 @@
 #include "Entities/Items/Syringe/Syringe.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+#include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
 
 class StatePlaying : public State
 {
@@ -50,4 +51,5 @@ private:
     Host* m_currentHost = nullptr;
 
     float m_timeInCurrentHost;
+    TutorialOverlay m_tutorial;
 };

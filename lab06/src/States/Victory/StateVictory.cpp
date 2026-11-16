@@ -30,6 +30,7 @@ void StateVictory::Init()
                          m_data->manager.RemoveState();
                          m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
                      });
+    m_data->sound.PlaySound(Config::SOUND_ID_WIN);
 }
 
 void StateVictory::HandleInput(const sf::Event &event)

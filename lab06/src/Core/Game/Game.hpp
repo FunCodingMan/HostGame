@@ -13,6 +13,7 @@ private:
     void ProcessEvents();
     void Update();
     void Render();
+    void LoadLevelsConfig();
 
     GameDataRef m_data = std::make_shared<GameData>();
     const float m_dt = 1.0f / Config::PHYSICS_FPS;

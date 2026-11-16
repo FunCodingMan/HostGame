@@ -187,4 +187,8 @@ namespace Config
     inline constexpr float WALK_SOUND_VELOCITY = 15.f;
     inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
     inline constexpr float EJECT_DAMAGE = 9999.f;
+
+    enum class TutorialStep {
+        Movement, Dash, Jump, Possess, HostInfo, Heal, Eject, Exit
+    };
 }

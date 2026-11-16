@@ -3,25 +3,35 @@
 
 bool GameKeyboard::IsJumpKeyPressed()
 {
+    if (!s_jumpEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
 }
 bool GameKeyboard::IsLeftKeyPressed()
 {
+    if (!s_movementEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
 }
 bool GameKeyboard::IsRightKeyPressed()
 {
+    if (!s_movementEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
 }
 
 bool GameKeyboard::IsDashKeyPressed()
 {
+    if (!s_dashEnabled) return false;
     return sf::Mouse::isButtonPressed(sf::Mouse::Left) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::LShift);
+}
+
+bool GameKeyboard::IsEjectKeyPressed()
+{
+    if (!s_ejectEnabled) return false;
+    return sf::Mouse::isButtonPressed(sf::Mouse::Right);
 }
 
 bool GameKeyboard::IsHitboxesPressed(const sf::Event& event)
