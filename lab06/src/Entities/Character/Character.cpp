@@ -167,6 +167,8 @@ void Character::UpdateVertical(const GameContext& ctx, bool allowInput)
     {
         m_velocity.y = -m_jumpForce;
         m_isOnGround = false;
+
+        OnJump();
         
         if (const char* sound = GetJumpSound()) {
             ctx.audio->PlaySound(sound);

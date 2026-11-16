@@ -32,6 +32,8 @@ private:
     void CleanDeadEnemies();
     void UpdateHUD();
     void CheckEndGameConditions();
+    void LoadSyringes(const std::string& path);
+    bool IsAreaBlocked(const sf::FloatRect& area) const;
 
     GameDataRef m_data;
     

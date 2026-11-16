@@ -61,6 +61,8 @@ void Parasite::ForceDash(const GameContext& ctx)
         return;
     }
 
+    ++m_dashCount;
+
     m_velocity.x = (dx / length) * m_dashForce;
     m_velocity.y = (dy / length) * m_dashForce;
 
@@ -144,6 +146,8 @@ bool Parasite::TryBreakTile(int x, int y, const GameContext& ctx)
     {
         return false;
     }
+
+    ++m_brokenTiles;
 
     ctx.levelMap->BreakTile(x, y);
     ctx.audio->PlaySound(SOUND_ID_BREAK_GLASS);

@@ -42,6 +42,7 @@ protected:
 
     virtual Config::EntityType GetEntityType() const = 0;
     virtual void OnLanding() {}
+    virtual void OnJump()    {}
     virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
 
     float m_accel     = 0.f;

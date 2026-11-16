@@ -384,6 +384,7 @@ namespace Config
     inline constexpr const char* SOUND_ID_HOST = "host";
     inline constexpr const char* SOUND_ID_JUMP = "jump";
     inline constexpr const char* SOUND_ID_LOSE = "lose";
+    inline constexpr const char* SOUND_ID_DASH = "dash";
     inline constexpr const char* SOUND_ID_SMASH = "smash";
     inline constexpr const char* SOUND_ID_WALK = "walk";
     inline constexpr const char* SOUND_ID_WIN = "win";
@@ -396,6 +397,7 @@ namespace Config
     inline constexpr const char* SOUND_PATH_HOST        = "../assets/sounds/host.wav";
     inline constexpr const char* SOUND_PATH_JUMP        = "../assets/sounds/jump.wav";
     inline constexpr const char* SOUND_PATH_LOSE        = "../assets/sounds/loose.wav";
+    inline constexpr const char* SOUND_PATH_DASH        = "../assets/sounds/dash.wav";
     inline constexpr const char* SOUND_PATH_SMASH       = "../assets/sounds/smash_floor.wav";
     inline constexpr const char* SOUND_PATH_WALK        = "../assets/sounds/walk.wav";
     inline constexpr const char* SOUND_PATH_WIN         = "../assets/sounds/win.wav";
@@ -408,6 +410,7 @@ namespace Config
     inline constexpr float VOL_HOST = 90.f;
     inline constexpr float VOL_JUMP = 40.f;
     inline constexpr float VOL_LOSE = 90.f;
+    inline constexpr float VOL_DASH = 30.f;
     inline constexpr float VOL_SMASH = 10.f;
     inline constexpr float VOL_WALK = 40.f;
     inline constexpr float VOL_WIN = 90.f;
@@ -418,6 +421,66 @@ namespace Config
     inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
     inline constexpr float EJECT_DAMAGE = 9999.f;
 }
+Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.cpp
+Code:
+#include "DebugOverlay.hpp"
+#include "Core/Config.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include <sstream>
+#include <iomanip>
+#include <cmath>
+
+void DebugOverlay::Init(const sf::Font& font, sf::Vector2u windowSize)
+{
+    s_text.setFont(font);
+    s_text.setCharacterSize(18);
+    s_text.setFillColor(sf::Color::Yellow);
+    s_text.setOutlineColor(sf::Color::Black);
+    s_text.setOutlineThickness(2.f);
+    s_text.setPosition(20.f, static_cast<float>(windowSize.y) - 35.f);
+}
+
+void DebugOverlay::ToggleMouseCoords() { s_show = !s_show; }
+bool DebugOverlay::IsMouseCoordsEnabled() { return s_show; }
+
+void DebugOverlay::Draw(sf::RenderWindow& window, const sf::View& worldView)
+{
+    if (!s_show) return;
+
+    sf::Vector2i pixel = sf::Mouse::getPosition(window);
+    sf::Vector2f world = window.mapPixelToCoords(pixel, worldView);
+
+    int tileX = static_cast<int>(std::floor(world.x / Config::WORLD_TILE_SIZE));
+    int tileY = static_cast<int>(std::floor(world.y / Config::WORLD_TILE_SIZE));
+
+    std::ostringstream ss;
+    ss << "Px: (" << pixel.x << ", " << pixel.y << ")   "
+       << "World: (" << std::fixed << std::setprecision(1)
+       << world.x << ", " << world.y << ")   "
+       << "Tile: (" << tileX << ", " << tileY << ")";
+
+    s_text.setString(StringUtils::ToSfStringFromUtf8(ss.str()));
+    window.draw(s_text);
+}
+Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class DebugOverlay
+{
+public:
+    static void Init(const sf::Font& font, sf::Vector2u windowSize);
+
+    static void ToggleMouseCoords();
+    static bool IsMouseCoordsEnabled();
+
+    static void Draw(sf::RenderWindow& window, const sf::View& worldView);
+
+private:
+    static inline bool     s_show = false;
+    static inline sf::Text s_text; 
+};
 Path to file: ./src/Core/GameContext.hpp
 Code:
 #pragma once
@@ -476,6 +539,7 @@ Game::Game()
     m_data->sound.LoadSound(SOUND_ID_SMASH,       SOUND_PATH_SMASH,       VOL_SMASH);
     m_data->sound.LoadSound(SOUND_ID_WALK,        SOUND_PATH_WALK,        VOL_WALK);
     m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
+    m_data->sound.LoadSound(SOUND_ID_DASH,        SOUND_PATH_DASH,        VOL_DASH);
 
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
@@ -622,6 +686,10 @@ bool GameKeyboard::IsEventEscape(const sf::Event& event)
 {
     return event.key.code == sf::Keyboard::Escape;
 }
+bool GameKeyboard::IsCoordsTogglePressed(const sf::Event& event)
+{
+    return event.key.code == sf::Keyboard::C && sf::Keyboard::isKeyPressed(sf::Keyboard::F3);
+}
 Path to file: ./src/Core/GameKeyboard/GameKeyboard.hpp
 Code:
 #pragma once
@@ -641,8 +709,152 @@ public:
     static bool IsRightKeyPressed();
     static bool IsDashKeyPressed();
     static bool IsHitboxesPressed(const sf::Event& event);
+    static bool IsCoordsTogglePressed(const sf::Event& event);
 private:
 
+};
+Path to file: ./src/Core/LevelLoader/LevelLoader.cpp
+Code:
+#include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/Map/Map.hpp"
+#include "Core/Config.hpp"
+#include "Entities/Host/Host.hpp"
+#include "Entities/Scientist/Scientist.hpp"
+#include "Entities/Items/Syringe/Syringe.hpp"
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <cmath>
+
+bool LevelLoader::IsBoundsBlocked(const Map& map, const sf::FloatRect& bounds)
+{
+    const float ts = static_cast<float>(Config::WORLD_TILE_SIZE);
+
+    int minX = static_cast<int>(std::floor(bounds.left / ts));
+    int maxX = static_cast<int>(std::floor((bounds.left + bounds.width)  / ts));
+    int minY = static_cast<int>(std::floor(bounds.top / ts));
+    int maxY = static_cast<int>(std::floor((bounds.top  + bounds.height) / ts));
+
+    for (int ty = minY; ty <= maxY; ++ty)
+        for (int tx = minX; tx <= maxX; ++tx)
+            if (map.IsSolid(tx, ty, Config::EntityType::Parasite))
+                return true;
+
+    return false;
+}
+
+void LevelLoader::LoadEnemies(const std::string& path,
+                              std::vector<std::unique_ptr<Host>>& out,
+                              const Map& map)
+{
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "[LevelLoader] Cannot open enemies file '" << path << "'\n";
+        return;
+    }
+
+    std::string line;
+    int lineNum = 0;
+    while (std::getline(file, line)) {
+        ++lineNum;
+        if (line.empty() || line[0] == '#') continue;
+
+        std::istringstream ss(line);
+        std::string type;
+        float x, y;
+        if (!(ss >> type >> x >> y)) {
+            std::cerr << "[LevelLoader] " << path << ":" << lineNum
+                      << " invalid format (expected 'Type x y [decay]')\n";
+            continue;
+        }
+
+        sf::Vector2f pos(x, y);
+        std::unique_ptr<Host> enemy;
+        if (type == "Scientist") {
+            enemy = std::make_unique<Scientist>(pos);
+        } else {
+            std::cerr << "[LevelLoader] " << path << ":" << lineNum
+                      << " unknown enemy type '" << type << "'\n";
+            continue;
+        }
+
+        float customDecay = 0.f;
+        if (ss >> customDecay) enemy->SetMaxDecayTime(customDecay);
+
+        if (IsBoundsBlocked(map, enemy->GetBounds())) {
+            std::cerr << "[LevelLoader] " << path << ":" << lineNum
+                      << " cannot spawn " << type << " at (" << x << "," << y
+                      << "): hitbox overlaps a solid tile\n";
+            continue;
+        }
+
+        out.push_back(std::move(enemy));
+    }
+}
+
+void LevelLoader::LoadSyringes(const std::string& path,
+                               std::vector<std::unique_ptr<Syringe>>& out,
+                               const Map& map)
+{
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "[LevelLoader] Cannot open syringes file '" << path << "'\n";
+        return;
+    }
+
+    const float half = Config::SYRINGE_HITBOX_SIZE / 2.f;
+    std::string line;
+    int lineNum = 0;
+    while (std::getline(file, line)) {
+        ++lineNum;
+        if (line.empty() || line[0] == '#') continue;
+
+        std::istringstream ss(line);
+        float x, y;
+        if (!(ss >> x >> y)) {
+            std::cerr << "[LevelLoader] " << path << ":" << lineNum
+                      << " invalid format (expected 'x y')\n";
+            continue;
+        }
+
+        sf::FloatRect bounds(x - half, y - half,
+                             Config::SYRINGE_HITBOX_SIZE,
+                             Config::SYRINGE_HITBOX_SIZE);
+        if (IsBoundsBlocked(map, bounds)) {
+            std::cerr << "[LevelLoader] " << path << ":" << lineNum
+                      << " cannot spawn syringe at (" << x << "," << y
+                      << "): hitbox overlaps a solid tile\n";
+            continue;
+        }
+
+        out.push_back(std::make_unique<Syringe>(sf::Vector2f(x, y)));
+    }
+}
+Path to file: ./src/Core/LevelLoader/LevelLoader.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Map;
+class Host;
+class Syringe;
+
+class LevelLoader
+{
+public:
+    static void LoadEnemies(const std::string& path,
+                            std::vector<std::unique_ptr<Host>>& out,
+                            const Map& map);
+
+    static void LoadSyringes(const std::string& path,
+                             std::vector<std::unique_ptr<Syringe>>& out,
+                             const Map& map);
+
+private:
+    static bool IsBoundsBlocked(const Map& map, const sf::FloatRect& bounds);
 };
 Path to file: ./src/Core/Map/Map.cpp
 Code:
@@ -1636,6 +1848,8 @@ public:
         m_hitbox.setPosition(newPos);
         m_sprite.setPosition(newPos);
     }
+
+    sf::Vector2f GetVelocity() const { return m_velocity; }
 private:
     inline static bool m_showHitboxes = false;
 };
@@ -1673,7 +1887,7 @@ public:
     float GetDecayTimer()    const override { return m_decayTimer; }
     float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
     void AddDecayTime(float time);
-
+    void SetMaxDecayTime(float time) { m_maxDecayTimer = time; m_decayTimer = time; }
 protected:
     float m_decayTimer    = 0.f;
     float m_maxDecayTimer = 0.f;
@@ -1835,8 +2049,11 @@ bool Parasite::IsDashing() const
     return m_stateManager.GetState() == Config::EntityState::Dash;
 }
 
-void Parasite::ForceDash(sf::Vector2f targetPos)
+void Parasite::ForceDash(const GameContext& ctx)
 {
+    ctx.audio->PlaySound(Config::SOUND_ID_DASH);
+    sf::Vector2f targetPos = ctx.mousePos;
+
     sf::Vector2f center = m_hitbox.getPosition();
 
     float dx = targetPos.x - center.x;
@@ -1858,16 +2075,16 @@ void Parasite::ForceDash(sf::Vector2f targetPos)
     m_stateManager.SetState(EntityState::Dash);
 }
 
-void Parasite::UpdateDash(float dt, sf::Vector2f mousePos)
+void Parasite::UpdateDash(const GameContext& ctx)
 {
     if (m_dashCooldown > 0.f)
     {
-        m_dashCooldown -= dt;
+        m_dashCooldown -= ctx.dt;
     }
 
     if (GameKeyboard::IsDashKeyPressed() && m_dashCooldown <= 0.f && m_hasDash)
     {
-        ForceDash(mousePos);
+        ForceDash(ctx);
     }
 }
 
@@ -1944,7 +2161,7 @@ void Parasite::Update(const GameContext& ctx)
         return;
     }
 
-    UpdateDash(ctx.dt, ctx.mousePos);
+    UpdateDash(ctx);
     UpdateMove(ctx);
     ApplyMovement(ctx);
 }
@@ -1962,7 +2179,7 @@ public:
 
     void Update(const GameContext& ctx) override;
     bool IsDashing() const;
-    void ForceDash(sf::Vector2f targetPos);
+    void ForceDash(const GameContext& ctx);
 
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Parasite; }
@@ -1977,7 +2194,7 @@ protected:
 
 private:
     void HorizontalDash(float dt);
-    void UpdateDash(float dt, sf::Vector2f mousePos);
+    void UpdateDash(const GameContext& ctx);
     void UpdateDashTimer(float dt);
 
     float m_dashCooldown = 0.f;
@@ -2495,6 +2712,8 @@ Code:
 #include <sstream>
 #include <iostream>
 #include <array>
+#include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 
 using namespace StringUtils;
 
@@ -2514,13 +2733,14 @@ void StatePlaying::Init()
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
+    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());  
     m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
 
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(400.f, 400.f)));
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(600.f, 400.f)));
-    m_hosts.push_back(std::make_unique<Scientist>(sf::Vector2f(800.f, 400.f)));
+    m_hosts.clear();
+    m_syringes.clear();
 
-    LoadSyringes("../assets/map/syringes_level1.txt");
+    LevelLoader::LoadEnemies  ("../assets/map/enemies_level1.txt",  m_hosts,    m_map);
+    LevelLoader::LoadSyringes ("../assets/map/syringes_level1.txt", m_syringes, m_map);
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
@@ -2529,73 +2749,16 @@ void StatePlaying::Init()
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
 }
 
-bool StatePlaying::IsSyringeSpawnBlocked(sf::Vector2f pos) const
-{
-    const float half = Config::SYRINGE_HITBOX_SIZE / 2.f;
-
-    const std::array<sf::Vector2f, 5> probes = {{
-        { pos.x - half, pos.y - half }, // TL
-        { pos.x + half, pos.y - half }, // TR
-        { pos.x - half, pos.y + half }, // BL
-        { pos.x + half, pos.y + half }, // BR
-        { pos.x,        pos.y        }  // center
-    }};
-
-    for (const auto& p : probes)
-        if (m_map.IsSolidAt(p))
-            return true;
-
-    return false;
-}
-
-
-void StatePlaying::LoadSyringes(const std::string& path)
-{
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        std::cerr << "[Syringe] Could not open '" << path << "'\n";
-        return;
-    }
-
-    std::string line;
-    int lineNum = 0;
-
-    while (std::getline(file, line))
-    {
-        ++lineNum;
-
-        if (line.empty() || line[0] == '#') continue;
-
-        std::istringstream ss(line);
-        float x, y;
-        if (!(ss >> x >> y))
-        {
-            std::cerr << "[Syringe] " << path << ":" << lineNum
-                      << " invalid format (expected 'x y'): \"" << line << "\"\n";
-            continue;
-        }
-
-        sf::Vector2f pos(x, y);
-
-        if (IsSyringeSpawnBlocked(pos))
-        {
-            std::cerr << "[Syringe] " << path << ":" << lineNum
-                      << " cannot spawn at (" << x << ", " << y
-                      << "): tile is occupied by a solid block\n";
-            continue;
-        }
-
-        m_syringes.push_back(std::make_unique<Syringe>(pos));
-    }
-}
-
 void StatePlaying::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
         if (GameKeyboard::IsHitboxesPressed(event)) {
             Entity::ToggleHitboxes();
+        }
+        if (GameKeyboard::IsCoordsTogglePressed(event))
+        {
+            DebugOverlay::ToggleMouseCoords();        
         }
         if (GameKeyboard::IsEventEscape(event)) {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
@@ -2705,7 +2868,7 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
         m_parasite.SetPlayerControlled(true);
 
         if (manualEject) {
-            m_parasite.ForceDash(ctx.mousePos);
+            m_parasite.ForceDash(ctx);
         }
 
         m_playerAvatar = &m_parasite;
@@ -2805,6 +2968,7 @@ void StatePlaying::Draw()
     m_floatingHud.Draw(m_data->window);
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
+    DebugOverlay::Draw(m_data->window, m_camera.GetView()); 
 }
 Path to file: ./src/States/Playing/StatePlaying.hpp
 Code:
@@ -2842,8 +3006,6 @@ private:
     void CleanDeadEnemies();
     void UpdateHUD();
     void CheckEndGameConditions();
-    void LoadSyringes(const std::string& path);
-    bool IsSyringeSpawnBlocked(sf::Vector2f pos) const;
 
     GameDataRef m_data;
     
