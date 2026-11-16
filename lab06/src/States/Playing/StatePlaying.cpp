@@ -15,6 +15,7 @@
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
+#include "States/LevelCompleted/StateLevelCompleted.hpp"
 
 using namespace StringUtils;
 
@@ -29,6 +30,8 @@ StatePlaying::StatePlaying(GameDataRef data)
 
 void StatePlaying::Init()
 {
+    m_data->stats.Reset();
+
     GameKeyboard::EnableAll();
 
     std::string levelName = m_data->GetCurrentLevelName();
@@ -107,6 +110,8 @@ void StatePlaying::UpdateCamera(float dt)
 
 void StatePlaying::Update(float dt)
 {
+    m_data->stats.timeSpent += dt;
+
     UpdateCamera(dt);
 
     GameContext ctx;
@@ -163,6 +168,8 @@ void StatePlaying::HandlePossession()
             m_currentHost = enemy.get();
             m_timeInCurrentHost = 0.f;
 
+            m_data->stats.hostsPossessed++;
+
             m_data->sound.PlaySound(Config::SOUND_ID_HOST);
             break;
         }
@@ -216,6 +223,7 @@ void StatePlaying::HandleItems(const GameContext &ctx)
             if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
             {
                 syringe->Collect();
+                m_data->stats.syringesCollected++;
                 m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
                 ctx.audio->PlaySound(Config::SOUND_ID_COLLECT);
             }
@@ -247,6 +255,7 @@ void StatePlaying::UpdateHUD()
                                     ToSfStringFromUtf8("\nЛКМ: Вселиться"));
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
+    m_screenHud.SetTimerText(m_data->stats.timeSpent, m_data->window.getSize().x);
 }
 
 void StatePlaying::CheckEndGameConditions()
@@ -267,11 +276,15 @@ void StatePlaying::CheckEndGameConditions()
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
         if (access >= 1)
         {
-            m_data->currentLevelIndex++;
+            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
 
-            if (m_data->currentLevelIndex < m_data->levels.size())
+            if (m_data->currentLevelIndex + 1 < m_data->levels.size())
             {
-                m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+
+                m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
+
+                m_data->stats.dashesUsed = m_parasite.GetDashCount();
+                m_data->stats.tilesBroken = m_parasite.GetBrokenTilesCount();
             }
             else
             {
