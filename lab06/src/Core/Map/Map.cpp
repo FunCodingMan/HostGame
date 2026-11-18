@@ -26,6 +26,8 @@ void Map::InitStringMappings()
     m_stringToBlock["el"] = Config::BlockNames::Elevator;
     m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
     m_stringToBlock["gl"] = Config::BlockNames::Glass;
+    m_stringToBlock["dr"] = Config::BlockNames::Door;
+    m_stringToBlock["do"] = Config::BlockNames::DoorOpen;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -45,6 +47,10 @@ Config::CollisionType Map::StringToColisionType(const string& s)
     if (s == "Breakable")
     {
         return Config::CollisionType::Breakable;
+    }
+    if (s == "Door")
+    {
+        return Config::CollisionType::Door;
     }
     return Config::CollisionType::Solid;
 } 
@@ -188,6 +194,11 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
         return entityType != Config::EntityType::Parasite; 
     }
 
+    if (type == Config::CollisionType::Door)
+    {
+        return true;
+    }
+
     return false;
 }
 
@@ -277,6 +288,20 @@ void Map::BreakTile(int x, int y)
     if (!IsBreakable(x, y)) return;
 
     m_grid[y * m_width + x] = Config::BlockNames::Empty;
+    BuildVertexElement(x, y);
+}
+
+bool Map::IsDoor(int x, int y) const
+{
+    return GetTile(x, y) == Config::BlockNames::Door;
+}
+
+void Map::OpenDoor(int x, int y)
+{
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
+    if (!IsDoor(x, y)) return;
+
+    m_grid[y * m_width + x] = Config::BlockNames::DoorOpen;
     BuildVertexElement(x, y);
 }
 

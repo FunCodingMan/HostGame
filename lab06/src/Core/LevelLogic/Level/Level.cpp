@@ -79,6 +79,8 @@ void Level::Update(float dt, const LevelInput& input)
     ctx.mousePos = MapMouseToWorld(input);
     ctx.levelMap = &m_map;
     ctx.audio = m_audio;
+    ctx.playerAvatar = m_playerAvatar;
+    ctx.avatarIsParasite = (m_playerAvatar == &m_parasite);
 
     m_parasite.Update(ctx);
 

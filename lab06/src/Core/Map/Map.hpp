@@ -34,14 +34,14 @@ public:
     float GetWidthInPixels() const { return m_width * Config::WORLD_TILE_SIZE; }
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
     
+    bool IsDoor(int x, int y) const;
+    void OpenDoor(int x, int y);
 
 private:
     std::vector<Config::BlockNames> m_grid;
     int m_width;
     int m_height;
     int m_tileSize;
-
-    //TODO: приватные поля m_<name>
 
     std::unordered_map<Config::BlockNames, Config::TileData> m_tileDictionary;
 

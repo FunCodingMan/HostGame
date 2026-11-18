@@ -231,6 +231,17 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
     }
 }
 
+bool Character::TryOpenDoor(int x, int y, const GameContext& ctx)
+{
+    if (!m_isPlayerControlled) return false;
+    if (!ctx.levelMap->IsDoor(x, y)) return false;
+    if (m_properties.GetInt("access_level", 0) < 1) return false;
+
+    ctx.levelMap->OpenDoor(x, y);
+    ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
+    return true;
+}
+
 void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
 {
     sf::FloatRect bounds = m_hitbox.getGlobalBounds();
@@ -256,6 +267,11 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
             }
 
             if (TryBreakTile(x, y, ctx))
+            {
+                continue;
+            }
+
+            if (TryOpenDoor(x, y, ctx))
             {
                 continue;
             }

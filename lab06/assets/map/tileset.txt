@@ -3,7 +3,9 @@
 bw     Solid        0  0
 el     Empty        1  0
 fl     Solid        2  0
-gl     Breakable        3  0
+gl     Breakable    3  0
 ve     Ventilation  0  1
 ..     Empty        1  1
 wa     Solid        2  1
+dr     Door         3  1
+do     Empty <col>  0  2

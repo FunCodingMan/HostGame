@@ -26,6 +26,18 @@ Game::Game()
     m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
     m_data->sound.LoadSound(SOUND_ID_DASH,        SOUND_PATH_DASH,        VOL_DASH);
 
+    m_data->sound.LoadSound(SOUND_ID_SHOT_1, SOUND_PATH_SHOT_1, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_2, SOUND_PATH_SHOT_2, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_3, SOUND_PATH_SHOT_3, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_RELOAD, SOUND_PATH_RELOAD, VOL_RELOAD);
+    m_data->sound.LoadSound(SOUND_ID_ALERT, SOUND_PATH_ALERT, VOL_ALERT);
+    m_data->sound.LoadSound(SOUND_ID_REPORT, SOUND_PATH_REPORT, VOL_REPORT);
+    m_data->sound.LoadSound(SOUND_ID_EXPLOSION, SOUND_PATH_EXPLOSION, VOL_EXPLOSION);
+    m_data->sound.LoadSound(SOUND_ID_MILITARY_DEATH, SOUND_PATH_MILITARY_DEATH, VOL_MILITARY_DEATH);
+    m_data->sound.LoadSound(SOUND_ID_MILITARY_STEP,  SOUND_PATH_MILITARY_STEP,  VOL_MILITARY_STEP);
+    m_data->sound.LoadSound(SOUND_ID_DOOR_OPEN, SOUND_PATH_DOOR_OPEN, VOL_DOOR_OPEN);
+    m_data->sound.LoadSound(SOUND_ID_DOOR_LOCKED, SOUND_PATH_DOOR_LOCKED, VOL_DOOR_LOCKED);
+
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
     LoadLevelsConfig();

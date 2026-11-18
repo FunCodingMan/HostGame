@@ -44,6 +44,7 @@ protected:
     virtual void OnLanding() {}
     virtual void OnJump()    {}
     virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
+    virtual bool TryOpenDoor(int x, int y, const GameContext& ctx);
 
     float m_accel     = 0.f;
     float m_friction  = 0.f;
