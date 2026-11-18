@@ -420,6 +420,10 @@ namespace Config
     inline constexpr float WALK_SOUND_VELOCITY = 15.f;
     inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
     inline constexpr float EJECT_DAMAGE = 9999.f;
+
+    enum class TutorialStep {
+        Movement, Dash, Jump, Possess, HostInfo, Heal, Eject, Exit
+    };
 }
 Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.cpp
 Code:
@@ -503,6 +507,22 @@ Code:
 #include "States/StateManager/StateManager.hpp"
 #include "Core/Sound/SoundManager/SoundManager.hpp"
 
+struct LevelStats {
+    float timeSpent = 0.f;
+    int dashesUsed = 0;
+    int tilesBroken = 0;
+    int hostsPossessed = 0;
+    int syringesCollected = 0;
+
+    void Reset() {
+        timeSpent = 0.f;
+        dashesUsed = 0;
+        tilesBroken = 0;
+        hostsPossessed = 0;
+        syringesCollected = 0;
+    }
+};
+
 struct GameData
 {
     sf::RenderWindow window;
@@ -510,6 +530,17 @@ struct GameData
     sf::Font headerFont;
     sf::Font hudFont;
     SoundManager sound;
+    std::vector<std::string> levels;
+    int currentLevelIndex = 0;
+
+    LevelStats stats;
+    
+    std::string GetCurrentLevelName() const {
+        if (currentLevelIndex >= 0 && currentLevelIndex < levels.size()) {
+            return levels[currentLevelIndex];
+        }
+        return "";
+    }
 };
 
 typedef std::shared_ptr<GameData> GameDataRef;
@@ -518,6 +549,8 @@ Code:
 #include "Core/Game/Game.hpp"
 #include "Core/Config.hpp"
 #include "States/MainMenu/StateMainMenu.hpp"
+#include <fstream>
+#include <iostream>
 
 using namespace Config;
 
@@ -543,7 +576,33 @@ Game::Game()
 
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
+    LoadLevelsConfig();
+
     m_data->manager.AddState(StateRef(new StateMainMenu(m_data)));
+}
+
+void Game::LoadLevelsConfig()
+{
+    std::ifstream levelsFile("../assets/map/levels.txt");
+    if (levelsFile.is_open())
+    {
+        std::string levelName;
+        while (levelsFile >> levelName)
+        {
+            if (levelName[0] == '#')
+            {
+                std::string temp;
+                std::getline(levelsFile, temp);
+                continue;
+            }
+            m_data->levels.push_back(levelName);
+        }
+    }
+    else
+    {
+        std::cerr << "Внимание: Не удалось открыть ../assets/map/levels.txt. Используем уровни по умолчанию.\n";
+        m_data->levels = {"tutorial", "level1"};
+    }
 }
 
 void Game::Run() 
@@ -620,6 +679,7 @@ private:
     void ProcessEvents();
     void Update();
     void Render();
+    void LoadLevelsConfig();
 
     GameDataRef m_data = std::make_shared<GameData>();
     const float m_dt = 1.0f / Config::PHYSICS_FPS;
@@ -631,25 +691,35 @@ Code:
 
 bool GameKeyboard::IsJumpKeyPressed()
 {
+    if (!s_jumpEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
 }
 bool GameKeyboard::IsLeftKeyPressed()
 {
+    if (!s_movementEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
 }
 bool GameKeyboard::IsRightKeyPressed()
 {
+    if (!s_movementEnabled) return false;
     return sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
 }
 
 bool GameKeyboard::IsDashKeyPressed()
 {
+    if (!s_dashEnabled) return false;
     return sf::Mouse::isButtonPressed(sf::Mouse::Left) ||
            sf::Keyboard::isKeyPressed(sf::Keyboard::LShift);
+}
+
+bool GameKeyboard::IsEjectKeyPressed()
+{
+    if (!s_ejectEnabled) return false;
+    return sf::Mouse::isButtonPressed(sf::Mouse::Right);
 }
 
 bool GameKeyboard::IsHitboxesPressed(const sf::Event& event)
@@ -704,14 +774,30 @@ public:
     static bool IsEventRight(const sf::Event& event);
     static bool IsEventOpen(const sf::Event& event);
     static bool IsEventEscape(const sf::Event& event);
+    static bool IsHitboxesPressed(const sf::Event& event);
+    static bool IsCoordsTogglePressed(const sf::Event& event);
+
     static bool IsJumpKeyPressed();
     static bool IsLeftKeyPressed();
     static bool IsRightKeyPressed();
     static bool IsDashKeyPressed();
-    static bool IsHitboxesPressed(const sf::Event& event);
-    static bool IsCoordsTogglePressed(const sf::Event& event);
-private:
+    static bool IsEjectKeyPressed();
 
+    static void SetMovementEnabled(bool state) { s_movementEnabled = state; }
+    static void SetJumpEnabled(bool state)     { s_jumpEnabled = state; }
+    static void SetDashEnabled(bool state)     { s_dashEnabled = state; }
+    static void SetEjectEnabled(bool state)    { s_ejectEnabled = state; }
+    static void EnableAll() {
+        s_movementEnabled = true;
+        s_jumpEnabled = true;
+        s_dashEnabled = true;
+        s_ejectEnabled = true;
+    }
+private:
+    static inline bool s_movementEnabled = true;
+    static inline bool s_jumpEnabled = true;
+    static inline bool s_dashEnabled = true;
+    static inline bool s_ejectEnabled = true;
 };
 Path to file: ./src/Core/LevelLoader/LevelLoader.cpp
 Code:
@@ -736,9 +822,15 @@ bool LevelLoader::IsBoundsBlocked(const Map& map, const sf::FloatRect& bounds)
     int maxY = static_cast<int>(std::floor((bounds.top  + bounds.height) / ts));
 
     for (int ty = minY; ty <= maxY; ++ty)
+    {
         for (int tx = minX; tx <= maxX; ++tx)
+        {
             if (map.IsSolid(tx, ty, Config::EntityType::Parasite))
+            {
                 return true;
+            }
+        }
+    }
 
     return false;
 }
@@ -762,7 +854,8 @@ void LevelLoader::LoadEnemies(const std::string& path,
         std::istringstream ss(line);
         std::string type;
         float x, y;
-        if (!(ss >> type >> x >> y)) {
+        if (!(ss >> type >> x >> y))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " invalid format (expected 'Type x y [decay]')\n";
             continue;
@@ -770,9 +863,12 @@ void LevelLoader::LoadEnemies(const std::string& path,
 
         sf::Vector2f pos(x, y);
         std::unique_ptr<Host> enemy;
-        if (type == "Scientist") {
+        if (type == "Scientist")
+        {
             enemy = std::make_unique<Scientist>(pos);
-        } else {
+        } 
+        else
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " unknown enemy type '" << type << "'\n";
             continue;
@@ -781,7 +877,8 @@ void LevelLoader::LoadEnemies(const std::string& path,
         float customDecay = 0.f;
         if (ss >> customDecay) enemy->SetMaxDecayTime(customDecay);
 
-        if (IsBoundsBlocked(map, enemy->GetBounds())) {
+        if (IsBoundsBlocked(map, enemy->GetBounds()))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " cannot spawn " << type << " at (" << x << "," << y
                       << "): hitbox overlaps a solid tile\n";
@@ -797,7 +894,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
                                const Map& map)
 {
     std::ifstream file(path);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "[LevelLoader] Cannot open syringes file '" << path << "'\n";
         return;
     }
@@ -811,7 +909,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
 
         std::istringstream ss(line);
         float x, y;
-        if (!(ss >> x >> y)) {
+        if (!(ss >> x >> y))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " invalid format (expected 'x y')\n";
             continue;
@@ -820,7 +919,8 @@ void LevelLoader::LoadSyringes(const std::string& path,
         sf::FloatRect bounds(x - half, y - half,
                              Config::SYRINGE_HITBOX_SIZE,
                              Config::SYRINGE_HITBOX_SIZE);
-        if (IsBoundsBlocked(map, bounds)) {
+        if (IsBoundsBlocked(map, bounds))
+        {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
                       << " cannot spawn syringe at (" << x << "," << y
                       << "): hitbox overlaps a solid tile\n";
@@ -1332,170 +1432,153 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<sf::Music>> m_musics;
 };
-Path to file: ./src/Core/Tutorial/TutorialSystem/TutorialSystem.cpp
+Path to file: ./src/Core/Tutorial/TutorialOverlay/TutorialOverlay.cpp
 Code:
-#include "TutorialSystem.hpp"
+#include "TutorialOverlay.hpp"
+
+#include "Core/Config.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
-#include <fstream>
-#include <iostream>
 
 using namespace StringUtils;
+using namespace Config;
 
-void TutorialSystem::Init(const sf::Font& font)
+void TutorialOverlay::Init(const sf::Font &font, float windowWidth)
 {
+    m_windowWidth = windowWidth;
     m_text.setFont(font);
-    m_text.setCharacterSize(26);
+    m_text.setCharacterSize(22);
     m_text.setFillColor(sf::Color::Yellow);
     m_text.setOutlineColor(sf::Color::Black);
     m_text.setOutlineThickness(2.f);
-    m_text.setPosition(20.f, 110.f);
+    m_bg.setFillColor(sf::Color(0, 0, 0, 180));
+
+    GameKeyboard::SetJumpEnabled(false);
+    GameKeyboard::SetDashEnabled(false);
+    GameKeyboard::SetEjectEnabled(false);
+
+    m_step = TutorialStep::Movement;
+    SetText(ToSfStringFromUtf8("ТУТОРИАЛ\nИспользуйте A и D для движения"));
 }
 
-bool TutorialSystem::LoadFromFile(const std::string& path)
+void TutorialOverlay::SetText(const sf::String &str)
 {
-    std::ifstream file(path);
-    if (!file.is_open())
+    m_text.setString(str);
+    sf::FloatRect bounds = m_text.getLocalBounds();
+    m_text.setOrigin(bounds.left + bounds.width / 2.f, bounds.top + bounds.height / 2.f);
+    m_text.setPosition(m_windowWidth / 2.f, 120.f);
+
+    m_bg.setSize(sf::Vector2f(bounds.width + 40.f, bounds.height + 30.f));
+    m_bg.setOrigin(m_bg.getSize().x / 2.f, m_bg.getSize().y / 2.f);
+    m_bg.setPosition(m_windowWidth / 2.f, 120.f);
+}
+
+void TutorialOverlay::Update(float dt, const Parasite& parasite, const Host* currentHost, bool syringeCollected)
+{
+    switch (m_step)
     {
-        std::cerr << "[TutorialSystem] Cannot open '" << path << "'\n";
-        return false;
-    }
-
-    m_steps.clear();
-
-    std::string line;
-    int lineNum = 0;
-    while (std::getline(file, line))
-    {
-        ++lineNum;
-
-        if (lineNum == 1 && line.size() >= 3 &&
-            (unsigned char)line[0] == 0xEF &&
-            (unsigned char)line[1] == 0xBB &&
-            (unsigned char)line[2] == 0xBF)
+    case TutorialStep::Movement:
+        if (GameKeyboard::IsLeftKeyPressed() || GameKeyboard::IsRightKeyPressed())
         {
-            line = line.substr(3);
-        }
-
-        if (line.empty() || line[0] == '#') continue;
-
-        auto sep = line.find('|');
-        if (sep == std::string::npos)
-        {
-            std::cerr << "[TutorialSystem] " << path << ":" << lineNum
-                      << " invalid format (expected 'flag | hint')\n";
-            continue;
-        }
-
-        std::string condition = line.substr(0, sep);
-        std::string hint      = line.substr(sep + 1);
-
-        size_t s = condition.find_first_not_of(" \t");
-        size_t e = condition.find_last_not_of(" \t");
-        if (s == std::string::npos) continue;
-        condition = condition.substr(s, e - s + 1);
-
-        s = hint.find_first_not_of(" \t");
-        if (s != std::string::npos) hint = hint.substr(s);
-
-        std::string processed;
-        processed.reserve(hint.size());
-        for (size_t i = 0; i < hint.size(); ++i)
-        {
-            if (hint[i] == '\\' && i + 1 < hint.size() && hint[i + 1] == 'n')
+            m_timer += dt;
+            if (m_timer > 0.5f)
             {
-                processed += '\n';
-                ++i;
-            }
-            else
-            {
-                processed += hint[i];
+                m_step = TutorialStep::Dash;
+                m_timer = 0.f;
+                SetText(ToSfStringFromUtf8("ЛКМ - рывок к курсору\nПопробуйте пробить стекло!"));
+                GameKeyboard::SetDashEnabled(true);
             }
         }
-
-        m_steps.push_back({ condition, ToSfStringFromUtf8(processed) });
-    }
-
-    return !m_steps.empty();
-}
-
-void TutorialSystem::SetFlag(const std::string& name)
-{
-    m_flags[name] = true;
-}
-
-bool TutorialSystem::HasFlag(const std::string& name) const
-{
-    auto it = m_flags.find(name);
-    return (it != m_flags.end()) && it->second;
-}
-
-void TutorialSystem::Update(float dt)
-{
-    if (!m_active || m_finished || m_steps.empty()) return;
-
-    m_stepTimer += dt;
-    if (m_stepTimer < MIN_STEP_TIME) return;
-
-    if (HasFlag(m_steps[m_current].condition))
-    {
-        ++m_current;
-        m_stepTimer = 0.f;
-        if (m_current >= m_steps.size())
+        break;
+    case TutorialStep::Dash:
+        if (parasite.GetBrokenTilesCount() > 0) 
         {
-            m_finished = true;
-            m_active   = false;
+            m_step = Config::TutorialStep::Jump;
+            SetText(ToSfStringFromUtf8("ПРОБЕЛ - прыжок"));
+            GameKeyboard::SetJumpEnabled(true);
         }
+        break;
+    case TutorialStep::Jump:
+        if (GameKeyboard::IsJumpKeyPressed())
+        {
+            m_timer += dt;
+            if (m_timer > 0.2f)
+            {
+                m_step = TutorialStep::Possess;
+                m_timer = 0.f;
+                SetText(ToSfStringFromUtf8(
+                "Найдите Учёного и сделайте рывок (ЛКМ)\nпрямо в него, чтобы захватить тело!"));
+                
+            }
+        }
+        break;
+    case Config::TutorialStep::Possess:
+        if (currentHost != nullptr)
+        {
+            m_step = Config::TutorialStep::HostInfo;
+            SetText(ToSfStringFromUtf8("Тело учёного открывает двери лифта.\nНо оно быстро разлагается (полоска сверху)!"));
+        }
+        break;
+    case Config::TutorialStep::HostInfo:
+        m_timer += dt;
+        if (m_timer > 4.0f)
+        {
+            m_step = Config::TutorialStep::Heal;
+            SetText(ToSfStringFromUtf8("Пройдите вправо и подберите шприц,\nчтобы восстановить время жизни тела!"));
+        }
+        break;
+    case Config::TutorialStep::Heal:
+        if (syringeCollected)
+        {
+            m_step = Config::TutorialStep::Eject;
+            m_timer = 0.f;
+            SetText(ToSfStringFromUtf8("Отлично! А теперь нажмите ПКМ,\nчтобы экстренно покинуть тело."));
+            
+            GameKeyboard::SetEjectEnabled(true);
+        }
+        break;
+    case Config::TutorialStep::Eject:
+        if (currentHost == nullptr)
+        {
+            m_step = Config::TutorialStep::Exit;
+            SetText(ToSfStringFromUtf8("Вы разорвали носителя! Но впереди есть ещё один.\nЗахватите его и заходите в лифт!"));
+        }
+        break;
+    case Config::TutorialStep::Exit:
+        break;
+    default:
+        break;
     }
 }
 
-void TutorialSystem::Draw(sf::RenderWindow& window) const
+void TutorialOverlay::Draw(sf::RenderWindow &window)
 {
-    if (!m_active || m_finished || m_steps.empty()) return;
-
-    m_text.setString(m_steps[m_current].hint);
+    window.draw(m_bg);
     window.draw(m_text);
 }
-Path to file: ./src/Core/Tutorial/TutorialSystem/TutorialSystem.hpp
+Path to file: ./src/Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp
 Code:
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include "Entities/Parasite/Parasite.hpp"
+#include "Entities/Host/Host.hpp"
+#include "Core/Config.hpp"
 
-class TutorialSystem
-{
+
+class TutorialOverlay {
 public:
-    void Init(const sf::Font& font);
-    bool LoadFromFile(const std::string& path);
-
-    void SetFlag(const std::string& name);
-    bool HasFlag(const std::string& name) const;
-
-    void Update(float dt);
-    void Draw(sf::RenderWindow& window) const;
-
-    bool IsFinished() const { return m_finished; }
-    bool IsActive()   const { return m_active; }
+    void Init(const sf::Font& font, float windowWidth);
+    void Update(float dt, const Parasite& parasite, const Host* currentHost, bool syringeCollected);
+    void Draw(sf::RenderWindow& window);
 
 private:
-    struct Step
-    {
-        std::string condition;
-        sf::String  hint;
-    };
+    void SetText(const sf::String& str);
 
-    std::vector<Step> m_steps;
-    std::unordered_map<std::string, bool> m_flags;
-
-    size_t m_current   = 0;
-    float  m_stepTimer = 0.f;
-    bool   m_finished  = false;
-    bool   m_active    = true;
-
+    Config::TutorialStep m_step = Config::TutorialStep::Movement;
     sf::Text m_text;
-
-    static constexpr float MIN_STEP_TIME = 0.7f;
+    sf::RectangleShape m_bg;
+    float m_windowWidth = 0.f;
+    float m_timer = 0.f;
 };
 Path to file: ./src/Core/Utils/StringUtils/StringUtils.hpp
 Code:
@@ -2708,30 +2791,151 @@ private:
     MenuLabel m_title;
     UIMenu m_menu;
 };
+Path to file: ./src/States/LevelCompleted/StateLevelCompleted.cpp
+Code:
+#include "States/LevelCompleted/StateLevelCompleted.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include <sstream>
+#include <iomanip>
+
+using namespace StringUtils;
+
+StateLevelCompleted::StateLevelCompleted(GameDataRef data) : m_data(data) {}
+
+void StateLevelCompleted::Init()
+{
+    auto windowSize = m_data->window.getSize();
+
+    m_backgroundTexture.create(windowSize.x, windowSize.y);
+    m_backgroundTexture.update(m_data->window);
+    m_backgroundSprite.setTexture(m_backgroundTexture);
+
+    m_darkOverlay.setSize(sf::Vector2f(windowSize.x, windowSize.y));
+    m_darkOverlay.setFillColor(sf::Color(0, 50, 0, 180)); 
+
+    m_title.Init(ToSfStringFromUtf8("УРОВЕНЬ ПРОЙДЕН!"), m_data->headerFont, 70, 150.f, windowSize.x);
+    m_data->sound.StopMusic(Config::MUSIC_ID_BGM);
+
+    m_statsText.setFont(m_data->headerFont);
+    m_statsText.setCharacterSize(22);
+    m_statsText.setFillColor(sf::Color::White);
+    m_statsText.setLineSpacing(1.5f);
+
+    std::stringstream ss;
+    ss << "ВРЕМЯ НА УРОВНЕ: " << std::fixed << std::setprecision(1) << m_data->stats.timeSpent << " сек\n"
+       << "РЫВКОВ СДЕЛАНО: " << m_data->stats.dashesUsed << "\n"
+       << "РАЗБИТО СТЁКОЛ: " << m_data->stats.tilesBroken << "\n"
+       << "ЗАХВАЧЕНО ТЕЛ: " << m_data->stats.hostsPossessed << "\n"
+       << "СОБРАНО ШПРИЦЕВ: " << m_data->stats.syringesCollected;
+
+    m_statsText.setString(ToSfStringFromUtf8(ss.str()));
+
+    sf::FloatRect textBounds = m_statsText.getLocalBounds();
+    m_statsText.setOrigin(textBounds.left + textBounds.width / 2.f, textBounds.top);
+    m_statsText.setPosition(windowSize.x / 2.f, 300.f);
+
+
+    m_menu.AddButton(ToSfStringFromUtf8("Следующий уровень"), m_data->headerFont, 480.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->currentLevelIndex++; 
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton(ToSfStringFromUtf8("Рестарт"), m_data->headerFont, 560.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                     });
+
+    m_menu.AddButton(ToSfStringFromUtf8("В главное меню"), m_data->headerFont, 640.f, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.RemoveState();
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
+}
+void StateLevelCompleted::HandleInput(const sf::Event &event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        m_menu.HandleInput(event, m_data->sound);
+    }
+}
+
+void StateLevelCompleted::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateLevelCompleted::Draw()
+{
+    m_data->window.setView(m_data->window.getDefaultView());
+    
+    m_data->window.draw(m_backgroundSprite);
+    m_data->window.draw(m_darkOverlay);
+
+    m_title.Draw(m_data->window);
+    m_data->window.draw(m_statsText);
+    m_menu.Draw(m_data->window);
+}
+Path to file: ./src/States/LevelCompleted/StateLevelCompleted.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateLevelCompleted : public State
+{
+public:
+    StateLevelCompleted(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+
+    sf::Texture m_backgroundTexture;
+    sf::Sprite m_backgroundSprite;
+    sf::RectangleShape m_darkOverlay;
+
+    MenuLabel m_title;
+    UIMenu m_menu;
+
+    sf::Text m_statsText;
+};
 Path to file: ./src/States/MainMenu/StateMainMenu.cpp
 Code:
 #include "States/MainMenu/StateMainMenu.hpp"
 #include "States/Playing/StatePlaying.hpp"
-#include "States/Tutorial/StateTutorial.hpp"
 
 StateMainMenu::StateMainMenu(GameDataRef data) : m_data(data) {}
 
 void StateMainMenu::Init()
 {
     auto windowSize = m_data->window.getSize();
-
     m_title.Init(L"Носитель", m_data->headerFont, 100, 150.f, windowSize.x);
 
     m_menu.AddButton(L"Играть", m_data->headerFont, 400.f, windowSize.x, [this]() {
-    m_data->manager.RemoveState();
-    m_data->manager.AddState(StateRef(new StateTutorial(m_data)), true);
-});
+        m_data->currentLevelIndex = 0;
+        m_data->manager.RemoveState();
+        m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+    });
 
     m_menu.AddButton(L"Выход", m_data->headerFont, 500.f, windowSize.x, [this]() {
         m_data->window.close();
     });
 }
-
 void StateMainMenu::HandleInput(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyPressed) {
@@ -2881,20 +3085,23 @@ private:
 Path to file: ./src/States/Playing/StatePlaying.cpp
 Code:
 #include "StatePlaying.hpp"
-#include "Entities/Scientist/Scientist.hpp"
+
+#include <algorithm>
+#include <array>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
+#include "Core/Config.hpp"
+#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include "Entities/Scientist/Scientist.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
-#include "Core/Config.hpp"
-#include <algorithm> 
-#include "Core/Utils/StringUtils/StringUtils.hpp"
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <array>
-#include "Core/LevelLoader/LevelLoader.hpp"
-#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
+#include "States/LevelCompleted/StateLevelCompleted.hpp"
 
 using namespace StringUtils;
 
@@ -2909,39 +3116,57 @@ StatePlaying::StatePlaying(GameDataRef data)
 
 void StatePlaying::Init()
 {
+    m_data->stats.Reset();
+
+    GameKeyboard::EnableAll();
+
+    std::string levelName = m_data->GetCurrentLevelName();
+
     m_map.LoadTileConfig("../assets/map/tileset.txt");
-    m_map.LoadFromFile("../assets/map/level1.txt");
+    m_map.LoadFromFile("../assets/map/" + levelName + ".txt");
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
-    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());  
-    m_screenHud.SetHintText("Level 1\nLMB: Dash | RMB: Eject");
+    DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
 
     m_hosts.clear();
     m_syringes.clear();
 
-    LevelLoader::LoadEnemies  ("../assets/map/enemies_level1.txt",  m_hosts,    m_map);
-    LevelLoader::LoadSyringes ("../assets/map/syringes_level1.txt", m_syringes, m_map);
+    LevelLoader::LoadEnemies("../assets/map/enemies_" + levelName + ".txt", m_hosts, m_map);
+    LevelLoader::LoadSyringes("../assets/map/syringes_" + levelName + ".txt", m_syringes, m_map);
 
     m_parasite.SetPlayerControlled(true);
     m_playerAvatar = &m_parasite;
     m_timeInCurrentHost = 0.f;
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
+
+    if (levelName == "tutorial")
+    {
+        m_tutorial.Init(m_data->headerFont, m_data->window.getSize().x);
+        m_screenHud.SetHintText(ToSfStringFromUtf8("Обучение"));
+    }
+    else
+    {
+        m_screenHud.SetHintText(ToSfStringFromUtf8("Уровень: ") + ToSfStringFromUtf8(levelName) +
+                                ToSfStringFromUtf8("\nЛКМ: Рывок | ПКМ: Выход"));
+    }
 }
 
 void StatePlaying::HandleInput(const sf::Event &event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
-        if (GameKeyboard::IsHitboxesPressed(event)) {
+        if (GameKeyboard::IsHitboxesPressed(event))
+        {
             Entity::ToggleHitboxes();
         }
         if (GameKeyboard::IsCoordsTogglePressed(event))
         {
-            DebugOverlay::ToggleMouseCoords();        
+            DebugOverlay::ToggleMouseCoords();
         }
-        if (GameKeyboard::IsEventEscape(event)) {
+        if (GameKeyboard::IsEventEscape(event))
+        {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
         }
     }
@@ -2965,25 +3190,31 @@ void StatePlaying::UpdateCamera(float dt)
 
     sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
 
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(), m_map.GetHeightInPixels());
+    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
+                    m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
 {
+    m_data->stats.timeSpent += dt;
+
     UpdateCamera(dt);
 
     GameContext ctx;
     ctx.dt = dt;
-    ctx.mousePos = m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
+    ctx.mousePos =
+        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
     ctx.levelMap = &m_map;
     ctx.audio = &m_data->sound;
 
     m_parasite.Update(ctx);
 
-    for (auto &enemy : m_hosts) {
+    for (auto &enemy : m_hosts)
+    {
         enemy->Update(ctx);
     }
-    for (auto &syringe : m_syringes) {
+    for (auto &syringe : m_syringes)
+    {
         syringe->Update(ctx);
     }
 
@@ -2993,18 +3224,22 @@ void StatePlaying::Update(float dt)
 
     CleanDeadEnemies();
 
-    m_syringes.erase(
-        std::remove_if(m_syringes.begin(), m_syringes.end(), [](const auto& s) { return s->IsCollected(); }),
-        m_syringes.end()
-    );
-
+    m_syringes.erase(std::remove_if(m_syringes.begin(), m_syringes.end(),
+                                    [](const auto &s) { return s->IsCollected(); }),
+                     m_syringes.end());
+    if (m_data->GetCurrentLevelName() == "tutorial") {
+        bool syringeCollected = m_syringes.empty(); 
+        
+        m_tutorial.Update(dt, m_parasite, m_currentHost, syringeCollected);
+    }
     UpdateHUD();
     CheckEndGameConditions();
 }
 
 void StatePlaying::HandlePossession()
 {
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing()) return;
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
+        return;
 
     for (auto &enemy : m_hosts)
     {
@@ -3018,8 +3253,10 @@ void StatePlaying::HandlePossession()
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
             m_timeInCurrentHost = 0.f;
-            
-            m_data->sound.PlaySound(Config::SOUND_ID_HOST); 
+
+            m_data->stats.hostsPossessed++;
+
+            m_data->sound.PlaySound(Config::SOUND_ID_HOST);
             break;
         }
     }
@@ -3027,28 +3264,31 @@ void StatePlaying::HandlePossession()
 
 void StatePlaying::HandleEjection(const GameContext &ctx)
 {
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost) return;
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
+        return;
 
     m_timeInCurrentHost += ctx.dt;
 
-    bool manualEject = sf::Mouse::isButtonPressed(sf::Mouse::Right);
+    bool manualEject = GameKeyboard::IsEjectKeyPressed();
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
 
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST) {
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
+    {
         manualEject = false;
     }
 
     if (manualEject || timeOut)
     {
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE); 
-        
-        ctx.audio->PlaySound(Config::SOUND_ID_DEATH); 
+        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
+
+        ctx.audio->PlaySound(Config::SOUND_ID_DEATH);
 
         m_parasite.SetPosition(m_currentHost->GetPosition());
         m_parasite.SetPlayerControlled(true);
 
-        if (manualEject) {
+        if (manualEject)
+        {
             m_parasite.ForceDash(ctx);
         }
 
@@ -3059,17 +3299,19 @@ void StatePlaying::HandleEjection(const GameContext &ctx)
 
 void StatePlaying::HandleItems(const GameContext &ctx)
 {
-    for (auto& syringe : m_syringes)
+    for (auto &syringe : m_syringes)
     {
-        if (syringe->IsCollected()) continue;
+        if (syringe->IsCollected())
+            continue;
 
         if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
         {
             if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
             {
                 syringe->Collect();
-                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE); 
-                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT); 
+                m_data->stats.syringesCollected++;
+                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
+                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT);
             }
         }
     }
@@ -3079,19 +3321,27 @@ void StatePlaying::UpdateHUD()
 {
     m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
 
-    sf::String avatarName = m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
-    bool isInElevator = m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+    sf::String avatarName =
+        m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
+    bool isInElevator =
+        m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
 
     if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
     {
-        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName + ToSfStringFromUtf8("\nПКМ: Высвободиться"));
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(), sf::Color(220, 200, 0));
+        if (!isInElevator)
+            m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
+                                    ToSfStringFromUtf8("\nПКМ: Высвободиться"));
+        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
+                             sf::Color(220, 200, 0));
     }
     else
     {
-        if (!isInElevator) m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName + ToSfStringFromUtf8("\nЛКМ: Вселиться"));
+        if (!isInElevator)
+            m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
+                                    ToSfStringFromUtf8("\nЛКМ: Вселиться"));
         m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
     }
+    m_screenHud.SetTimerText(m_data->stats.timeSpent, m_data->window.getSize().x);
 }
 
 void StatePlaying::CheckEndGameConditions()
@@ -3110,15 +3360,28 @@ void StatePlaying::CheckEndGameConditions()
     if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
     {
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
-        if (access >= 1) 
+        if (access >= 1)
         {
             m_data->sound.PlaySound(Config::SOUND_ID_WIN);
-            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+
+            if (m_data->currentLevelIndex + 1 < m_data->levels.size())
+            {
+
+                m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
+
+                m_data->stats.dashesUsed = m_parasite.GetDashCount();
+                m_data->stats.tilesBroken = m_parasite.GetBrokenTilesCount();
+            }
+            else
+            {
+                m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+            }
             return;
         }
         else
         {
-            m_screenHud.SetHintText(ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
+            m_screenHud.SetHintText(
+                ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
         }
     }
 }
@@ -3126,7 +3389,9 @@ void StatePlaying::CheckEndGameConditions()
 void StatePlaying::CleanDeadEnemies()
 {
     m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-        [](const std::unique_ptr<Host> &enemy) { return enemy->IsDead(); }), m_hosts.end());
+                                 [](const std::unique_ptr<Host> &enemy)
+                                 { return enemy->IsDead(); }),
+                  m_hosts.end());
 }
 
 void StatePlaying::Draw()
@@ -3134,22 +3399,31 @@ void StatePlaying::Draw()
     m_data->window.setView(m_camera.GetView());
     m_map.Draw(m_data->window);
 
-    for (auto &enemy : m_hosts) {
-        if (!enemy->IsDead()) enemy->Draw(m_data->window);
+    for (auto &enemy : m_hosts)
+    {
+        if (!enemy->IsDead())
+            enemy->Draw(m_data->window);
     }
 
-    for (auto &syringe : m_syringes) {
-        syringe->Draw(m_data->window); 
+    for (auto &syringe : m_syringes)
+    {
+        syringe->Draw(m_data->window);
     }
 
-    if (m_parasite.IsPlayerControlled()) {
+    if (m_parasite.IsPlayerControlled())
+    {
         m_parasite.Draw(m_data->window);
     }
 
     m_floatingHud.Draw(m_data->window);
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
-    DebugOverlay::Draw(m_data->window, m_camera.GetView()); 
+    DebugOverlay::Draw(m_data->window, m_camera.GetView());
+
+    if (m_data->GetCurrentLevelName() == "tutorial")
+    {
+        m_tutorial.Draw(m_data->window);
+    }
 }
 Path to file: ./src/States/Playing/StatePlaying.hpp
 Code:
@@ -3167,6 +3441,7 @@ Code:
 #include "Entities/Items/Syringe/Syringe.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+#include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
 
 class StatePlaying : public State
 {
@@ -3205,6 +3480,7 @@ private:
     Host* m_currentHost = nullptr;
 
     float m_timeInCurrentHost;
+    TutorialOverlay m_tutorial;
 };
 Path to file: ./src/States/State.hpp
 Code:
@@ -3319,122 +3595,6 @@ private:
     bool m_isReplacing = false;
 };
 
-Path to file: ./src/States/Tutorial/StateTutorial.cpp
-Code:
-#include "States/Tutorial/StateTutorial.hpp"
-#include "States/Playing/StatePlaying.hpp"
-#include "States/MainMenu/StateMainMenu.hpp"
-#include "Core/GameKeyboard/GameKeyboard.hpp"
-#include "Core/Config.hpp"
-#include "Core/Utils/StringUtils/StringUtils.hpp"
-
-using namespace StringUtils;
-
-StateTutorial::StateTutorial(GameDataRef data) : m_data(data) {}
-
-void StateTutorial::Init()
-{
-    auto windowSize = m_data->window.getSize();
-
-    m_title.Init(
-        ToSfStringFromUtf8("КАК ИГРАТЬ"),
-        m_data->headerFont, 70, 50.f, windowSize.x
-    );
-
-    m_instructions.setFont(m_data->headerFont);
-    m_instructions.setCharacterSize(30);
-    m_instructions.setFillColor(sf::Color::White);
-
-    m_instructions.setString(ToSfStringFromUtf8(
-        "ЦЕЛЬ:\nДобраться до лифта в конце уровня.\n\n"
-        "УПРАВЛЕНИЕ:\n"
-        "A / D - Движение\n"
-        "ПРОБЕЛ - Прыжок\n"
-        "ЛКМ (Левый клик) - Рывок / Вселение во врага\n"
-        "ПКМ (Правый клик) - Разорвать носителя и выпрыгнуть\n\n"
-        "ВНИМАНИЕ:\n"
-        "Падение в пропасть — мгновенная смерть.\n"
-        "Тело носителя разлагается за 15 секунд!"
-    ));
-
-    sf::FloatRect textRect = m_instructions.getLocalBounds();
-    m_instructions.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top);
-    m_instructions.setPosition(windowSize.x / 2.0f, 160.f);
-
-    m_menu.AddButton(
-        ToSfStringFromUtf8("Начать игру"),
-        m_data->headerFont, 550.f, windowSize.x,
-        [this]() {
-            m_data->manager.RemoveState();
-            m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
-        }
-    );
-
-    m_menu.AddButton(
-        ToSfStringFromUtf8("В главное меню"),
-        m_data->headerFont, 630.f, windowSize.x,
-        [this]() {
-            m_data->manager.RemoveState();
-            m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
-        }
-    );
-}
-
-void StateTutorial::HandleInput(const sf::Event& event)
-{
-    if (event.type == sf::Event::KeyPressed)
-    {
-        if (GameKeyboard::IsEventEscape(event))
-        {
-            m_data->manager.RemoveState();
-            m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
-        }
-        else
-        {
-            m_menu.HandleInput(event, m_data->sound);
-        }
-    }
-}
-
-void StateTutorial::Update(float dt)
-{
-    m_menu.Update();
-}
-
-void StateTutorial::Draw()
-{
-    m_data->window.clear(Config::BG_COLOR);
-
-    m_title.Draw(m_data->window);
-    m_data->window.draw(m_instructions);
-    m_menu.Draw(m_data->window);
-}
-Path to file: ./src/States/Tutorial/StateTutorial.hpp
-Code:
-#pragma once
-#include <SFML/Graphics.hpp>
-#include "States/UI/UIMenu/UIMenu.hpp"
-#include "States/UI/MenuLabel/MenuLabel.hpp"
-#include "States/State.hpp"
-#include "Core/GameData.hpp"
-
-class StateTutorial : public State
-{
-public:
-    StateTutorial(GameDataRef data);
-
-    void Init() override;
-    void HandleInput(const sf::Event& event) override;
-    void Update(float dt) override;
-    void Draw() override;
-
-private:
-    GameDataRef m_data;
-    
-    UIMenu m_menu;
-    MenuLabel m_title;
-    sf::Text m_instructions;
-};
 Path to file: ./src/States/UI/MenuButton/MenuButton.cpp
 Code:
 #include <SFML/Graphics.hpp>
@@ -3638,6 +3798,7 @@ void StateVictory::Init()
                          m_data->manager.RemoveState();
                          m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
                      });
+    m_data->sound.PlaySound(Config::SOUND_ID_WIN);
 }
 
 void StateVictory::HandleInput(const sf::Event &event)
@@ -3751,6 +3912,8 @@ private:
 Path to file: ./src/UI/ScreenHUD/ScreenHUD.cpp
 Code:
 #include "ScreenHUD.hpp"
+#include <sstream>
+#include <iomanip>
 
 void ScreenHUD::Init(const sf::Font& font, float windowWidth)
 {
@@ -3759,8 +3922,13 @@ void ScreenHUD::Init(const sf::Font& font, float windowWidth)
     m_hintText.setFillColor(sf::Color::White);
     m_hintText.setOutlineColor(sf::Color::Black);
     m_hintText.setOutlineThickness(2.f);
-    
     m_hintText.setPosition(20.f, 20.f); 
+
+    m_timerText.setFont(font);
+    m_timerText.setCharacterSize(24);
+    m_timerText.setFillColor(sf::Color::White);
+    m_timerText.setOutlineColor(sf::Color::Black);
+    m_timerText.setOutlineThickness(2.f);
 }
 
 void ScreenHUD::SetHintText(const sf::String& text)
@@ -3768,9 +3936,25 @@ void ScreenHUD::SetHintText(const sf::String& text)
     m_hintText.setString(text);
 }
 
+void ScreenHUD::SetTimerText(float timeInSeconds, float windowWidth)
+{
+    int minutes = static_cast<int>(timeInSeconds) / 60;
+    float seconds = timeInSeconds - (minutes * 60);
+
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(2) << minutes << ":" 
+       << std::setfill('0') << std::setw(4) << std::fixed << std::setprecision(1) << seconds;
+
+    m_timerText.setString(ss.str());
+
+    sf::FloatRect bounds = m_timerText.getLocalBounds();
+    m_timerText.setPosition(windowWidth - bounds.width - 20.f, 20.f);
+}
+
 void ScreenHUD::Draw(sf::RenderWindow& window)
 {
     window.draw(m_hintText);
+    window.draw(m_timerText);
 }
 Path to file: ./src/UI/ScreenHUD/ScreenHUD.hpp
 Code:
@@ -3784,9 +3968,11 @@ public:
     void Init(const sf::Font& font, float windowWidth);
     
     void SetHintText(const sf::String& text);
+    void SetTimerText(float timeInSeconds, float windowWidth);
     
     void Draw(sf::RenderWindow& window);
 
 private:
     sf::Text m_hintText;
+    sf::Text m_timerText;
 };

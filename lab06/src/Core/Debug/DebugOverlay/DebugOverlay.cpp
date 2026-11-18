@@ -4,9 +4,14 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <iostream>
 
 void DebugOverlay::Init(const sf::Font& font, sf::Vector2u windowSize)
 {
+    s_currentFont = &font;
+    
+    s_text = sf::Text(); 
+    
     s_text.setFont(font);
     s_text.setCharacterSize(18);
     s_text.setFillColor(sf::Color::Yellow);
@@ -21,6 +26,8 @@ bool DebugOverlay::IsMouseCoordsEnabled() { return s_show; }
 void DebugOverlay::Draw(sf::RenderWindow& window, const sf::View& worldView)
 {
     if (!s_show) return;
+
+    if (s_currentFont == nullptr) return;
 
     sf::Vector2i pixel = sf::Mouse::getPosition(window);
     sf::Vector2f world = window.mapPixelToCoords(pixel, worldView);

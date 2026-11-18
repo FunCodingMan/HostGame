@@ -8,7 +8,7 @@
 class TutorialOverlay {
 public:
     void Init(const sf::Font& font, float windowWidth);
-    void Update(float dt, const Parasite& parasite, const Host* currentHost, bool syringeCollected);
+    void Update(float dt, const Parasite& parasite, const Host* currentHost, int syringesCollected);
     void Draw(sf::RenderWindow& window);
 
 private:

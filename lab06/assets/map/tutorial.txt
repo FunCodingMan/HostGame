@@ -1,12 +1,8 @@
-bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw
-bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
-bw .. .. .. .. .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. el .. .. bw
-fl fl fl fl fl fl fl fl fl fl fl .. .. fl fl fl fl fl fl fl fl fl fl fl fl bw
-bw bw bw bw bw bw bw bw bw bw bw .. .. bw bw bw bw bw bw bw bw bw bw bw bw bw
+bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw
+bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
+bw .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
+bw .. .. .. .. .. .. gl gl gl gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
+bw .. .. .. .. .. .. gl .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. bw
+bw .. .. .. .. .. .. gl .. .. gl .. .. .. .. .. .. .. .. .. .. .. .. .. .. el .. .. bw
+fl fl fl fl fl fl fl fl fl fl fl fl fl fl fl .. .. fl fl fl fl fl fl fl fl fl fl fl fl
+bw bw bw bw bw bw bw bw bw bw bw bw bw bw bw .. .. bw bw bw bw bw bw bw bw bw bw bw bw

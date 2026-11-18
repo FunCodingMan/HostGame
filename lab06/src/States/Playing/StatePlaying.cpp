@@ -144,7 +144,7 @@ void StatePlaying::Update(float dt)
     if (m_data->GetCurrentLevelName() == "tutorial") {
         bool syringeCollected = m_syringes.empty(); 
         
-        m_tutorial.Update(dt, m_parasite, m_currentHost, syringeCollected);
+        m_tutorial.Update(dt, m_parasite, m_currentHost, m_data->stats.syringesCollected);
     }
     UpdateHUD();
     CheckEndGameConditions();
