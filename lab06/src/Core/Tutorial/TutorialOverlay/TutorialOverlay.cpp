@@ -102,7 +102,7 @@ void TutorialOverlay::Update(float dt, const Parasite& parasite, const Host* cur
         if (currentHost == nullptr)
         {
             m_step = TutorialStep::Exit;
-            SetText(ToSfStringFromUtf8("ВХОД В ЛИФТ\nЗаходите в лифт (el), чтобы завершить обучение!"));
+            SetText(ToSfStringFromUtf8("ВХОД В ЛИФТ\nВселитесь во второго учёного и зайдите в лифт, чтобы завершить обучение!"));
         }
         break;
     case TutorialStep::Exit:
