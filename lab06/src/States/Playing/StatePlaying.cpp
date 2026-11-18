@@ -1,17 +1,8 @@
 #include "StatePlaying.hpp"
-
-#include <algorithm>
-#include <array>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
 #include "Core/Config.hpp"
 #include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
-#include "Core/LevelLoader/LevelLoader.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
-#include "Entities/Scientist/Scientist.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
@@ -19,39 +10,21 @@
 
 using namespace StringUtils;
 
-StatePlaying::StatePlaying(GameDataRef data)
-    : m_data(data),
-      m_parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
-      m_camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM,
-                            Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM)),
-      m_currentHost(nullptr)
-{
-}
+StatePlaying::StatePlaying(GameDataRef data) : m_data(data) {}
 
 void StatePlaying::Init()
 {
+    m_endStatePushed = false;
     m_data->stats.Reset();
 
     GameKeyboard::EnableAll();
 
     std::string levelName = m_data->GetCurrentLevelName();
-
-    m_map.LoadTileConfig("../assets/map/tileset.txt");
-    m_map.LoadFromFile("../assets/map/" + levelName + ".txt");
+    m_level.Load(levelName, m_data->sound);
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
     DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
-
-    m_hosts.clear();
-    m_syringes.clear();
-
-    LevelLoader::LoadEnemies("../assets/map/enemies_" + levelName + ".txt", m_hosts, m_map);
-    LevelLoader::LoadSyringes("../assets/map/syringes_" + levelName + ".txt", m_syringes, m_map);
-
-    m_parasite.SetPlayerControlled(true);
-    m_playerAvatar = &m_parasite;
-    m_timeInCurrentHost = 0.f;
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
 
@@ -67,185 +40,53 @@ void StatePlaying::Init()
     }
 }
 
-void StatePlaying::HandleInput(const sf::Event &event)
+void StatePlaying::HandleInput(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
         if (GameKeyboard::IsHitboxesPressed(event))
-        {
             Entity::ToggleHitboxes();
-        }
         if (GameKeyboard::IsCoordsTogglePressed(event))
-        {
             DebugOverlay::ToggleMouseCoords();
-        }
         if (GameKeyboard::IsEventEscape(event))
-        {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
-        }
     }
-}
-
-void StatePlaying::UpdateCamera(float dt)
-{
-    sf::Vector2f targetPos = m_playerAvatar->GetPosition();
-    sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_data->window);
-    sf::Vector2u windowSize = m_data->window.getSize();
-
-    float normX = (mousePixelPos.x - (windowSize.x / 2.f)) / (windowSize.x / 2.f);
-    float normY = (mousePixelPos.y - (windowSize.y / 2.f)) / (windowSize.y / 2.f);
-
-    normX = std::clamp(normX, -1.f, 1.f);
-    normY = std::clamp(normY, -1.f, 1.f);
-
-    sf::Vector2f viewSize = m_camera.GetView().getSize();
-    float maxOffsetX = (viewSize.x / 2.f) * Config::CAMERA_LOOK_STRENGTH;
-    float maxOffsetY = (viewSize.y / 2.f) * Config::CAMERA_LOOK_STRENGTH;
-
-    sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
-
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
-                    m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
 {
-    m_data->stats.timeSpent += dt;
+    LevelInput input;
+    input.mousePixelPos = sf::Mouse::getPosition(m_data->window);
+    input.windowSize = m_data->window.getSize();
 
-    UpdateCamera(dt);
+    m_level.Update(dt, input);
 
-    GameContext ctx;
-    ctx.dt = dt;
-    ctx.mousePos =
-        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
-    ctx.levelMap = &m_map;
-    ctx.audio = &m_data->sound;
-
-    m_parasite.Update(ctx);
-
-    for (auto &enemy : m_hosts)
+    if (m_data->GetCurrentLevelName() == "tutorial")
     {
-        enemy->Update(ctx);
-    }
-    for (auto &syringe : m_syringes)
-    {
-        syringe->Update(ctx);
+        m_tutorial.Update(dt, m_level.GetParasite(), m_level.GetCurrentHost(),
+                          m_level.GetStats().syringesCollected);
     }
 
-    HandlePossession();
-    HandleEjection(ctx);
-    HandleItems(ctx);
-
-    CleanDeadEnemies();
-
-    m_syringes.erase(std::remove_if(m_syringes.begin(), m_syringes.end(),
-                                    [](const auto &s) { return s->IsCollected(); }),
-                     m_syringes.end());
-    if (m_data->GetCurrentLevelName() == "tutorial") {
-        bool syringeCollected = m_syringes.empty(); 
-        
-        m_tutorial.Update(dt, m_parasite, m_currentHost, m_data->stats.syringesCollected);
-    }
     UpdateHUD();
-    CheckEndGameConditions();
-}
-
-void StatePlaying::HandlePossession()
-{
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
-        return;
-
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
-        {
-            m_parasite.SetPlayerControlled(false);
-
-            enemy->SetPlayerControlled(true);
-            enemy->ResetDecayTimer();
-
-            m_playerAvatar = enemy.get();
-            m_currentHost = enemy.get();
-            m_timeInCurrentHost = 0.f;
-
-            m_data->stats.hostsPossessed++;
-
-            m_data->sound.PlaySound(Config::SOUND_ID_HOST);
-            break;
-        }
-    }
-}
-
-void StatePlaying::HandleEjection(const GameContext &ctx)
-{
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
-        return;
-
-    m_timeInCurrentHost += ctx.dt;
-
-    bool manualEject = GameKeyboard::IsEjectKeyPressed();
-    bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
-
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
-    {
-        manualEject = false;
-    }
-
-    if (manualEject || timeOut)
-    {
-        m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
-
-        ctx.audio->PlaySound(Config::SOUND_ID_DEATH);
-
-        m_parasite.SetPosition(m_currentHost->GetPosition());
-        m_parasite.SetPlayerControlled(true);
-
-        if (manualEject)
-        {
-            m_parasite.ForceDash(ctx);
-        }
-
-        m_playerAvatar = &m_parasite;
-        m_currentHost = nullptr;
-    }
-}
-
-void StatePlaying::HandleItems(const GameContext &ctx)
-{
-    for (auto &syringe : m_syringes)
-    {
-        if (syringe->IsCollected())
-            continue;
-
-        if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
-        {
-            if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
-            {
-                syringe->Collect();
-                m_data->stats.syringesCollected++;
-                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
-                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT);
-            }
-        }
-    }
+    HandleLevelResult();
 }
 
 void StatePlaying::UpdateHUD()
 {
-    m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
+    LivingEntity* avatar = m_level.GetAvatar();
+    m_floatingHud.SetPosition(avatar->GetPosition());
 
     sf::String avatarName =
-        m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
-    bool isInElevator =
-        m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+        avatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
+    bool isInElevator = m_level.IsAvatarInElevator();
+    Host* host = m_level.GetCurrentHost();
 
-    if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+    if (host != nullptr && avatar == host)
     {
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
                                     ToSfStringFromUtf8("\nПКМ: Высвободиться"));
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
+        m_floatingHud.Update(host->GetDecayTimer(), host->GetMaxDecayTimer(),
                              sf::Color(220, 200, 0));
     }
     else
@@ -253,89 +94,55 @@ void StatePlaying::UpdateHUD()
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
                                     ToSfStringFromUtf8("\nЛКМ: Вселиться"));
-        m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
+        const Parasite& p = m_level.GetParasite();
+        m_floatingHud.Update(p.GetLife(), p.GetMaxLife(), sf::Color(200, 0, 0));
     }
-    m_screenHud.SetTimerText(m_data->stats.timeSpent, m_data->window.getSize().x);
+
+    if (isInElevator && avatar->GetProperties().GetInt("access_level", 0) < 1)
+    {
+        m_screenHud.SetHintText(
+            ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
+    }
+
+    m_screenHud.SetTimerText(m_level.GetStats().timeSpent, m_data->window.getSize().x);
 }
 
-void StatePlaying::CheckEndGameConditions()
+void StatePlaying::HandleLevelResult()
 {
-    bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
-    bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
-
-    if (isParasiteDead || fellIntoPit)
-    {
-        m_data->sound.PlaySound(Config::SOUND_ID_LOSE);
-        m_data->sound.PlaySound(Config::SOUND_ID_DEATH);
-        m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
+    if (m_endStatePushed)
         return;
-    }
 
-    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+    switch (m_level.GetResult())
     {
-        int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
-        if (access >= 1)
-        {
-            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
+    case LevelResult::Failed:
+        m_endStatePushed = true;
+        m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
+        break;
 
-            if (m_data->currentLevelIndex + 1 < m_data->levels.size())
-            {
-
-                m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
-
-                m_data->stats.dashesUsed = m_parasite.GetDashCount();
-                m_data->stats.tilesBroken = m_parasite.GetBrokenTilesCount();
-            }
-            else
-            {
-                m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
-            }
-            return;
-        }
+    case LevelResult::Completed:
+        m_endStatePushed = true;
+        m_data->stats = m_level.GetStats();   // фикс: статистика теперь и для Victory
+        if (m_data->currentLevelIndex + 1 < m_data->levels.size())
+            m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
         else
-        {
-            m_screenHud.SetHintText(
-                ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
-        }
-    }
-}
+            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+        break;
 
-void StatePlaying::CleanDeadEnemies()
-{
-    m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-                                 [](const std::unique_ptr<Host> &enemy)
-                                 { return enemy->IsDead(); }),
-                  m_hosts.end());
+    default:
+        break;
+    }
 }
 
 void StatePlaying::Draw()
 {
-    m_data->window.setView(m_camera.GetView());
-    m_map.Draw(m_data->window);
-
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead())
-            enemy->Draw(m_data->window);
-    }
-
-    for (auto &syringe : m_syringes)
-    {
-        syringe->Draw(m_data->window);
-    }
-
-    if (m_parasite.IsPlayerControlled())
-    {
-        m_parasite.Draw(m_data->window);
-    }
-
+    m_data->window.setView(m_level.GetView());
+    m_level.Draw(m_data->window);
     m_floatingHud.Draw(m_data->window);
+
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
-    DebugOverlay::Draw(m_data->window, m_camera.GetView());
+    DebugOverlay::Draw(m_data->window, m_level.GetView());
 
     if (m_data->GetCurrentLevelName() == "tutorial")
-    {
         m_tutorial.Draw(m_data->window);
-    }
 }

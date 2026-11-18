@@ -1,15 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <vector>
-#include <memory>
 #include "States/State.hpp"
 #include "Core/GameData.hpp"
-#include "Core/Config.hpp"
-#include "Core/Map/Map.hpp"
-#include "Core/Camera/Camera.hpp"
-#include "Entities/Parasite/Parasite.hpp"
-#include "Entities/Host/Host.hpp"
-#include "Entities/Items/Syringe/Syringe.hpp"
+#include "Core/LevelLogic/Level/Level.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
 #include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
@@ -25,31 +18,15 @@ public:
     void Draw() override;
 
 private:
-    void UpdateCamera(float dt);
-
-    void HandlePossession();
-    void HandleEjection(const GameContext& ctx);
-    void HandleItems(const GameContext& ctx);
-    void CleanDeadEnemies();
     void UpdateHUD();
-    void CheckEndGameConditions();
-    void LoadSyringes(const std::string& path);
-    bool IsAreaBlocked(const sf::FloatRect& area) const;
+    void HandleLevelResult();
 
     GameDataRef m_data;
-    
-    Map m_map;
-    Camera m_camera;
+
+    Level m_level;
     EntityHUD m_floatingHud;
     ScreenHUD m_screenHud;
-
-    Parasite m_parasite;
-    std::vector<std::unique_ptr<Host>>    m_hosts;
-    std::vector<std::unique_ptr<Syringe>> m_syringes;
-
-    LivingEntity* m_playerAvatar;
-    Host* m_currentHost = nullptr;
-
-    float m_timeInCurrentHost;
     TutorialOverlay m_tutorial;
+
+    bool m_endStatePushed = false;
 };
