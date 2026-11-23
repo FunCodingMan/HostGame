@@ -34,6 +34,11 @@ bool GameKeyboard::IsEjectKeyPressed()
     return sf::Mouse::isButtonPressed(sf::Mouse::Right);
 }
 
+bool GameKeyboard::IsShootKeyPressed()
+{
+    return sf::Mouse::isButtonPressed(sf::Mouse::Left);
+}
+
 bool GameKeyboard::IsHitboxesPressed(const sf::Event& event)
 {
     return event.key.code == sf::Keyboard::B && sf::Keyboard::isKeyPressed(sf::Keyboard::F3);

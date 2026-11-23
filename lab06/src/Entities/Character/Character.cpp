@@ -21,8 +21,26 @@ Character::Character(float maxLife, sf::Vector2f /*position*/)
             case EntityState::Dash: 
                 m_anim.Play("dash"); 
                 break;
+            case EntityState::Jump:
+                m_anim.Play("jump");
+                break;
+            case EntityState::Fall:
+                m_anim.Play("fall");
+                break;
             case EntityState::Dead:
                 m_anim.Play("dead"); 
+                break;
+            case EntityState::Alert:
+                m_anim.Play("alert");
+                break;
+            case EntityState::Attack:
+                m_anim.Play("attack");
+                break;
+            case EntityState::Reload:
+                m_anim.Play("reload");
+                break;
+            case EntityState::Report:
+                m_anim.Play("report");
                 break;
             default:
                 break;
@@ -59,9 +77,10 @@ void Character::InitHitboxFromCenter(float left, float right, float top, float b
     m_hitbox.setOutlineThickness(1.f);
 }
 
-void Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
+bool Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
 {
-    if (!m_texture.loadFromFile(texturePath))
+    bool loaded = m_texture.loadFromFile(texturePath);
+    if (!loaded)
     {
         std::cerr << "Ошибка: Не удалось загрузить " << texturePath << std::endl;
     }
@@ -71,6 +90,8 @@ void Character::InitSprite(const std::string& texturePath, int frameW, int frame
     m_sprite.setScale(scale, scale);
     m_sprite.setOrigin(frameW / 2.f, frameH / 2.f);
     m_scale = scale;
+
+    return loaded;
 }
 
 bool Character::CheckMoveKeys(float dt)
@@ -86,12 +107,14 @@ bool Character::CheckMoveKeys(float dt)
     if (left)
     {
         m_velocity.x -= m_accel * dt;
+        m_lookDir = -1;
         return true;
     }
 
     if (right)
     {
         m_velocity.x += m_accel * dt;
+        m_lookDir = 1;
         return true;
     }
 
@@ -170,7 +193,7 @@ void Character::UpdateVertical(const GameContext& ctx, bool allowInput)
 
         OnJump();
         
-        if (const char* sound = GetJumpSound()) {
+        if (const char* sound = GetJumpSound(); sound && ctx.audio->HasSound(sound)) {
             ctx.audio->PlaySound(sound);
         }
     }
@@ -216,7 +239,7 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
 
         if (impactVelocity > Config::MAX_FALL_SPEED * Config::SMASH_FALL_SPEED_RATIO) 
         {
-            if (const char* sound = GetLandSound()) {
+            if (const char* sound = GetLandSound(); sound && ctx.audio->HasSound(sound)) {
                 ctx.audio->PlaySound(sound); 
             }
         }
@@ -290,14 +313,7 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
 
 void Character::UpdateSpriteDirection()
 {
-    if (m_velocity.x > 0.f)
-    {
-        m_sprite.setScale(m_scale, m_scale);
-    }
-    else if (m_velocity.x < 0.f)
-    {
-        m_sprite.setScale(-m_scale, m_scale);
-    }
+    m_sprite.setScale(m_lookDir < 0 ? -m_scale : m_scale, m_scale);
 }
 
 void Character::UpdateAnimation(float dt)
@@ -322,7 +338,7 @@ void Character::ApplyMovement(const GameContext& ctx)
         m_stepTimer -= ctx.dt;
         if (m_stepTimer <= 0.f)
         {
-            if (const char* sound = GetWalkSound()) {
+            if (const char* sound = GetWalkSound(); sound && ctx.audio->HasSound(sound)) {
                 ctx.audio->PlaySound(sound); 
             }
             m_stepTimer = Config::STEP_SOUND_INTERVAL; 

@@ -11,6 +11,7 @@ public:
     void Update(const GameContext& ctx) override;
     bool IsDashing() const;
     void ForceDash(const GameContext& ctx);
+    void ResetMovement();
 
     int GetJumpCount()        const { return m_jumpCount; }
     int GetDashCount()        const { return m_dashCount; }

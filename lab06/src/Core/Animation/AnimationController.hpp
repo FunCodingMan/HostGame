@@ -18,21 +18,24 @@ public:
 
     void AddClip(const std::string& name, int frameCount, float frameTime);
     void AddClip(const std::string& name, int frameCount, float frameTime,
-                 int row, int startCol = 0);
+                 int row, int startCol = 0, bool loop = true);
 
     void AddClip(const std::string& name,
                  const std::vector<sf::IntRect>& frames,
                  float frameTime, bool loop = true);
 
-    void Play(const std::string& name);
+    void Play(const std::string& name, bool restart = false);
     void Update(float dt);
     void Apply(sf::Sprite& sprite) const;
+
+    bool HasClip(const std::string& name) const { return m_clips.count(name) > 0; }
+    bool IsFinished() const;
 
     const std::string& Current() const { return m_current; }
 
 private:
     void AddClipRow(const std::string& name, int row, int startCol,
-                    int count, float frameTime);
+                    int count, float frameTime, bool loop);
 
     const sf::Texture* m_texture = nullptr;
     int m_frameW  = 0;

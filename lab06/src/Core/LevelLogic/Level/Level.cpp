@@ -142,8 +142,18 @@ void Level::HandleBullets()
 
             if (bulletBounds.intersects(enemy->GetBounds()))
             {
+                bool wasDead = enemy->IsDead();
                 enemy->TakeDamage(bullet.damage);
                 bullet.active = false;
+
+                if (!wasDead && enemy->IsDead())
+                {
+                    const char* sound = enemy->GetDeathSound();
+                    if (m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
                 break;
             }
         }
@@ -160,9 +170,11 @@ void Level::HandlePossession()
         if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
         {
             m_parasite.SetPlayerControlled(false);
+            m_parasite.ResetMovement();
 
             enemy->SetPlayerControlled(true);
             enemy->ResetDecayTimer();
+            enemy->OnPossessed();
 
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
@@ -191,12 +203,28 @@ void Level::HandleEjection(const GameContext& ctx)
 
     if (manualEject || timeOut || hostDead)
     {
+        sf::Vector2f ejectPosition = m_currentHost->GetPosition();
+        bool hostDiedNow = !hostDead && (manualEject || timeOut);
+
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
+        m_currentHost->OnEjected();
 
-        ctx.audio->PlaySound(SOUND_ID_DEATH);
+        if (hostDiedNow)
+        {
+            m_currentHost->Kill();
+        }
 
-        m_parasite.SetPosition(m_currentHost->GetPosition());
+        if (hostDiedNow || hostDead)
+        {
+            const char* sound = m_currentHost->GetDeathSound();
+            if (ctx.audio->HasSound(sound))
+            {
+                ctx.audio->PlaySound(sound);
+            }
+        }
+
+        m_parasite.SetPosition(ejectPosition);
+        m_parasite.ResetMovement();
         m_parasite.SetPlayerControlled(true);
 
         if (manualEject)
@@ -204,6 +232,7 @@ void Level::HandleEjection(const GameContext& ctx)
 
         m_playerAvatar = &m_parasite;
         m_currentHost = nullptr;
+        m_timeInCurrentHost = 0.f;
     }
 }
 
@@ -230,8 +259,12 @@ void Level::HandleItems(const GameContext& ctx)
 void Level::CleanDeadEnemies()
 {
     m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-                                 [](const std::unique_ptr<Host>& enemy)
-                                 { return enemy->IsDead(); }),
+                                 [this](const std::unique_ptr<Host>& enemy)
+                                 {
+                                     return enemy->IsDead() &&
+                                            enemy->GetCorpseTime() >= Config::CORPSE_LINGER_TIME &&
+                                            enemy.get() != m_currentHost;
+                                 }),
                   m_hosts.end());
 }
 
@@ -270,6 +303,14 @@ bool Level::IsAvatarInElevator() const
 void Level::Draw(sf::RenderWindow& window)
 {
     m_map.Draw(window);
+
+    for (auto& enemy : m_hosts)
+    {
+        if (enemy->IsDead())
+        {
+            enemy->Draw(window);
+        }
+    }
 
     for (auto& enemy : m_hosts)
     {

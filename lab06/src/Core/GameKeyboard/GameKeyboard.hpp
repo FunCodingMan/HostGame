@@ -18,6 +18,7 @@ public:
     static bool IsRightKeyPressed();
     static bool IsDashKeyPressed();
     static bool IsEjectKeyPressed();
+    static bool IsShootKeyPressed();
 
     static void SetMovementEnabled(bool state) { s_movementEnabled = state; }
     static void SetJumpEnabled(bool state)     { s_jumpEnabled = state; }

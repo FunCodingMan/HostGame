@@ -234,7 +234,7 @@ Code:
 #pragma once
 #include <SFML/Graphics.hpp>
 
-namespace Config 
+namespace Config
 {
     inline constexpr int TEXTURE_TILE_SIZE = 32;
     inline constexpr int WORLD_TILE_SIZE = 64;
@@ -247,10 +247,15 @@ namespace Config
         Jump,
         Fall,
         Dash,
-        Dead
+        Dead,
+        Alert,
+        Attack,
+        Reload,
+        Report
     };
 
-    enum class GameState {
+    enum class GameState
+    {
         MainMenu,
         Tutorial,
         Playing,
@@ -259,34 +264,42 @@ namespace Config
         Victory
     };
 
-    enum class EntityType {
+    enum class EntityType
+    {
         Parasite,
         Human,
-        Bullet
+        Bullet,
+        Military
     };
 
-    enum class BlockNames {
+    enum class BlockNames
+    {
         Empty,
         Wall,
         Floor,
         BlackWall,
         Elevator,
         Ventilation,
-        Glass
+        Glass,
+        Door,
+        DoorOpen
     };
 
-    enum class CollisionType {
+    enum class CollisionType
+    {
         Empty,
         Solid,
         Ventilation,
-        Breakable
+        Breakable,
+        Door
     };
 
-    struct TileData {
+    struct TileData
+    {
         CollisionType collision;
         sf::IntRect textureRect;
     };
-    
+
     inline constexpr float WINDOW_WIDTH = 1080.f;
     inline constexpr float WINDOW_HEIGHT = 720.f;
     inline constexpr float FLOOR_Y = 600.f;
@@ -311,46 +324,45 @@ namespace Config
     inline constexpr float PARASITE_FRICTION = 2000.f;
     inline constexpr float PARASITE_GRAVITY = 2500.f;
     inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
-    inline constexpr float PARASITE_MAX_HEALTH = 5.f; 
+    inline constexpr float PARASITE_MAX_HEALTH = 5.f;
     inline constexpr float MAX_FALL_SPEED = 1000.f;
     inline constexpr int PARASITE_FRAME_W = 16;
     inline constexpr int PARASITE_FRAME_H = 16;
 
     inline constexpr float PARASITE_IDLE_FRAME_TIME = 0.25f;
-    
 
     inline constexpr float PARASITE_DASH_FORCE = 1500.f;
-    inline constexpr float SCIENTIST_SCALE          = 2.0f;
-    inline constexpr float SCIENTIST_INITIAL_X      = 400.f;
-    inline constexpr float SCIENTIST_INITIAL_Y      = 400.f;
-    inline constexpr float SCIENTIST_HITBOX_LEFT   = 11.f;
-    inline constexpr float SCIENTIST_HITBOX_RIGHT  = 8.f;
-    inline constexpr float SCIENTIST_HITBOX_TOP    = 26.f;
+    inline constexpr float SCIENTIST_SCALE = 2.0f;
+    inline constexpr float SCIENTIST_INITIAL_X = 400.f;
+    inline constexpr float SCIENTIST_INITIAL_Y = 400.f;
+    inline constexpr float SCIENTIST_HITBOX_LEFT = 11.f;
+    inline constexpr float SCIENTIST_HITBOX_RIGHT = 8.f;
+    inline constexpr float SCIENTIST_HITBOX_TOP = 26.f;
     inline constexpr float SCIENTIST_HITBOX_BOTTOM = 32.f;
 
-    inline constexpr float SCIENTIST_MAX_SPEED   = 300.f;
-    inline constexpr float SCIENTIST_ACCEL       = 1500.f;
-    inline constexpr float SCIENTIST_FRICTION    = 2000.f;
-    inline constexpr float SCIENTIST_GRAVITY     = 3500.f;
-    inline constexpr float SCIENTIST_JUMP_FORCE  = 1000.f;
-    inline constexpr float SCIENTIST_MAX_HEALTH  = 50.f;
+    inline constexpr float SCIENTIST_MAX_SPEED = 300.f;
+    inline constexpr float SCIENTIST_ACCEL = 1500.f;
+    inline constexpr float SCIENTIST_FRICTION = 2000.f;
+    inline constexpr float SCIENTIST_GRAVITY = 3500.f;
+    inline constexpr float SCIENTIST_JUMP_FORCE = 1000.f;
+    inline constexpr float SCIENTIST_MAX_HEALTH = 5.f;
 
-    inline constexpr int   SCIENTIST_FRAME_W = 16;
-    inline constexpr int   SCIENTIST_FRAME_H = 32;
+    inline constexpr int SCIENTIST_FRAME_W = 16;
+    inline constexpr int SCIENTIST_FRAME_H = 32;
 
     inline constexpr float SCIENTIST_IDLE_FRAME_TIME = 0.40f;
     inline constexpr float SCIENTIST_WALK_FRAME_TIME = 0.10f;
     inline constexpr float PARASITE_DASH_FRAME_TIME = 0.04f;
-    inline constexpr float SCIENTIST_WALK_THRESHOLD  = 15.f;
+    inline constexpr float SCIENTIST_WALK_THRESHOLD = 15.f;
 
-    inline constexpr float SCIENTIST_DECAY_TIME = 10.f;  
+    inline constexpr float SCIENTIST_DECAY_TIME = 10.f;
 
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
 
     inline constexpr float SYRINGE_HITBOX_SIZE = 24.f;
-    inline constexpr float SYRINGE_DECAY_RESTORE = 5.f;     
-    inline constexpr float SYRINGE_FLOAT_SPEED = 4.f;        
+    inline constexpr float SYRINGE_DECAY_RESTORE = 5.f;
+    inline constexpr float SYRINGE_FLOAT_SPEED = 4.f;
     inline constexpr float SYRINGE_FLOAT_AMPLITUDE = 5.f;
 
     inline constexpr float CAMERA_LERP_FACTOR = 5.0f;
@@ -362,7 +374,7 @@ namespace Config
     inline const sf::Color PARASITE_COLOR = sf::Color(200, 50, 100);
     inline constexpr float EYE_SIZE = 12.f;
     inline constexpr float PUPIL_SIZE = 6.f;
-    inline constexpr float EYE_OFFSET = 10.f;  
+    inline constexpr float EYE_OFFSET = 10.f;
     inline constexpr float PUPIL_OFFSET = 3.f;
 
     inline constexpr float EPSILON = 0.1f;
@@ -377,31 +389,31 @@ namespace Config
 
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
 
-    inline constexpr const char* SOUND_ID_BREAK_GLASS = "break_glass";
-    inline constexpr const char* SOUND_ID_BUTTON = "button";
-    inline constexpr const char* SOUND_ID_COLLECT = "collect";
-    inline constexpr const char* SOUND_ID_DEATH = "death";
-    inline constexpr const char* SOUND_ID_HOST = "host";
-    inline constexpr const char* SOUND_ID_JUMP = "jump";
-    inline constexpr const char* SOUND_ID_LOSE = "lose";
-    inline constexpr const char* SOUND_ID_DASH = "dash";
-    inline constexpr const char* SOUND_ID_SMASH = "smash";
-    inline constexpr const char* SOUND_ID_WALK = "walk";
-    inline constexpr const char* SOUND_ID_WIN = "win";
-    inline constexpr const char* MUSIC_ID_BGM = "bgm_level1";
+    inline constexpr const char *SOUND_ID_BREAK_GLASS = "break_glass";
+    inline constexpr const char *SOUND_ID_BUTTON = "button";
+    inline constexpr const char *SOUND_ID_COLLECT = "collect";
+    inline constexpr const char *SOUND_ID_DEATH = "death";
+    inline constexpr const char *SOUND_ID_HOST = "host";
+    inline constexpr const char *SOUND_ID_JUMP = "jump";
+    inline constexpr const char *SOUND_ID_LOSE = "lose";
+    inline constexpr const char *SOUND_ID_DASH = "dash";
+    inline constexpr const char *SOUND_ID_SMASH = "smash";
+    inline constexpr const char *SOUND_ID_WALK = "walk";
+    inline constexpr const char *SOUND_ID_WIN = "win";
+    inline constexpr const char *MUSIC_ID_BGM = "bgm_level1";
 
-    inline constexpr const char* SOUND_PATH_BREAK_GLASS = "../assets/sounds/break_glass.wav";
-    inline constexpr const char* SOUND_PATH_BUTTON      = "../assets/sounds/button_sound.wav";
-    inline constexpr const char* SOUND_PATH_COLLECT     = "../assets/sounds/collect_syringe.wav";
-    inline constexpr const char* SOUND_PATH_DEATH       = "../assets/sounds/death.wav";
-    inline constexpr const char* SOUND_PATH_HOST        = "../assets/sounds/host.wav";
-    inline constexpr const char* SOUND_PATH_JUMP        = "../assets/sounds/jump.wav";
-    inline constexpr const char* SOUND_PATH_LOSE        = "../assets/sounds/loose.wav";
-    inline constexpr const char* SOUND_PATH_DASH        = "../assets/sounds/dash.wav";
-    inline constexpr const char* SOUND_PATH_SMASH       = "../assets/sounds/smash_floor.wav";
-    inline constexpr const char* SOUND_PATH_WALK        = "../assets/sounds/walk.wav";
-    inline constexpr const char* SOUND_PATH_WIN         = "../assets/sounds/win.wav";
-    inline constexpr const char* MUSIC_PATH_BGM         = "../assets/sounds/music.ogg";
+    inline constexpr const char *SOUND_PATH_BREAK_GLASS = "../assets/sounds/break_glass.wav";
+    inline constexpr const char *SOUND_PATH_BUTTON = "../assets/sounds/button_sound.wav";
+    inline constexpr const char *SOUND_PATH_COLLECT = "../assets/sounds/collect_syringe.wav";
+    inline constexpr const char *SOUND_PATH_DEATH = "../assets/sounds/death.wav";
+    inline constexpr const char *SOUND_PATH_HOST = "../assets/sounds/host.wav";
+    inline constexpr const char *SOUND_PATH_JUMP = "../assets/sounds/jump.wav";
+    inline constexpr const char *SOUND_PATH_LOSE = "../assets/sounds/loose.wav";
+    inline constexpr const char *SOUND_PATH_DASH = "../assets/sounds/dash.wav";
+    inline constexpr const char *SOUND_PATH_SMASH = "../assets/sounds/smash_floor.wav";
+    inline constexpr const char *SOUND_PATH_WALK = "../assets/sounds/walk.wav";
+    inline constexpr const char *SOUND_PATH_WIN = "../assets/sounds/win.wav";
+    inline constexpr const char *MUSIC_PATH_BGM = "../assets/sounds/music.ogg";
 
     inline constexpr float VOL_BREAK_GLASS = 70.f;
     inline constexpr float VOL_BUTTON = 70.f;
@@ -421,8 +433,88 @@ namespace Config
     inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
     inline constexpr float EJECT_DAMAGE = 9999.f;
 
-    enum class TutorialStep {
-        Movement, Dash, Jump, Possess, HostInfo, Heal, Eject, Exit
+    inline constexpr float MILITARY_SCALE            = 2.0f;
+    inline constexpr int   MILITARY_FRAME_W          = 16;
+    inline constexpr int   MILITARY_FRAME_H          = 32;
+    inline constexpr float MILITARY_HITBOX_LEFT      = 11.f;
+    inline constexpr float MILITARY_HITBOX_RIGHT     = 8.f;
+    inline constexpr float MILITARY_HITBOX_TOP       = 26.f;
+    inline constexpr float MILITARY_HITBOX_BOTTOM    = 32.f;
+
+    inline constexpr float MILITARY_PATROL_SPEED     = 110.f;
+    inline constexpr float MILITARY_RUN_SPEED        = 190.f;
+    inline constexpr float MILITARY_ACCEL            = 1500.f;
+    inline constexpr float MILITARY_FRICTION         = 2000.f;
+    inline constexpr float MILITARY_GRAVITY          = 3500.f;
+    inline constexpr float MILITARY_JUMP_FORCE       = 1000.f;
+    inline constexpr float MILITARY_MAX_HEALTH       = 3.f;
+    inline constexpr float MILITARY_DECAY_TIME       = 12.f;
+
+    inline constexpr float MILITARY_VIEW_RANGE       = 420.f;
+    inline constexpr float MILITARY_REACTION_TIME    = 0.35f;
+    inline constexpr float MILITARY_FIRE_INTERVAL    = 0.45f;
+    inline constexpr int   MILITARY_AMMO             = 6;
+    inline constexpr float MILITARY_RELOAD_TIME      = 1.6f;
+    inline constexpr float MILITARY_SHOT_DAMAGE      = 1.f;
+    inline constexpr float MILITARY_LOSE_TARGET_TIME = 2.5f;
+
+    inline constexpr float MILITARY_REPORT_RADIUS    = 64.f;
+    inline constexpr float MILITARY_REPORT_TIMEOUT   = 2.f;
+
+    inline constexpr float MILITARY_IDLE_FRAME_TIME  = 0.40f;
+    inline constexpr float MILITARY_WALK_FRAME_TIME  = 0.12f;
+    inline constexpr float MILITARY_SHOOT_FRAME_TIME = 0.06f;
+    inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.08f;
+    inline constexpr float MILITARY_WALK_THRESHOLD   = 15.f;
+
+    inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;
+    inline constexpr float HOST_DANGER_PULSE_SPEED = 6.f;
+
+    inline constexpr const char* SOUND_ID_SHOT_1        = "shot_1";
+    inline constexpr const char* SOUND_ID_SHOT_2        = "shot_2";
+    inline constexpr const char* SOUND_ID_SHOT_3        = "shot_3";
+    inline constexpr int         SOUND_SHOT_VARIANTS    = 3;
+    inline constexpr const char* SOUND_ID_RELOAD        = "reload";
+    inline constexpr const char* SOUND_ID_ALERT         = "alert";
+    inline constexpr const char* SOUND_ID_REPORT        = "report";
+    inline constexpr const char* SOUND_ID_EXPLOSION     = "explosion";
+    inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
+    inline constexpr const char* SOUND_ID_MILITARY_STEP  = "military_step";
+    inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
+    inline constexpr const char* SOUND_ID_DOOR_LOCKED   = "door_locked";
+
+    inline constexpr const char* SOUND_PATH_SHOT_1        = "../assets/sounds/shot_1.wav";
+    inline constexpr const char* SOUND_PATH_SHOT_2        = "../assets/sounds/shot_2.wav";
+    inline constexpr const char* SOUND_PATH_SHOT_3        = "../assets/sounds/shot_3.wav";
+    inline constexpr const char* SOUND_PATH_RELOAD        = "../assets/sounds/reload.wav";
+    inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
+    inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
+    inline constexpr const char* SOUND_PATH_EXPLOSION     = "../assets/sounds/explosion.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_STEP  = "../assets/sounds/military_step.wav";
+    inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/door_open.wav";
+    inline constexpr const char* SOUND_PATH_DOOR_LOCKED   = "../assets/sounds/door_locked.wav";
+
+    inline constexpr float VOL_SHOT           = 60.f;
+    inline constexpr float VOL_RELOAD         = 50.f;
+    inline constexpr float VOL_ALERT          = 70.f;
+    inline constexpr float VOL_REPORT         = 60.f;
+    inline constexpr float VOL_EXPLOSION      = 90.f;
+    inline constexpr float VOL_MILITARY_DEATH = 80.f;
+    inline constexpr float VOL_MILITARY_STEP  = 35.f;
+    inline constexpr float VOL_DOOR_OPEN      = 70.f;
+    inline constexpr float VOL_DOOR_LOCKED    = 60.f;
+
+    enum class TutorialStep
+    {
+        Movement,
+        Dash,
+        Jump,
+        Possess,
+        HostInfo,
+        Heal,
+        Eject,
+        Exit
     };
 }
 Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.cpp
@@ -498,36 +590,28 @@ Code:
 #include "Core/Map/Map.hpp"
 #include "Core/Sound/SoundManager/SoundManager.hpp"
 
+class LivingEntity;
+
 struct GameContext
 {
     float dt;
     sf::Vector2f mousePos;
     Map* levelMap;
     SoundManager* audio;
+
+    LivingEntity* playerAvatar = nullptr;
+    bool avatarIsParasite = true;
 };
 Path to file: ./src/Core/GameData.hpp
 Code:
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <string>
+#include <vector>
 #include "States/StateManager/StateManager.hpp"
 #include "Core/Sound/SoundManager/SoundManager.hpp"
-
-struct LevelStats {
-    float timeSpent = 0.f;
-    int dashesUsed = 0;
-    int tilesBroken = 0;
-    int hostsPossessed = 0;
-    int syringesCollected = 0;
-
-    void Reset() {
-        timeSpent = 0.f;
-        dashesUsed = 0;
-        tilesBroken = 0;
-        hostsPossessed = 0;
-        syringesCollected = 0;
-    }
-};
+#include "Core/LevelLogic/LevelStats.hpp"
 
 struct GameData
 {
@@ -540,7 +624,7 @@ struct GameData
     int currentLevelIndex = 0;
 
     LevelStats stats;
-    
+
     std::string GetCurrentLevelName() const {
         if (currentLevelIndex >= 0 && currentLevelIndex < levels.size()) {
             return levels[currentLevelIndex];
@@ -579,6 +663,18 @@ Game::Game()
     m_data->sound.LoadSound(SOUND_ID_WALK,        SOUND_PATH_WALK,        VOL_WALK);
     m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
     m_data->sound.LoadSound(SOUND_ID_DASH,        SOUND_PATH_DASH,        VOL_DASH);
+
+    m_data->sound.LoadSound(SOUND_ID_SHOT_1, SOUND_PATH_SHOT_1, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_2, SOUND_PATH_SHOT_2, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_3, SOUND_PATH_SHOT_3, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_RELOAD, SOUND_PATH_RELOAD, VOL_RELOAD);
+    m_data->sound.LoadSound(SOUND_ID_ALERT, SOUND_PATH_ALERT, VOL_ALERT);
+    m_data->sound.LoadSound(SOUND_ID_REPORT, SOUND_PATH_REPORT, VOL_REPORT);
+    m_data->sound.LoadSound(SOUND_ID_EXPLOSION, SOUND_PATH_EXPLOSION, VOL_EXPLOSION);
+    m_data->sound.LoadSound(SOUND_ID_MILITARY_DEATH, SOUND_PATH_MILITARY_DEATH, VOL_MILITARY_DEATH);
+    m_data->sound.LoadSound(SOUND_ID_MILITARY_STEP,  SOUND_PATH_MILITARY_STEP,  VOL_MILITARY_STEP);
+    m_data->sound.LoadSound(SOUND_ID_DOOR_OPEN, SOUND_PATH_DOOR_OPEN, VOL_DOOR_OPEN);
+    m_data->sound.LoadSound(SOUND_ID_DOOR_LOCKED, SOUND_PATH_DOOR_LOCKED, VOL_DOOR_LOCKED);
 
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
@@ -962,6 +1058,327 @@ public:
 private:
     static bool IsBoundsBlocked(const Map& map, const sf::FloatRect& bounds);
 };
+Path to file: ./src/Core/LevelLogic/Level/Level.cpp
+Code:
+#include "Core/LevelLogic/Level/Level.hpp"
+#include "Core/Config.hpp"
+#include "Core/LevelLoader/LevelLoader.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
+#include <algorithm>
+
+using namespace Config;
+
+Level::Level()
+    : m_camera(sf::Vector2f(WINDOW_WIDTH / CAMERA_ZOOM,
+                            WINDOW_HEIGHT / CAMERA_ZOOM)),
+      m_parasite(sf::Vector2f(PARASITE_INITIAL_X, PARASITE_INITIAL_Y))
+{
+}
+
+void Level::Load(const std::string& name, SoundManager& audio)
+{
+    m_audio = &audio;
+    m_stats.Reset();
+    m_result = LevelResult::None;
+
+    m_map.LoadTileConfig("../assets/map/tileset.txt");
+    m_map.LoadFromFile("../assets/map/" + name + ".txt");
+
+    m_hosts.clear();
+    m_syringes.clear();
+
+    LevelLoader::LoadEnemies("../assets/map/enemies_" + name + ".txt", m_hosts, m_map);
+    LevelLoader::LoadSyringes("../assets/map/syringes_" + name + ".txt", m_syringes, m_map);
+
+    m_parasite.SetPlayerControlled(true);
+    m_playerAvatar = &m_parasite;
+    m_currentHost = nullptr;
+    m_timeInCurrentHost = 0.f;
+}
+
+void Level::UpdateCamera(float dt, const LevelInput& input)
+{
+    sf::Vector2f targetPos = m_playerAvatar->GetPosition();
+    sf::Vector2i mousePixelPos = input.mousePixelPos;
+    sf::Vector2u windowSize = input.windowSize;
+
+    float normX = (mousePixelPos.x - (windowSize.x / 2.f)) / (windowSize.x / 2.f);
+    float normY = (mousePixelPos.y - (windowSize.y / 2.f)) / (windowSize.y / 2.f);
+
+    normX = std::clamp(normX, -1.f, 1.f);
+    normY = std::clamp(normY, -1.f, 1.f);
+
+    sf::Vector2f viewSize = m_camera.GetView().getSize();
+    float maxOffsetX = (viewSize.x / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+    float maxOffsetY = (viewSize.y / 2.f) * Config::CAMERA_LOOK_STRENGTH;
+
+    sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
+
+    m_camera.Update(targetPos, mouseOffset, dt,
+                    m_map.GetWidthInPixels(), m_map.GetHeightInPixels());
+}
+
+sf::Vector2f Level::MapMouseToWorld(const LevelInput& input) const
+{
+    const sf::View& view = m_camera.GetView();
+    float w = static_cast<float>(input.windowSize.x);
+    float h = static_cast<float>(input.windowSize.y);
+
+    return sf::Vector2f(
+        view.getCenter().x - view.getSize().x / 2.f + (input.mousePixelPos.x / w) * view.getSize().x,
+        view.getCenter().y - view.getSize().y / 2.f + (input.mousePixelPos.y / h) * view.getSize().y);
+}
+
+void Level::Update(float dt, const LevelInput& input)
+{
+    m_stats.timeSpent += dt;
+
+    UpdateCamera(dt, input);
+
+    GameContext ctx;
+    ctx.dt = dt;
+    ctx.mousePos = MapMouseToWorld(input);
+    ctx.levelMap = &m_map;
+    ctx.audio = m_audio;
+    ctx.playerAvatar = m_playerAvatar;
+    ctx.avatarIsParasite = (m_playerAvatar == &m_parasite);
+
+    m_parasite.Update(ctx);
+
+    for (auto& enemy : m_hosts)
+        enemy->Update(ctx);
+    for (auto& syringe : m_syringes)
+        syringe->Update(ctx);
+
+    HandlePossession();
+    HandleEjection(ctx);
+    HandleItems(ctx);
+
+    CleanDeadEnemies();
+
+    m_syringes.erase(std::remove_if(m_syringes.begin(), m_syringes.end(),
+                                    [](const auto& s) { return s->IsCollected(); }),
+                     m_syringes.end());
+
+    CheckEndConditions();
+}
+
+void Level::HandlePossession()
+{
+    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
+        return;
+
+    for (auto& enemy : m_hosts)
+    {
+        if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
+        {
+            m_parasite.SetPlayerControlled(false);
+
+            enemy->SetPlayerControlled(true);
+            enemy->ResetDecayTimer();
+
+            m_playerAvatar = enemy.get();
+            m_currentHost = enemy.get();
+            m_timeInCurrentHost = 0.f;
+
+            m_stats.hostsPossessed++;
+            m_audio->PlaySound(SOUND_ID_HOST);
+            break;
+        }
+    }
+}
+
+void Level::HandleEjection(const GameContext& ctx)
+{
+    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
+        return;
+
+    m_timeInCurrentHost += ctx.dt;
+
+    bool manualEject = GameKeyboard::IsEjectKeyPressed();
+    bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
+
+    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
+        manualEject = false;
+
+    if (manualEject || timeOut)
+    {
+        m_currentHost->SetPlayerControlled(false);
+        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
+
+        ctx.audio->PlaySound(SOUND_ID_DEATH);
+
+        m_parasite.SetPosition(m_currentHost->GetPosition());
+        m_parasite.SetPlayerControlled(true);
+
+        if (manualEject)
+            m_parasite.ForceDash(ctx);
+
+        m_playerAvatar = &m_parasite;
+        m_currentHost = nullptr;
+    }
+}
+
+void Level::HandleItems(const GameContext& ctx)
+{
+    for (auto& syringe : m_syringes)
+    {
+        if (syringe->IsCollected())
+            continue;
+
+        if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
+        {
+            if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+            {
+                syringe->Collect();
+                m_stats.syringesCollected++;
+                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
+                ctx.audio->PlaySound(SOUND_ID_COLLECT);
+            }
+        }
+    }
+}
+
+void Level::CleanDeadEnemies()
+{
+    m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
+                                 [](const std::unique_ptr<Host>& enemy)
+                                 { return enemy->IsDead(); }),
+                  m_hosts.end());
+}
+
+void Level::CheckEndConditions()
+{
+    if (m_result != LevelResult::None)
+        return;
+
+    bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
+    bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
+
+    if (isParasiteDead || fellIntoPit)
+    {
+        m_audio->PlaySound(SOUND_ID_LOSE);
+        m_audio->PlaySound(SOUND_ID_DEATH);
+        m_result = LevelResult::Failed;
+        return;
+    }
+
+    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), BlockNames::Elevator))
+    {
+        int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
+        if (access >= 1)
+        {
+            m_audio->PlaySound(SOUND_ID_WIN);
+            m_result = LevelResult::Completed;
+        }
+    }
+}
+
+bool Level::IsAvatarInElevator() const
+{
+    return m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), BlockNames::Elevator);
+}
+
+void Level::Draw(sf::RenderWindow& window)
+{
+    m_map.Draw(window);
+
+    for (auto& enemy : m_hosts)
+    {
+        if (!enemy->IsDead())
+            enemy->Draw(window);
+    }
+
+    for (auto& syringe : m_syringes)
+        syringe->Draw(window);
+
+    if (m_parasite.IsPlayerControlled())
+        m_parasite.Draw(window);
+}
+Path to file: ./src/Core/LevelLogic/Level/Level.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <memory>
+#include <vector>
+#include <string>
+#include "Core/LevelLogic/LevelStats.hpp"
+#include "Core/Map/Map.hpp"
+#include "Core/Camera/Camera.hpp"
+#include "Entities/Parasite/Parasite.hpp"
+#include "Entities/Host/Host.hpp"
+#include "Entities/Items/Syringe/Syringe.hpp"
+
+class SoundManager;
+
+enum class LevelResult { None, Completed, Failed };
+
+struct LevelInput {
+    sf::Vector2i mousePixelPos{0, 0};
+    sf::Vector2u windowSize{0, 0};
+};
+
+class Level
+{
+public:
+    Level();
+
+    void Load(const std::string& name, SoundManager& audio);
+    void Update(float dt, const LevelInput& input);
+    void Draw(sf::RenderWindow& window);
+
+    const sf::View& GetView() const { return m_camera.GetView(); }
+    LivingEntity* GetAvatar() const { return m_playerAvatar; }
+    Host* GetCurrentHost() const { return m_currentHost; }
+    const Parasite& GetParasite() const { return m_parasite; }
+    LevelResult GetResult() const { return m_result; }
+    const LevelStats& GetStats() const { return m_stats; }
+    bool IsAvatarInElevator() const;
+
+private:
+    void UpdateCamera(float dt, const LevelInput& input);
+    sf::Vector2f MapMouseToWorld(const LevelInput& input) const;
+
+    void HandlePossession();
+    void HandleEjection(const GameContext& ctx);
+    void HandleItems(const GameContext& ctx);
+    void CleanDeadEnemies();
+    void CheckEndConditions();
+
+    SoundManager* m_audio = nullptr;
+    Map m_map;
+    Camera m_camera;
+    Parasite m_parasite;
+    std::vector<std::unique_ptr<Host>>    m_hosts;
+    std::vector<std::unique_ptr<Syringe>> m_syringes;
+
+    LivingEntity* m_playerAvatar = nullptr;
+    Host* m_currentHost = nullptr;
+    float m_timeInCurrentHost = 0.f;
+
+    LevelStats m_stats;
+    LevelResult m_result = LevelResult::None;
+};
+Path to file: ./src/Core/LevelLogic/LevelStats.hpp
+Code:
+#pragma once
+
+struct LevelStats {
+    float timeSpent = 0.f;
+    int dashesUsed = 0;
+    int tilesBroken = 0;
+    int hostsPossessed = 0;
+    int syringesCollected = 0;
+
+    void Reset() {
+        timeSpent = 0.f;
+        dashesUsed = 0;
+        tilesBroken = 0;
+        hostsPossessed = 0;
+        syringesCollected = 0;
+    }
+};
 Path to file: ./src/Core/Map/Map.cpp
 Code:
 #include "Core/Map/Map.hpp"
@@ -992,6 +1409,8 @@ void Map::InitStringMappings()
     m_stringToBlock["el"] = Config::BlockNames::Elevator;
     m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
     m_stringToBlock["gl"] = Config::BlockNames::Glass;
+    m_stringToBlock["dr"] = Config::BlockNames::Door;
+    m_stringToBlock["do"] = Config::BlockNames::DoorOpen;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -1011,6 +1430,10 @@ Config::CollisionType Map::StringToColisionType(const string& s)
     if (s == "Breakable")
     {
         return Config::CollisionType::Breakable;
+    }
+    if (s == "Door")
+    {
+        return Config::CollisionType::Door;
     }
     return Config::CollisionType::Solid;
 } 
@@ -1154,6 +1577,11 @@ bool Map::IsSolid(int x, int y, Config::EntityType entityType) const
         return entityType != Config::EntityType::Parasite; 
     }
 
+    if (type == Config::CollisionType::Door)
+    {
+        return true;
+    }
+
     return false;
 }
 
@@ -1246,6 +1674,20 @@ void Map::BreakTile(int x, int y)
     BuildVertexElement(x, y);
 }
 
+bool Map::IsDoor(int x, int y) const
+{
+    return GetTile(x, y) == Config::BlockNames::Door;
+}
+
+void Map::OpenDoor(int x, int y)
+{
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
+    if (!IsDoor(x, y)) return;
+
+    m_grid[y * m_width + x] = Config::BlockNames::DoorOpen;
+    BuildVertexElement(x, y);
+}
+
 void Map::Draw(sf::RenderWindow& window) const
 {
     window.draw(m_Vertices, &m_tileset);
@@ -1289,14 +1731,14 @@ public:
     float GetWidthInPixels() const { return m_width * Config::WORLD_TILE_SIZE; }
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
     
+    bool IsDoor(int x, int y) const;
+    void OpenDoor(int x, int y);
 
 private:
     std::vector<Config::BlockNames> m_grid;
     int m_width;
     int m_height;
     int m_tileSize;
-
-    //TODO: приватные поля m_<name>
 
     std::unordered_map<Config::BlockNames, Config::TileData> m_tileDictionary;
 
@@ -1544,7 +1986,7 @@ void TutorialOverlay::Update(float dt, const Parasite& parasite, const Host* cur
         if (currentHost == nullptr)
         {
             m_step = TutorialStep::Exit;
-            SetText(ToSfStringFromUtf8("ВХОД В ЛИФТ\nЗаходите в лифт (el), чтобы завершить обучение!"));
+            SetText(ToSfStringFromUtf8("ВХОД В ЛИФТ\nВселитесь во второго учёного и зайдите в лифт, чтобы завершить обучение!"));
         }
         break;
     case TutorialStep::Exit:
@@ -1836,6 +2278,17 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
     }
 }
 
+bool Character::TryOpenDoor(int x, int y, const GameContext& ctx)
+{
+    if (!m_isPlayerControlled) return false;
+    if (!ctx.levelMap->IsDoor(x, y)) return false;
+    if (m_properties.GetInt("access_level", 0) < 1) return false;
+
+    ctx.levelMap->OpenDoor(x, y);
+    ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
+    return true;
+}
+
 void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
 {
     sf::FloatRect bounds = m_hitbox.getGlobalBounds();
@@ -1861,6 +2314,11 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
             }
 
             if (TryBreakTile(x, y, ctx))
+            {
+                continue;
+            }
+
+            if (TryOpenDoor(x, y, ctx))
             {
                 continue;
             }
@@ -1979,6 +2437,7 @@ protected:
     virtual void OnLanding() {}
     virtual void OnJump()    {}
     virtual bool TryBreakTile(int x, int y, const GameContext& ctx) { return false; }
+    virtual bool TryOpenDoor(int x, int y, const GameContext& ctx);
 
     float m_accel     = 0.f;
     float m_friction  = 0.f;
@@ -3088,19 +3547,10 @@ private:
 Path to file: ./src/States/Playing/StatePlaying.cpp
 Code:
 #include "StatePlaying.hpp"
-
-#include <algorithm>
-#include <array>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
 #include "Core/Config.hpp"
 #include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
-#include "Core/LevelLoader/LevelLoader.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
-#include "Entities/Scientist/Scientist.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
@@ -3108,39 +3558,21 @@ Code:
 
 using namespace StringUtils;
 
-StatePlaying::StatePlaying(GameDataRef data)
-    : m_data(data),
-      m_parasite(sf::Vector2f(Config::PARASITE_INITIAL_X, Config::PARASITE_INITIAL_Y)),
-      m_camera(sf::Vector2f(Config::WINDOW_WIDTH / Config::CAMERA_ZOOM,
-                            Config::WINDOW_HEIGHT / Config::CAMERA_ZOOM)),
-      m_currentHost(nullptr)
-{
-}
+StatePlaying::StatePlaying(GameDataRef data) : m_data(data) {}
 
 void StatePlaying::Init()
 {
+    m_endStatePushed = false;
     m_data->stats.Reset();
 
     GameKeyboard::EnableAll();
 
     std::string levelName = m_data->GetCurrentLevelName();
-
-    m_map.LoadTileConfig("../assets/map/tileset.txt");
-    m_map.LoadFromFile("../assets/map/" + levelName + ".txt");
+    m_level.Load(levelName, m_data->sound);
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
     DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
-
-    m_hosts.clear();
-    m_syringes.clear();
-
-    LevelLoader::LoadEnemies("../assets/map/enemies_" + levelName + ".txt", m_hosts, m_map);
-    LevelLoader::LoadSyringes("../assets/map/syringes_" + levelName + ".txt", m_syringes, m_map);
-
-    m_parasite.SetPlayerControlled(true);
-    m_playerAvatar = &m_parasite;
-    m_timeInCurrentHost = 0.f;
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
 
@@ -3156,185 +3588,53 @@ void StatePlaying::Init()
     }
 }
 
-void StatePlaying::HandleInput(const sf::Event &event)
+void StatePlaying::HandleInput(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyPressed)
     {
         if (GameKeyboard::IsHitboxesPressed(event))
-        {
             Entity::ToggleHitboxes();
-        }
         if (GameKeyboard::IsCoordsTogglePressed(event))
-        {
             DebugOverlay::ToggleMouseCoords();
-        }
         if (GameKeyboard::IsEventEscape(event))
-        {
             m_data->manager.AddState(StateRef(new StatePause(m_data)), false);
-        }
     }
-}
-
-void StatePlaying::UpdateCamera(float dt)
-{
-    sf::Vector2f targetPos = m_playerAvatar->GetPosition();
-    sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_data->window);
-    sf::Vector2u windowSize = m_data->window.getSize();
-
-    float normX = (mousePixelPos.x - (windowSize.x / 2.f)) / (windowSize.x / 2.f);
-    float normY = (mousePixelPos.y - (windowSize.y / 2.f)) / (windowSize.y / 2.f);
-
-    normX = std::clamp(normX, -1.f, 1.f);
-    normY = std::clamp(normY, -1.f, 1.f);
-
-    sf::Vector2f viewSize = m_camera.GetView().getSize();
-    float maxOffsetX = (viewSize.x / 2.f) * Config::CAMERA_LOOK_STRENGTH;
-    float maxOffsetY = (viewSize.y / 2.f) * Config::CAMERA_LOOK_STRENGTH;
-
-    sf::Vector2f mouseOffset(normX * maxOffsetX, normY * maxOffsetY);
-
-    m_camera.Update(targetPos, mouseOffset, dt, m_map.GetWidthInPixels(),
-                    m_map.GetHeightInPixels());
 }
 
 void StatePlaying::Update(float dt)
 {
-    m_data->stats.timeSpent += dt;
+    LevelInput input;
+    input.mousePixelPos = sf::Mouse::getPosition(m_data->window);
+    input.windowSize = m_data->window.getSize();
 
-    UpdateCamera(dt);
+    m_level.Update(dt, input);
 
-    GameContext ctx;
-    ctx.dt = dt;
-    ctx.mousePos =
-        m_data->window.mapPixelToCoords(sf::Mouse::getPosition(m_data->window), m_camera.GetView());
-    ctx.levelMap = &m_map;
-    ctx.audio = &m_data->sound;
-
-    m_parasite.Update(ctx);
-
-    for (auto &enemy : m_hosts)
+    if (m_data->GetCurrentLevelName() == "tutorial")
     {
-        enemy->Update(ctx);
-    }
-    for (auto &syringe : m_syringes)
-    {
-        syringe->Update(ctx);
+        m_tutorial.Update(dt, m_level.GetParasite(), m_level.GetCurrentHost(),
+                          m_level.GetStats().syringesCollected);
     }
 
-    HandlePossession();
-    HandleEjection(ctx);
-    HandleItems(ctx);
-
-    CleanDeadEnemies();
-
-    m_syringes.erase(std::remove_if(m_syringes.begin(), m_syringes.end(),
-                                    [](const auto &s) { return s->IsCollected(); }),
-                     m_syringes.end());
-    if (m_data->GetCurrentLevelName() == "tutorial") {
-        bool syringeCollected = m_syringes.empty(); 
-        
-        m_tutorial.Update(dt, m_parasite, m_currentHost, m_data->stats.syringesCollected);
-    }
     UpdateHUD();
-    CheckEndGameConditions();
-}
-
-void StatePlaying::HandlePossession()
-{
-    if (m_playerAvatar != &m_parasite || !m_parasite.IsDashing())
-        return;
-
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
-        {
-            m_parasite.SetPlayerControlled(false);
-
-            enemy->SetPlayerControlled(true);
-            enemy->ResetDecayTimer();
-
-            m_playerAvatar = enemy.get();
-            m_currentHost = enemy.get();
-            m_timeInCurrentHost = 0.f;
-
-            m_data->stats.hostsPossessed++;
-
-            m_data->sound.PlaySound(Config::SOUND_ID_HOST);
-            break;
-        }
-    }
-}
-
-void StatePlaying::HandleEjection(const GameContext &ctx)
-{
-    if (m_currentHost == nullptr || m_playerAvatar != m_currentHost)
-        return;
-
-    m_timeInCurrentHost += ctx.dt;
-
-    bool manualEject = GameKeyboard::IsEjectKeyPressed();
-    bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
-
-    if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
-    {
-        manualEject = false;
-    }
-
-    if (manualEject || timeOut)
-    {
-        m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
-
-        ctx.audio->PlaySound(Config::SOUND_ID_DEATH);
-
-        m_parasite.SetPosition(m_currentHost->GetPosition());
-        m_parasite.SetPlayerControlled(true);
-
-        if (manualEject)
-        {
-            m_parasite.ForceDash(ctx);
-        }
-
-        m_playerAvatar = &m_parasite;
-        m_currentHost = nullptr;
-    }
-}
-
-void StatePlaying::HandleItems(const GameContext &ctx)
-{
-    for (auto &syringe : m_syringes)
-    {
-        if (syringe->IsCollected())
-            continue;
-
-        if (m_playerAvatar->GetBounds().intersects(syringe->GetBounds()))
-        {
-            if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
-            {
-                syringe->Collect();
-                m_data->stats.syringesCollected++;
-                m_currentHost->AddDecayTime(Config::SYRINGE_DECAY_RESTORE);
-                ctx.audio->PlaySound(Config::SOUND_ID_COLLECT);
-            }
-        }
-    }
+    HandleLevelResult();
 }
 
 void StatePlaying::UpdateHUD()
 {
-    m_floatingHud.SetPosition(m_playerAvatar->GetPosition());
+    LivingEntity* avatar = m_level.GetAvatar();
+    m_floatingHud.SetPosition(avatar->GetPosition());
 
     sf::String avatarName =
-        m_playerAvatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
-    bool isInElevator =
-        m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator);
+        avatar->GetProperties().GetSfString("name", ToSfStringFromUtf8("Неизвестный"));
+    bool isInElevator = m_level.IsAvatarInElevator();
+    Host* host = m_level.GetCurrentHost();
 
-    if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+    if (host != nullptr && avatar == host)
     {
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
                                     ToSfStringFromUtf8("\nПКМ: Высвободиться"));
-        m_floatingHud.Update(m_currentHost->GetDecayTimer(), m_currentHost->GetMaxDecayTimer(),
+        m_floatingHud.Update(host->GetDecayTimer(), host->GetMaxDecayTimer(),
                              sf::Color(220, 200, 0));
     }
     else
@@ -3342,106 +3642,65 @@ void StatePlaying::UpdateHUD()
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
                                     ToSfStringFromUtf8("\nЛКМ: Вселиться"));
-        m_floatingHud.Update(m_parasite.GetLife(), m_parasite.GetMaxLife(), sf::Color(200, 0, 0));
+        const Parasite& p = m_level.GetParasite();
+        m_floatingHud.Update(p.GetLife(), p.GetMaxLife(), sf::Color(200, 0, 0));
     }
-    m_screenHud.SetTimerText(m_data->stats.timeSpent, m_data->window.getSize().x);
+
+    if (isInElevator && avatar->GetProperties().GetInt("access_level", 0) < 1)
+    {
+        m_screenHud.SetHintText(
+            ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
+    }
+
+    m_screenHud.SetTimerText(m_level.GetStats().timeSpent, m_data->window.getSize().x);
 }
 
-void StatePlaying::CheckEndGameConditions()
+void StatePlaying::HandleLevelResult()
 {
-    bool isParasiteDead = (m_parasite.GetLife() <= 0.f);
-    bool fellIntoPit = (m_playerAvatar->GetPosition().y > m_map.GetHeightInPixels());
-
-    if (isParasiteDead || fellIntoPit)
-    {
-        m_data->sound.PlaySound(Config::SOUND_ID_LOSE);
-        m_data->sound.PlaySound(Config::SOUND_ID_DEATH);
-        m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
+    if (m_endStatePushed)
         return;
-    }
 
-    if (m_map.IsIntersectingWith(m_playerAvatar->GetBounds(), Config::BlockNames::Elevator))
+    switch (m_level.GetResult())
     {
-        int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
-        if (access >= 1)
-        {
-            m_data->sound.PlaySound(Config::SOUND_ID_WIN);
+    case LevelResult::Failed:
+        m_endStatePushed = true;
+        m_data->manager.AddState(StateRef(new StateGameOver(m_data)), false);
+        break;
 
-            if (m_data->currentLevelIndex + 1 < m_data->levels.size())
-            {
-
-                m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
-
-                m_data->stats.dashesUsed = m_parasite.GetDashCount();
-                m_data->stats.tilesBroken = m_parasite.GetBrokenTilesCount();
-            }
-            else
-            {
-                m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
-            }
-            return;
-        }
+    case LevelResult::Completed:
+        m_endStatePushed = true;
+        m_data->stats = m_level.GetStats();   // фикс: статистика теперь и для Victory
+        if (m_data->currentLevelIndex + 1 < m_data->levels.size())
+            m_data->manager.AddState(StateRef(new StateLevelCompleted(m_data)), true);
         else
-        {
-            m_screenHud.SetHintText(
-                ToSfStringFromUtf8("ДОСТУП ЗАПРЕЩЁН!\nТребуется тело учёного!"));
-        }
-    }
-}
+            m_data->manager.AddState(StateRef(new StateVictory(m_data)), false);
+        break;
 
-void StatePlaying::CleanDeadEnemies()
-{
-    m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-                                 [](const std::unique_ptr<Host> &enemy)
-                                 { return enemy->IsDead(); }),
-                  m_hosts.end());
+    default:
+        break;
+    }
 }
 
 void StatePlaying::Draw()
 {
-    m_data->window.setView(m_camera.GetView());
-    m_map.Draw(m_data->window);
-
-    for (auto &enemy : m_hosts)
-    {
-        if (!enemy->IsDead())
-            enemy->Draw(m_data->window);
-    }
-
-    for (auto &syringe : m_syringes)
-    {
-        syringe->Draw(m_data->window);
-    }
-
-    if (m_parasite.IsPlayerControlled())
-    {
-        m_parasite.Draw(m_data->window);
-    }
-
+    m_data->window.setView(m_level.GetView());
+    m_level.Draw(m_data->window);
     m_floatingHud.Draw(m_data->window);
+
     m_data->window.setView(m_data->window.getDefaultView());
     m_screenHud.Draw(m_data->window);
-    DebugOverlay::Draw(m_data->window, m_camera.GetView());
+    DebugOverlay::Draw(m_data->window, m_level.GetView());
 
     if (m_data->GetCurrentLevelName() == "tutorial")
-    {
         m_tutorial.Draw(m_data->window);
-    }
 }
 Path to file: ./src/States/Playing/StatePlaying.hpp
 Code:
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <vector>
-#include <memory>
 #include "States/State.hpp"
 #include "Core/GameData.hpp"
-#include "Core/Config.hpp"
-#include "Core/Map/Map.hpp"
-#include "Core/Camera/Camera.hpp"
-#include "Entities/Parasite/Parasite.hpp"
-#include "Entities/Host/Host.hpp"
-#include "Entities/Items/Syringe/Syringe.hpp"
+#include "Core/LevelLogic/Level/Level.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
 #include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
@@ -3457,33 +3716,17 @@ public:
     void Draw() override;
 
 private:
-    void UpdateCamera(float dt);
-
-    void HandlePossession();
-    void HandleEjection(const GameContext& ctx);
-    void HandleItems(const GameContext& ctx);
-    void CleanDeadEnemies();
     void UpdateHUD();
-    void CheckEndGameConditions();
-    void LoadSyringes(const std::string& path);
-    bool IsAreaBlocked(const sf::FloatRect& area) const;
+    void HandleLevelResult();
 
     GameDataRef m_data;
-    
-    Map m_map;
-    Camera m_camera;
+
+    Level m_level;
     EntityHUD m_floatingHud;
     ScreenHUD m_screenHud;
-
-    Parasite m_parasite;
-    std::vector<std::unique_ptr<Host>>    m_hosts;
-    std::vector<std::unique_ptr<Syringe>> m_syringes;
-
-    LivingEntity* m_playerAvatar;
-    Host* m_currentHost = nullptr;
-
-    float m_timeInCurrentHost;
     TutorialOverlay m_tutorial;
+
+    bool m_endStatePushed = false;
 };
 Path to file: ./src/States/State.hpp
 Code:

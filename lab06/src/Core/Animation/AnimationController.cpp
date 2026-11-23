@@ -17,18 +17,18 @@ void AnimationController::AddClip(const std::string& name, int frameCount, float
     if (m_nextRow >= rows) return;
 
     int row = m_nextRow++;
-    AddClipRow(name, row, 0, frameCount, frameTime);
+    AddClipRow(name, row, 0, frameCount, frameTime, true);
 }
 
 void AnimationController::AddClip(const std::string& name, int frameCount, float frameTime,
-                                  int row, int startCol)
+                                  int row, int startCol, bool loop)
 {
     if (m_texture == nullptr || frameCount <= 0 || row < 0 || startCol < 0) return;
 
     int rows = (int)(m_texture->getSize().y / m_frameH);
     if (row >= rows) return;
 
-    AddClipRow(name, row, startCol, frameCount, frameTime);
+    AddClipRow(name, row, startCol, frameCount, frameTime, loop);
 
     if (row + 1 > m_nextRow) m_nextRow = row + 1;
 }
@@ -41,7 +41,7 @@ void AnimationController::AddClip(const std::string& name,
 }
 
 void AnimationController::AddClipRow(const std::string& name, int row, int startCol,
-                                     int count, float frameTime)
+                                     int count, float frameTime, bool loop)
 {
     int cols = (int)(m_texture->getSize().x / m_frameW);
     int realCount = std::min(count, cols - startCol);
@@ -54,19 +54,26 @@ void AnimationController::AddClipRow(const std::string& name, int row, int start
         frames.emplace_back((startCol + i) * m_frameW, row * m_frameH, m_frameW, m_frameH);
     }
 
-    bool  loop = (realCount > 1);
-    float ft   = (realCount > 1) ? frameTime : 1.f;
+    bool  actualLoop = loop && (realCount > 1);
+    float ft         = (realCount > 1) ? frameTime : 1.f;
 
-    m_clips[name] = Clip{ frames, ft, loop };
+    m_clips[name] = Clip{ frames, ft, actualLoop };
 }
 
-void AnimationController::Play(const std::string& name)
+void AnimationController::Play(const std::string& name, bool restart)
 {
-    if (m_current == name) return;
+    if (m_current == name && !restart) return;
     if (!m_clips.count(name)) return;
     m_current = name;
     m_frame   = 0;
     m_elapsed = 0.f;
+}
+
+bool AnimationController::IsFinished() const
+{
+    auto it = m_clips.find(m_current);
+    if (it == m_clips.end() || it->second.frames.empty()) return true;
+    return !it->second.loop && m_frame >= (int)it->second.frames.size() - 1;
 }
 
 void AnimationController::Update(float dt)

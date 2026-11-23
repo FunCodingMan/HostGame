@@ -3,10 +3,12 @@
 #include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
+#include "Entities/Military/Military.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
 #include "States/LevelCompleted/StateLevelCompleted.hpp"
+#include <string>
 
 using namespace StringUtils;
 
@@ -84,8 +86,31 @@ void StatePlaying::UpdateHUD()
     if (host != nullptr && avatar == host)
     {
         if (!isInElevator)
-            m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
-                                    ToSfStringFromUtf8("\nПКМ: Высвободиться"));
+        {
+            sf::String hint = ToSfStringFromUtf8("Носитель: ") + avatarName;
+
+            if (Military* military = dynamic_cast<Military*>(host))
+            {
+                hint += ToSfStringFromUtf8("\nПатроны: ") +
+                        ToSfStringFromUtf8(std::to_string(military->GetAmmo())) +
+                        ToSfStringFromUtf8("/") +
+                        ToSfStringFromUtf8(std::to_string(Config::MILITARY_AMMO));
+
+                if (military->IsReloading())
+                {
+                    hint += ToSfStringFromUtf8(" (перезарядка)");
+                }
+
+                hint += ToSfStringFromUtf8("\nЛКМ: Огонь | ПКМ: Высвободиться");
+            }
+            else
+            {
+                hint += ToSfStringFromUtf8("\nПКМ: Высвободиться");
+            }
+
+            m_screenHud.SetHintText(hint);
+        }
+
         m_floatingHud.Update(host->GetDecayTimer(), host->GetMaxDecayTimer(),
                              sf::Color(220, 200, 0));
     }

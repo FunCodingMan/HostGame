@@ -34,6 +34,11 @@ void SoundManager::PlaySound(const std::string& id)
     }
 }
 
+bool SoundManager::HasSound(const std::string& id) const
+{
+    return m_sounds.find(id) != m_sounds.end();
+}
+
 void SoundManager::SetSoundVolume(const std::string& id, float volume)
 {
     auto it = m_sounds.find(id);

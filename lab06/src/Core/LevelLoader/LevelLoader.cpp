@@ -3,6 +3,7 @@
 #include "Core/Config.hpp"
 #include "Entities/Host/Host.hpp"
 #include "Entities/Scientist/Scientist.hpp"
+#include "Entities/Military/Military.hpp"
 #include "Entities/Items/Syringe/Syringe.hpp"
 #include <fstream>
 #include <sstream>
@@ -64,6 +65,10 @@ void LevelLoader::LoadEnemies(const std::string& path,
         {
             enemy = std::make_unique<Scientist>(pos);
         } 
+        else if (type == "Military")
+        {
+            enemy = std::make_unique<Military>(pos);
+        }
         else
         {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum

@@ -50,6 +50,7 @@ public:
     }
 
     sf::Vector2f GetVelocity() const { return m_velocity; }
+    void SetVelocity(sf::Vector2f velocity) { m_velocity = velocity; }
 private:
     inline static bool m_showHitboxes = false;
 };

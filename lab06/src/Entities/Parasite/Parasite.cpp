@@ -66,11 +66,24 @@ void Parasite::ForceDash(const GameContext& ctx)
     m_velocity.x = (dx / length) * m_dashForce;
     m_velocity.y = (dy / length) * m_dashForce;
 
+    if (std::abs(dx) > 0.1f)
+    {
+        SetLookDir(dx > 0.f ? 1 : -1);
+    }
+
     m_dashCooldown = Config::DASH_COOLDOWN_TIME;
     m_hasDash      = false;
     m_isOnGround   = false;
 
     m_stateManager.SetState(EntityState::Dash);
+}
+
+void Parasite::ResetMovement()
+{
+    m_velocity = sf::Vector2f(0.f, 0.f);
+    m_isOnGround = false;
+    m_hasDash = true;
+    m_stateManager.SetState(EntityState::Idle);
 }
 
 void Parasite::UpdateDash(const GameContext& ctx)
