@@ -35,7 +35,6 @@ namespace Config
     {
         Parasite,
         Human,
-        Bullet,
         Military
     };
 
@@ -271,6 +270,21 @@ namespace Config
     inline constexpr float VOL_MILITARY_STEP  = 35.f;
     inline constexpr float VOL_DOOR_OPEN      = 70.f;
     inline constexpr float VOL_DOOR_LOCKED    = 60.f;
+
+    inline constexpr float RAD_TO_DEG = 57.2957795f;
+
+    inline constexpr int   BULLET_POOL_SIZE    = 64;
+    inline constexpr float BULLET_SPEED        = 800.f;
+    inline constexpr float BULLET_LENGTH       = 14.f;
+    inline constexpr float BULLET_THICKNESS    = 4.f;
+    inline constexpr float BULLET_HITBOX_SIZE  = 6.f;
+    inline constexpr float BULLET_MAX_LIFETIME = 2.0f;
+
+    inline const sf::Color BULLET_PLAYER_COLOR = sf::Color(255, 240, 120);
+    inline const sf::Color BULLET_ENEMY_COLOR  = sf::Color(255, 110, 60);
+    inline const sf::Color BULLET_DEBUG_COLOR  = sf::Color::Yellow;
+
+    inline constexpr float LOS_STEP_SIZE       = 8.f;
 
     enum class TutorialStep
     {

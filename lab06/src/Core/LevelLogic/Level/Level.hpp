@@ -9,6 +9,7 @@
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Host/Host.hpp"
 #include "Entities/Items/Syringe/Syringe.hpp"
+#include "Entities/Bullet/BulletManager/BulletManager.hpp"
 
 class SoundManager;
 
@@ -45,6 +46,9 @@ private:
     void HandleItems(const GameContext& ctx);
     void CleanDeadEnemies();
     void CheckEndConditions();
+    void HandleBullets();
+
+    BulletManager m_bullets;
 
     SoundManager* m_audio = nullptr;
     Map m_map;

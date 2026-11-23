@@ -1,3 +1,4 @@
+// Path: ./src/Entities/Entity/Entity.hpp
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "Core/GameContext.hpp"
@@ -13,6 +14,11 @@ public:
     static void ToggleHitboxes()
     {
         m_showHitboxes = !m_showHitboxes;
+    }
+
+    static bool AreHitboxesVisible() 
+    {
+        return m_showHitboxes;
     }
 
     virtual ~Entity() = default;

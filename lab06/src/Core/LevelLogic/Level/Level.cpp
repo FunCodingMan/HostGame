@@ -25,6 +25,7 @@ void Level::Load(const std::string& name, SoundManager& audio)
 
     m_hosts.clear();
     m_syringes.clear();
+    m_bullets.Clear();
 
     LevelLoader::LoadEnemies("../assets/map/enemies_" + name + ".txt", m_hosts, m_map);
     LevelLoader::LoadSyringes("../assets/map/syringes_" + name + ".txt", m_syringes, m_map);
@@ -81,14 +82,22 @@ void Level::Update(float dt, const LevelInput& input)
     ctx.audio = m_audio;
     ctx.playerAvatar = m_playerAvatar;
     ctx.avatarIsParasite = (m_playerAvatar == &m_parasite);
+    ctx.bullets = &m_bullets;
 
     m_parasite.Update(ctx);
 
     for (auto& enemy : m_hosts)
+    {
         enemy->Update(ctx);
+    }
     for (auto& syringe : m_syringes)
+    {
         syringe->Update(ctx);
+    }
+    
+    m_bullets.Update(dt, m_map);
 
+    HandleBullets();
     HandlePossession();
     HandleEjection(ctx);
     HandleItems(ctx);
@@ -100,6 +109,45 @@ void Level::Update(float dt, const LevelInput& input)
                      m_syringes.end());
 
     CheckEndConditions();
+}
+
+void Level::HandleBullets()
+{
+    for (Bullet& bullet : m_bullets.GetBullets())
+    {
+        if (!bullet.active)
+        {
+            continue;
+        }
+
+        sf::FloatRect bulletBounds = BulletManager::GetBulletBounds(bullet);
+
+        if (!bullet.fromPlayer)
+        {
+            if (m_playerAvatar != nullptr && !m_playerAvatar->IsDead() &&
+                bulletBounds.intersects(m_playerAvatar->GetBounds()))
+            {
+                m_playerAvatar->TakeDamage(bullet.damage);
+                bullet.active = false;
+            }
+            continue;
+        }
+
+        for (auto& enemy : m_hosts)
+        {
+            if (enemy->IsDead() || enemy.get() == m_currentHost)
+            {
+                continue;
+            }
+
+            if (bulletBounds.intersects(enemy->GetBounds()))
+            {
+                enemy->TakeDamage(bullet.damage);
+                bullet.active = false;
+                break;
+            }
+        }
+    }
 }
 
 void Level::HandlePossession()
@@ -136,11 +184,12 @@ void Level::HandleEjection(const GameContext& ctx)
 
     bool manualEject = GameKeyboard::IsEjectKeyPressed();
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
+    bool hostDead = m_currentHost->IsDead();
 
     if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
         manualEject = false;
 
-    if (manualEject || timeOut)
+    if (manualEject || timeOut || hostDead)
     {
         m_currentHost->SetPlayerControlled(false);
         m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
@@ -225,12 +274,20 @@ void Level::Draw(sf::RenderWindow& window)
     for (auto& enemy : m_hosts)
     {
         if (!enemy->IsDead())
+        {
             enemy->Draw(window);
+        }
     }
 
     for (auto& syringe : m_syringes)
+    {
         syringe->Draw(window);
+    }
 
     if (m_parasite.IsPlayerControlled())
+    {
         m_parasite.Draw(window);
+    }
+    
+    m_bullets.Draw(window);
 }
