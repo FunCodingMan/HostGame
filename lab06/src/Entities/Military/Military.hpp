@@ -17,8 +17,9 @@ protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Military; }
     const char* GetJumpSound() const override { return Config::SOUND_ID_JUMP; }
     const char* GetLandSound() const override { return Config::SOUND_ID_SMASH; }
-    const char* GetWalkSound() const override { return Config::SOUND_ID_MILITARY_STEP; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_MILITARY_WALK; }
     const char* GetDeathSound() const override { return Config::SOUND_ID_MILITARY_DEATH; }
+    const char* GetDamageSound() const override { return Config::SOUND_ID_MILITARY_DAMAGE; }
 
     void UpdateControlled(const GameContext& ctx) override;
     void UpdateAI(const GameContext& ctx) override;
@@ -52,6 +53,5 @@ private:
     bool m_hasTarget   = false;
     bool m_wasSeen     = false;
 
-    int m_ammo        = Config::MILITARY_AMMO;
-    int m_shotCounter = 0;
+    int m_ammo = Config::MILITARY_AMMO;
 };

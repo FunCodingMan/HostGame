@@ -21,16 +21,32 @@ bool SoundManager::LoadSound(const std::string& id, const std::string& filepath,
     return true;
 }
 
-void SoundManager::PlaySound(const std::string& id)
+void SoundManager::PlaySound(const std::string& id, bool loop)
 {
     auto it = m_sounds.find(id);
     if (it != m_sounds.end())
     {
+        it->second.setLoop(loop);
+
+        if (loop && it->second.getStatus() == sf::Sound::Playing)
+        {
+            return;
+        }
+
         it->second.play();
     }
     else
     {
         std::cerr << "Audio Warning: Try to play unknown sound '" << id << "'\n";
+    }
+}
+
+void SoundManager::StopSound(const std::string& id)
+{
+    auto it = m_sounds.find(id);
+    if (it != m_sounds.end())
+    {
+        it->second.stop();
     }
 }
 

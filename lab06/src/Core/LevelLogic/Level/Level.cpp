@@ -17,6 +17,7 @@ Level::Level()
 void Level::Load(const std::string& name, SoundManager& audio)
 {
     m_audio = &audio;
+    m_audio->StopSound(SOUND_ID_HEARTBEAT);
     m_stats.Reset();
     m_result = LevelResult::None;
 
@@ -108,6 +109,7 @@ void Level::Update(float dt, const LevelInput& input)
     HandlePossession();
     HandleEjection(ctx);
     HandleItems(ctx);
+    UpdateHeartbeat();
 
     CleanDeadEnemies();
 
@@ -136,6 +138,15 @@ void Level::HandleBullets()
             {
                 m_playerAvatar->TakeDamage(bullet.damage);
                 bullet.active = false;
+
+                if (!m_playerAvatar->IsDead())
+                {
+                    const char* sound = m_playerAvatar->GetDamageSound();
+                    if (sound != nullptr && m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
             }
             continue;
         }
@@ -157,6 +168,14 @@ void Level::HandleBullets()
                 {
                     const char* sound = enemy->GetDeathSound();
                     if (m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
+                else if (!wasDead)
+                {
+                    const char* sound = enemy->GetDamageSound();
+                    if (sound != nullptr && m_audio->HasSound(sound))
                     {
                         m_audio->PlaySound(sound);
                     }
@@ -263,6 +282,26 @@ void Level::HandleItems(const GameContext& ctx)
     }
 }
 
+void Level::UpdateHeartbeat()
+{
+    if (m_audio == nullptr)
+        return;
+
+    bool inDanger = m_currentHost != nullptr &&
+                    m_playerAvatar == m_currentHost &&
+                    !m_currentHost->IsDead() &&
+                    m_currentHost->GetDecayTimer() <= Config::HOST_DANGER_THRESHOLD;
+
+    if (inDanger)
+    {
+        m_audio->PlaySound(SOUND_ID_HEARTBEAT, true);
+    }
+    else
+    {
+        m_audio->StopSound(SOUND_ID_HEARTBEAT);
+    }
+}
+
 void Level::CleanDeadEnemies()
 {
     m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
@@ -285,6 +324,7 @@ void Level::CheckEndConditions()
 
     if (isParasiteDead || fellIntoPit)
     {
+        m_audio->StopSound(SOUND_ID_HEARTBEAT);
         m_audio->PlaySound(SOUND_ID_LOSE);
         m_audio->PlaySound(SOUND_ID_DEATH);
         m_result = LevelResult::Failed;
@@ -296,6 +336,7 @@ void Level::CheckEndConditions()
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
         if (access >= 1)
         {
+            m_audio->StopSound(SOUND_ID_HEARTBEAT);
             m_audio->PlaySound(SOUND_ID_WIN);
             m_result = LevelResult::Completed;
         }

@@ -19,6 +19,7 @@ public:
 
     virtual float GetDecayTimer() const { return 0.f; }
     virtual float GetMaxDecayTimer() const { return 1.f; }
+    virtual const char* GetDamageSound() const { return nullptr; }
 
     virtual void TakeDamage(float amount)
     {

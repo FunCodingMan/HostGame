@@ -192,7 +192,7 @@ namespace Config
     inline constexpr float VOL_SMASH = 10.f;
     inline constexpr float VOL_WALK = 40.f;
     inline constexpr float VOL_WIN = 90.f;
-    inline constexpr float VOL_BGM = 5.f;
+    inline constexpr float VOL_BGM = 1.f;
 
     inline constexpr float STEP_SOUND_INTERVAL = 0.35f;
     inline constexpr float WALK_SOUND_VELOCITY = 15.f;
@@ -224,7 +224,7 @@ namespace Config
     inline constexpr float MILITARY_REACTION_TIME    = 0.35f;
     inline constexpr float MILITARY_FIRE_INTERVAL    = 0.1f;
     inline constexpr int   MILITARY_AMMO             = 6;
-    inline constexpr float MILITARY_RELOAD_TIME      = 1.6f;
+    inline constexpr float MILITARY_RELOAD_TIME      = 2.0f;
     inline constexpr float MILITARY_SHOT_DAMAGE      = 1.f;
     inline constexpr float MILITARY_LOSE_TARGET_TIME = 2.5f;
     inline constexpr float MILITARY_ATTACK_STATE_TIME = 0.18f;
@@ -249,44 +249,54 @@ namespace Config
     inline constexpr float MILITARY_SHOOT_FRAME_TIME = 0.06f;
     inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.3f;
     inline constexpr float MILITARY_WALK_THRESHOLD   = 15.f;
+    inline constexpr float MILITARY_STEP_SOUND_INTERVAL = 1.45f;
 
     inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;
     inline constexpr float HOST_DANGER_PULSE_SPEED = 6.f;
+
+    inline constexpr const char* SOUND_ID_BULLETS_DROP  = "bullets_drop";
+    inline constexpr const char* SOUND_ID_RELOAD        = "reload";
+    inline constexpr const char* SOUND_ID_ALERT         = "alert";
+    inline constexpr const char* SOUND_ID_REPORT        = "report";
+    inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
+    inline constexpr const char* SOUND_ID_MILITARY_WALK  = "military_walk";
+    inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
 
     inline constexpr const char* SOUND_ID_SHOT_1        = "shot_1";
     inline constexpr const char* SOUND_ID_SHOT_2        = "shot_2";
     inline constexpr const char* SOUND_ID_SHOT_3        = "shot_3";
     inline constexpr int         SOUND_SHOT_VARIANTS    = 3;
-    inline constexpr const char* SOUND_ID_RELOAD        = "reload";
-    inline constexpr const char* SOUND_ID_ALERT         = "alert";
-    inline constexpr const char* SOUND_ID_REPORT        = "report";
-    inline constexpr const char* SOUND_ID_EXPLOSION     = "explosion";
-    inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
-    inline constexpr const char* SOUND_ID_MILITARY_STEP  = "military_step";
-    inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
-    inline constexpr const char* SOUND_ID_DOOR_LOCKED   = "door_locked";
+    inline constexpr const char* SOUND_ID_MILITARY_DAMAGE  = "military_damage";
+    inline constexpr const char* SOUND_ID_SCIENTIST_DAMAGE = "scientist_damage";
+    inline constexpr const char* SOUND_ID_HEARTBEAT        = "heartbeat";
+
+    inline constexpr const char* SOUND_PATH_BULLETS_DROP  = "../assets/sounds/bullets_drop.wav";
+    inline constexpr const char* SOUND_PATH_RELOAD        = "../assets/sounds/reload.wav";
+    inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
+    inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_WALK  = "../assets/sounds/military_walk.wav";
+    inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/open_door.wav";
 
     inline constexpr const char* SOUND_PATH_SHOT_1        = "../assets/sounds/shot_1.wav";
     inline constexpr const char* SOUND_PATH_SHOT_2        = "../assets/sounds/shot_2.wav";
     inline constexpr const char* SOUND_PATH_SHOT_3        = "../assets/sounds/shot_3.wav";
-    inline constexpr const char* SOUND_PATH_RELOAD        = "../assets/sounds/reload.wav";
-    inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
-    inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
-    inline constexpr const char* SOUND_PATH_EXPLOSION     = "../assets/sounds/explosion.wav";
-    inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
-    inline constexpr const char* SOUND_PATH_MILITARY_STEP  = "../assets/sounds/military_step.wav";
-    inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/door_open.wav";
-    inline constexpr const char* SOUND_PATH_DOOR_LOCKED   = "../assets/sounds/door_locked.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_DAMAGE  = "../assets/sounds/military_damage.wav";
+    inline constexpr const char* SOUND_PATH_SCIENTIST_DAMAGE = "../assets/sounds/scientist_damage.wav";
+    inline constexpr const char* SOUND_PATH_HEARTBEAT        = "../assets/sounds/heartbeat.wav";
 
-    inline constexpr float VOL_SHOT           = 60.f;
-    inline constexpr float VOL_RELOAD         = 50.f;
+    inline constexpr float VOL_BULLETS_DROP   = 45.f;
+    inline constexpr float VOL_RELOAD         = 70.f;
     inline constexpr float VOL_ALERT          = 70.f;
     inline constexpr float VOL_REPORT         = 60.f;
-    inline constexpr float VOL_EXPLOSION      = 90.f;
     inline constexpr float VOL_MILITARY_DEATH = 80.f;
-    inline constexpr float VOL_MILITARY_STEP  = 35.f;
-    inline constexpr float VOL_DOOR_OPEN      = 70.f;
-    inline constexpr float VOL_DOOR_LOCKED    = 60.f;
+    inline constexpr float VOL_MILITARY_WALK  = 4.f;
+    inline constexpr float VOL_DOOR_OPEN      = 100.f;
+
+    inline constexpr float VOL_SHOT              = 60.f;
+    inline constexpr float VOL_MILITARY_DAMAGE   = 80.f;
+    inline constexpr float VOL_SCIENTIST_DAMAGE  = 80.f;
+    inline constexpr float VOL_HEARTBEAT         = 100.f;
 
     inline constexpr float RAD_TO_DEG = 57.2957795f;
 

@@ -44,6 +44,7 @@ private:
     void HandlePossession();
     void HandleEjection(const GameContext& ctx);
     void HandleItems(const GameContext& ctx);
+    void UpdateHeartbeat();
     void CleanDeadEnemies();
     void CheckEndConditions();
     void HandleBullets();

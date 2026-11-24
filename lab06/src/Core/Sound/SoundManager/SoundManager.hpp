@@ -13,7 +13,8 @@ public:
 
     bool LoadSound(const std::string& id, const std::string& filepath, float volume = 100.f);
     bool HasSound(const std::string& id) const;
-    void PlaySound(const std::string& id);
+    void PlaySound(const std::string& id, bool loop = false);
+    void StopSound(const std::string& id);
     void SetSoundVolume(const std::string& id, float volume);
 
     bool LoadMusic(const std::string& id, const std::string& filepath, float volume = 100.f);

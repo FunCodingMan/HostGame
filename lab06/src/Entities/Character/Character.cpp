@@ -344,7 +344,7 @@ void Character::ApplyMovement(const GameContext& ctx)
             if (const char* sound = GetWalkSound(); sound && ctx.audio->HasSound(sound)) {
                 ctx.audio->PlaySound(sound); 
             }
-            m_stepTimer = Config::STEP_SOUND_INTERVAL; 
+            m_stepTimer = m_stepSoundInterval;
         }
     }
     else

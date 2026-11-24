@@ -7,6 +7,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <random>
 
 using namespace Config;
 using namespace StringUtils;
@@ -19,6 +20,7 @@ Military::Military(sf::Vector2f position)
     m_jumpForce = Config::MILITARY_JUMP_FORCE;
     m_gravity   = Config::MILITARY_GRAVITY;
     m_maxSpeed  = Config::MILITARY_RUN_SPEED;
+    m_stepSoundInterval = Config::MILITARY_STEP_SOUND_INTERVAL;
 
     bool hasTexture = std::ifstream("../assets/animations/military.png").good();
 
@@ -136,9 +138,16 @@ void Military::UpdateAI(const GameContext& ctx)
             m_alertTimer    = Config::MILITARY_ALERT_STATE_TIME;
             m_stateManager.SetState(EntityState::Alert);
 
-            if (ctx.audio != nullptr && ctx.audio->HasSound(Config::SOUND_ID_ALERT))
+            if (ctx.audio != nullptr)
             {
-                ctx.audio->PlaySound(Config::SOUND_ID_ALERT);
+                if (ctx.audio->HasSound(Config::SOUND_ID_REPORT))
+                {
+                    ctx.audio->PlaySound(Config::SOUND_ID_REPORT);
+                }
+                if (ctx.audio->HasSound(Config::SOUND_ID_ALERT))
+                {
+                    ctx.audio->PlaySound(Config::SOUND_ID_ALERT);
+                }
             }
         }
 
@@ -298,14 +307,16 @@ void Military::TryFire(const GameContext& ctx, bool fromPlayer)
 
     if (ctx.audio != nullptr)
     {
-        const char* sounds[] = {
+        static std::mt19937 rng(std::random_device{}());
+        static std::uniform_int_distribution<int> dist(0, Config::SOUND_SHOT_VARIANTS - 1);
+
+        const char* shots[Config::SOUND_SHOT_VARIANTS] = {
             Config::SOUND_ID_SHOT_1,
             Config::SOUND_ID_SHOT_2,
             Config::SOUND_ID_SHOT_3
         };
-        const char* id = sounds[m_shotCounter % Config::SOUND_SHOT_VARIANTS];
-        ++m_shotCounter;
 
+        const char* id = shots[dist(rng)];
         if (ctx.audio->HasSound(id))
         {
             ctx.audio->PlaySound(id);

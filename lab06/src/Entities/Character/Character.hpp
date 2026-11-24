@@ -63,6 +63,7 @@ protected:
     sf::Vector2f m_spriteOffset{0.f, 0.f};
 
     float m_stepTimer = 0.f;
+    float m_stepSoundInterval = Config::STEP_SOUND_INTERVAL;
 
     AnimationController m_anim;
 
