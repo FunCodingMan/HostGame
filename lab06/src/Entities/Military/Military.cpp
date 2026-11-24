@@ -6,6 +6,7 @@
 #include "Core/Utils/StringUtils/StringUtils.hpp"
 #include <cmath>
 #include <fstream>
+#include <iostream>
 
 using namespace Config;
 using namespace StringUtils;
@@ -50,21 +51,32 @@ Military::Military(sf::Vector2f position)
                  Config::MILITARY_FRAME_W,
                  Config::MILITARY_FRAME_H);
 
-    m_anim.AddClip("idle", 3, Config::MILITARY_IDLE_FRAME_TIME);
-    m_anim.AddClip("walk", 3, Config::MILITARY_WALK_FRAME_TIME);
-    m_anim.AddClip("attack", 3, Config::MILITARY_SHOOT_FRAME_TIME, 2, 0, true);
-    m_anim.AddClip("reload", 3, 0.15f, 3, 0, true);
-    m_anim.AddClip("dead", 3, Config::MILITARY_DEATH_FRAME_TIME, 4, 0, false);
+    m_anim.AddClip("idle", 8, Config::MILITARY_IDLE_FRAME_TIME);
+    m_anim.AddClip("walk", 5, Config::MILITARY_WALK_FRAME_TIME);
+    m_anim.AddClip("attack", 2, Config::MILITARY_SHOOT_FRAME_TIME, 2, 0, true);
+    m_anim.AddClip("reload", 2, 0.15f, 3, 0, true);
+    m_anim.AddClip("dead", 6, Config::MILITARY_DEATH_FRAME_TIME, 4, 0, false);
 
     m_properties.SetSfString("name", ToSfStringFromUtf8("Военный"));
     m_properties.SetInt("access_level", 0);
 
-    m_weapon.setSize(sf::Vector2f(Config::MILITARY_WEAPON_LENGTH,
-                                  Config::MILITARY_WEAPON_THICKNESS));
-    m_weapon.setOrigin(2.f, Config::MILITARY_WEAPON_THICKNESS / 2.f);
-    m_weapon.setFillColor(Config::MILITARY_WEAPON_COLOR);
-    m_weapon.setOutlineColor(Config::MILITARY_WEAPON_OUTLINE);
-    m_weapon.setOutlineThickness(1.f);
+    if (!m_weaponTexture.loadFromFile("../assets/animations/gun.png"))
+    {
+        std::cerr << "Ошибка: Не удалось загрузить ../assets/animations/gun.png" << std::endl;
+    }
+    m_weaponTexture.setSmooth(false);
+
+    m_weapon.setTexture(m_weaponTexture);
+    m_weapon.setScale(Config::MILITARY_WEAPON_SCALE, Config::MILITARY_WEAPON_SCALE);
+    m_weapon.setOrigin(Config::MILITARY_WEAPON_GRIP_X,
+                       Config::MILITARY_WEAPON_FRAME_H / 2.f);
+
+    m_weaponAnim.Setup(m_weaponTexture,
+                       Config::MILITARY_WEAPON_FRAME_W,
+                       Config::MILITARY_WEAPON_FRAME_H);
+    m_weaponAnim.AddClip("idle", 1, 0.f);
+    m_weaponAnim.AddClip("shoot", 2, Config::MILITARY_WEAPON_SHOOT_FRAME_TIME, 1, 0, false);
+    m_weaponAnim.Play("idle");
 
     m_stateManager.SetState(EntityState::Idle);
 }
@@ -203,6 +215,13 @@ void Military::UpdatePatrol(const GameContext& ctx)
 
 void Military::UpdateTimers(const GameContext& ctx)
 {
+    m_weaponAnim.Update(ctx.dt);
+
+    if (m_weaponAnim.Current() == "shoot" && m_weaponAnim.IsFinished())
+    {
+        m_weaponAnim.Play("idle");
+    }
+
     if (m_fireTimer > 0.f)
     {
         m_fireTimer -= ctx.dt;
@@ -269,6 +288,7 @@ void Military::TryFire(const GameContext& ctx, bool fromPlayer)
     m_fireTimer   = Config::MILITARY_FIRE_INTERVAL;
     m_attackTimer = Config::MILITARY_ATTACK_STATE_TIME;
     m_stateManager.SetState(EntityState::Attack);
+    m_weaponAnim.Play("shoot", true);
 
     float radians = m_aimAngle / Config::RAD_TO_DEG;
     sf::Vector2f direction(std::cos(radians), std::sin(radians));
@@ -351,8 +371,10 @@ sf::Vector2f Military::GetMuzzlePosition() const
     float radians = m_aimAngle / Config::RAD_TO_DEG;
     sf::Vector2f direction(std::cos(radians), std::sin(radians));
 
-    return GetShoulderPosition() +
-           direction * (Config::MILITARY_WEAPON_LENGTH + 2.f);
+    float muzzleDistance = (Config::MILITARY_WEAPON_FRAME_W - Config::MILITARY_WEAPON_GRIP_X) *
+                           Config::MILITARY_WEAPON_SCALE;
+
+    return GetShoulderPosition() + direction * muzzleDistance;
 }
 
 void Military::Draw(sf::RenderWindow& window)
@@ -364,7 +386,13 @@ void Military::Draw(sf::RenderWindow& window)
         return;
     }
 
+    float radians = m_aimAngle / Config::RAD_TO_DEG;
+    bool aimingLeft = std::cos(radians) < 0.f;
+
+    m_weapon.setScale(Config::MILITARY_WEAPON_SCALE,
+                      aimingLeft ? -Config::MILITARY_WEAPON_SCALE : Config::MILITARY_WEAPON_SCALE);
     m_weapon.setPosition(GetShoulderPosition());
     m_weapon.setRotation(m_aimAngle);
+    m_weaponAnim.Apply(m_weapon);
     window.draw(m_weapon);
 }

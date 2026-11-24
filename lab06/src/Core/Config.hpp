@@ -223,7 +223,7 @@ namespace Config
     inline constexpr float MILITARY_VIEW_RANGE       = 420.f;
     inline constexpr float MILITARY_FOV_COSINE       = 0.15f;
     inline constexpr float MILITARY_REACTION_TIME    = 0.35f;
-    inline constexpr float MILITARY_FIRE_INTERVAL    = 0.45f;
+    inline constexpr float MILITARY_FIRE_INTERVAL    = 0.1f;
     inline constexpr int   MILITARY_AMMO             = 6;
     inline constexpr float MILITARY_RELOAD_TIME      = 1.6f;
     inline constexpr float MILITARY_SHOT_DAMAGE      = 1.f;
@@ -231,12 +231,13 @@ namespace Config
     inline constexpr float MILITARY_ATTACK_STATE_TIME = 0.18f;
     inline constexpr float MILITARY_ALERT_STATE_TIME  = 0.45f;
 
-    inline constexpr float MILITARY_WEAPON_LENGTH     = 22.f;
-    inline constexpr float MILITARY_WEAPON_THICKNESS  = 5.f;
     inline constexpr float MILITARY_WEAPON_SHOULDER_X = 7.f;
     inline constexpr float MILITARY_WEAPON_SHOULDER_Y = -8.f;
-    inline const sf::Color MILITARY_WEAPON_COLOR      = sf::Color(60, 60, 70);
-    inline const sf::Color MILITARY_WEAPON_OUTLINE    = sf::Color(25, 25, 30);
+    inline constexpr float MILITARY_WEAPON_SCALE      = 2.f;
+    inline constexpr int   MILITARY_WEAPON_FRAME_W    = 18;
+    inline constexpr int   MILITARY_WEAPON_FRAME_H    = 5;
+    inline constexpr float MILITARY_WEAPON_GRIP_X     = 2.f;
+    inline constexpr float MILITARY_WEAPON_SHOOT_FRAME_TIME = 0.06f;
 
     inline constexpr float MILITARY_REPORT_RADIUS    = 64.f;
     inline constexpr float MILITARY_REPORT_TIMEOUT   = 2.f;
@@ -244,7 +245,7 @@ namespace Config
     inline constexpr float MILITARY_IDLE_FRAME_TIME  = 0.40f;
     inline constexpr float MILITARY_WALK_FRAME_TIME  = 0.12f;
     inline constexpr float MILITARY_SHOOT_FRAME_TIME = 0.06f;
-    inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.08f;
+    inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.3f;
     inline constexpr float MILITARY_WALK_THRESHOLD   = 15.f;
 
     inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;

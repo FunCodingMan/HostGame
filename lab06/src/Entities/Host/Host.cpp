@@ -115,6 +115,12 @@ void Host::Draw(sf::RenderWindow& window)
     sf::Sprite corpse = m_sprite;
     corpse.setColor(sf::Color(130, 130, 130, 220));
     corpse.setRotation(90.f);
+
+    sf::FloatRect corpseBounds = corpse.getGlobalBounds();
+    sf::FloatRect bodyBounds   = m_hitbox.getGlobalBounds();
+    corpse.move(0.f, (bodyBounds.top + bodyBounds.height) -
+                     (corpseBounds.top + corpseBounds.height));
+
     window.draw(corpse);
 
     if (Entity::AreHitboxesVisible())

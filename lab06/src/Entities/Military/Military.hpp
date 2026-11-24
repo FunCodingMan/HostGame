@@ -36,7 +36,9 @@ private:
     sf::Vector2f GetShoulderPosition() const;
     sf::Vector2f GetMuzzlePosition() const;
 
-    sf::RectangleShape m_weapon;
+    sf::Texture m_weaponTexture;
+    sf::Sprite m_weapon;
+    AnimationController m_weaponAnim;
 
     float m_aimAngle    = 0.f;
     float m_reactionTimer = 0.f;
