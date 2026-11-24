@@ -1,4 +1,5 @@
 #include "States/MainMenu/StateMainMenu.hpp"
+#include "States/LevelSelect/StateLevelSelect.hpp"
 #include "States/Playing/StatePlaying.hpp"
 
 StateMainMenu::StateMainMenu(GameDataRef data) : m_data(data) {}
@@ -14,7 +15,11 @@ void StateMainMenu::Init()
         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
     });
 
-    m_menu.AddButton(L"Выход", m_data->headerFont, 500.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Уровни", m_data->headerFont, 500.f, windowSize.x, [this]() {
+        m_data->manager.AddState(StateRef(new StateLevelSelect(m_data)), true);
+    });
+
+    m_menu.AddButton(L"Выход", m_data->headerFont, 600.f, windowSize.x, [this]() {
         m_data->window.close();
     });
 }
