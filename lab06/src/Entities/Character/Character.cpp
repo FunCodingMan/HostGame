@@ -260,9 +260,12 @@ bool Character::TryOpenDoor(int x, int y, const GameContext& ctx)
     if (!ctx.levelMap->IsDoor(x, y)) return false;
     if (m_properties.GetInt("access_level", 0) < 1) return false;
 
-    ctx.levelMap->OpenDoor(x, y);
-    ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
-    return true;
+    if (ctx.levelMap->OpenDoor(x, y) && ctx.audio->HasSound(Config::SOUND_ID_DOOR_OPEN))
+    {
+        ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
+    }
+
+    return false;
 }
 
 void Character::ResolveCollisions(const GameContext& ctx, Axis axis)

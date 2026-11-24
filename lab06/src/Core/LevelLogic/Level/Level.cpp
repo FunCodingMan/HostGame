@@ -73,6 +73,8 @@ void Level::Update(float dt, const LevelInput& input)
 {
     m_stats.timeSpent += dt;
 
+    m_map.Update(dt);
+
     UpdateCamera(dt, input);
 
     GameContext ctx;

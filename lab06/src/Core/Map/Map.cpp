@@ -12,6 +12,11 @@ Map::Map() : m_width(0), m_height(0)
         std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
     }
 
+    if (!m_doorTexture.loadFromFile("../assets/animations/door.png")) {
+        std::cerr << "Ошибка: Не удалось загрузить door.png" << std::endl;
+    }
+    m_doorTexture.setSmooth(false);
+
     m_Vertices.setPrimitiveType(sf::Quads);
     
     InitStringMappings();
@@ -27,7 +32,6 @@ void Map::InitStringMappings()
     m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
     m_stringToBlock["gl"] = Config::BlockNames::Glass;
     m_stringToBlock["dr"] = Config::BlockNames::Door;
-    m_stringToBlock["do"] = Config::BlockNames::DoorOpen;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -134,6 +138,7 @@ bool Map::LoadFromFile(const string& filename)
     }
 
     m_grid.clear();
+    m_doors.clear();
 
     string line;
     m_height = 0;
@@ -149,9 +154,38 @@ bool Map::LoadFromFile(const string& filename)
         LoadLeveFromLine(line);
     }
 
+    for (int i = 0; i < static_cast<int>(m_grid.size()); ++i)
+    {
+        if (m_grid[i] == Config::BlockNames::Door)
+        {
+            m_doors.emplace_back(i % m_width, i / m_width, m_doorTexture);
+        }
+    }
+
     BuildVertexArray();
 
     return true;
+}
+
+void Map::Update(float dt)
+{
+    for (Door& door : m_doors)
+    {
+        door.Update(dt);
+
+        if (!door.IsOpen())
+        {
+            continue;
+        }
+
+        int index = door.GetTileY() * m_width + door.GetTileX();
+
+        if (m_grid[index] == Config::BlockNames::Door)
+        {
+            m_grid[index] = Config::BlockNames::Empty;
+            BuildVertexElement(door.GetTileX(), door.GetTileY());
+        }
+    }
 }
 
 Config::BlockNames Map::GetTile(int x, int y) const
@@ -307,16 +341,44 @@ bool Map::IsDoor(int x, int y) const
     return GetTile(x, y) == Config::BlockNames::Door;
 }
 
-void Map::OpenDoor(int x, int y)
+Door* Map::FindDoor(int x, int y)
 {
-    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
-    if (!IsDoor(x, y)) return;
+    for (Door& door : m_doors)
+    {
+        if (door.GetTileX() == x && door.GetTileY() == y)
+        {
+            return &door;
+        }
+    }
 
-    m_grid[y * m_width + x] = Config::BlockNames::DoorOpen;
-    BuildVertexElement(x, y);
+    return nullptr;
+}
+
+const Door* Map::FindDoor(int x, int y) const
+{
+    for (const Door& door : m_doors)
+    {
+        if (door.GetTileX() == x && door.GetTileY() == y)
+        {
+            return &door;
+        }
+    }
+
+    return nullptr;
+}
+
+bool Map::OpenDoor(int x, int y)
+{
+    Door* door = FindDoor(x, y);
+    return door != nullptr && door->Open();
 }
 
 void Map::Draw(sf::RenderWindow& window) const
 {
     window.draw(m_Vertices, &m_tileset);
+
+    for (const Door& door : m_doors)
+    {
+        door.Draw(window);
+    }
 }

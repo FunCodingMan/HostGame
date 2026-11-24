@@ -48,8 +48,7 @@ namespace Config
         Elevator,
         Ventilation,
         Glass,
-        Door,
-        DoorOpen
+        Door
     };
 
     enum class CollisionType
@@ -238,6 +237,9 @@ namespace Config
     inline constexpr int   MILITARY_WEAPON_FRAME_H    = 5;
     inline constexpr float MILITARY_WEAPON_GRIP_X     = 2.f;
     inline constexpr float MILITARY_WEAPON_SHOOT_FRAME_TIME = 0.06f;
+
+    inline constexpr float DOOR_OPEN_FRAME_TIME  = 0.06f;
+    inline constexpr int   DOOR_OPEN_FRAME_COUNT = 10;
 
     inline constexpr float MILITARY_REPORT_RADIUS    = 64.f;
     inline constexpr float MILITARY_REPORT_TIMEOUT   = 2.f;

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <SFML/Graphics.hpp>
 #include "Core/Config.hpp"
+#include "Core/Map/Door.hpp"
 
 class Map
 {
@@ -12,6 +13,8 @@ public:
 
     bool LoadTileConfig(const std::string& filename);
     bool LoadFromFile(const std::string& filename);
+
+    void Update(float dt);
 
     Config::BlockNames GetTile(int x, int y) const;
     bool IsSolid(int x, int y, Config::EntityType entityType) const;
@@ -36,7 +39,7 @@ public:
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
     
     bool IsDoor(int x, int y) const;
-    void OpenDoor(int x, int y);
+    bool OpenDoor(int x, int y);
 
 private:
     std::vector<Config::BlockNames> m_grid;
@@ -58,6 +61,11 @@ private:
 
     void BuildVertexElement(int x, int y);
 
+    Door*       FindDoor(int x, int y);
+    const Door* FindDoor(int x, int y) const;
+
     sf::Texture m_tileset;
+    sf::Texture m_doorTexture;
+    std::vector<Door> m_doors;
     sf::VertexArray m_Vertices;
 };
