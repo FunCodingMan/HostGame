@@ -210,6 +210,17 @@ bool Map::IsSolidAt(sf::Vector2f worldPos) const
     return IsSolid(tx, ty, Config::EntityType::Parasite);
 }
 
+bool Map::BlocksSight(int x, int y) const
+{
+    const Config::TileData* data = GetTileData(GetTile(x, y));
+
+    if (!data) return true;
+
+    return data->collision == Config::CollisionType::Solid ||
+           data->collision == Config::CollisionType::Ventilation ||
+           data->collision == Config::CollisionType::Door;
+}
+
 void Map::BuildVertexElement(int xTile, int yTile)
 {
     Config::BlockNames blockName = GetTile(xTile, yTile);

@@ -51,17 +51,11 @@ bool BulletManager::IsOutOfMap(sf::Vector2f pos, const Map &map) const
            pos.y > map.GetHeightInPixels();
 }
 
-bool BulletManager::HitsWall(sf::Vector2f pos, const Map &map) const
+std::vector<sf::Vector2i> BulletManager::Update(float dt, Map &map)
 {
+    std::vector<sf::Vector2i> brokenTiles;
     float tileSize = static_cast<float>(map.GetTileSize());
-    int tileX = static_cast<int>(std::floor(pos.x / tileSize));
-    int tileY = static_cast<int>(std::floor(pos.y / tileSize));
 
-    return map.IsSolid(tileX, tileY, Config::EntityType::Bullet);
-}
-
-void BulletManager::Update(float dt, const Map &map)
-{
     for (Bullet &bullet : m_pool)
     {
         if (!bullet.active)
@@ -72,11 +66,30 @@ void BulletManager::Update(float dt, const Map &map)
         bullet.position += bullet.velocity * dt;
         bullet.lifeTimer -= dt;
 
-        if (bullet.lifeTimer <= 0.f || IsOutOfMap(bullet.position, map) || HitsWall(bullet.position, map))
+        if (bullet.lifeTimer <= 0.f || IsOutOfMap(bullet.position, map))
         {
             bullet.active = false;
+            continue;
         }
+
+        int tileX = static_cast<int>(std::floor(bullet.position.x / tileSize));
+        int tileY = static_cast<int>(std::floor(bullet.position.y / tileSize));
+
+        if (!map.IsSolid(tileX, tileY, Config::EntityType::Bullet))
+        {
+            continue;
+        }
+
+        if (map.IsBreakable(tileX, tileY))
+        {
+            map.BreakTile(tileX, tileY);
+            brokenTiles.emplace_back(tileX, tileY);
+        }
+
+        bullet.active = false;
     }
+
+    return brokenTiles;
 }
 
 void BulletManager::Draw(sf::RenderWindow &window)

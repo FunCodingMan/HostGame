@@ -65,7 +65,7 @@ bool Raycast::CanSee(const Map& map,
         int tileX = static_cast<int>(std::floor(point.x / tileSize));
         int tileY = static_cast<int>(std::floor(point.y / tileSize));
 
-        if (map.IsSolid(tileX, tileY, Config::EntityType::Bullet))
+        if (map.BlocksSight(tileX, tileY))
         {
             DrawDebugRay(eye, point, false);
             return false;

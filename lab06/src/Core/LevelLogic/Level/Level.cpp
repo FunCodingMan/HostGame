@@ -95,7 +95,12 @@ void Level::Update(float dt, const LevelInput& input)
         syringe->Update(ctx);
     }
     
-    m_bullets.Update(dt, m_map);
+    const std::vector<sf::Vector2i> brokenTiles = m_bullets.Update(dt, m_map);
+
+    if (!brokenTiles.empty())
+    {
+        m_audio->PlaySound(SOUND_ID_BREAK_GLASS);
+    }
 
     HandleBullets();
     HandlePossession();

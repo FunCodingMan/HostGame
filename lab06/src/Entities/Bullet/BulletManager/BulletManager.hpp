@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <vector>
 
 #include <SFML/Graphics.hpp>
 
@@ -23,7 +24,7 @@ class BulletManager
     BulletManager();
 
     void Spawn(sf::Vector2f origin, sf::Vector2f direction, float damage, bool fromPlayer);
-    void Update(float dt, const Map &map);
+    std::vector<sf::Vector2i> Update(float dt, Map &map);
     void Draw(sf::RenderWindow &window);
     void Clear();
 
@@ -32,7 +33,6 @@ class BulletManager
 
   private:
     bool IsOutOfMap(sf::Vector2f pos, const Map &map) const;
-    bool HitsWall(sf::Vector2f pos, const Map &map) const;
 
     std::array<Bullet, Config::BULLET_POOL_SIZE> m_pool;
     sf::RectangleShape m_shape;
