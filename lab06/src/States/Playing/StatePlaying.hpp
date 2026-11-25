@@ -5,6 +5,7 @@
 #include "Core/LevelLogic/Level/Level.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+#include "UI/Vignette/Vignette.hpp"
 #include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
 
 class StatePlaying : public State
@@ -26,6 +27,7 @@ private:
     Level m_level;
     EntityHUD m_floatingHud;
     ScreenHUD m_screenHud;
+    Vignette m_vignette;
     TutorialOverlay m_tutorial;
 
     bool m_endStatePushed = false;

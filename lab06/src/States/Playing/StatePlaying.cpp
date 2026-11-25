@@ -26,6 +26,7 @@ void StatePlaying::Init()
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
+    m_vignette.Init(m_data->window.getSize());
     DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
@@ -62,6 +63,7 @@ void StatePlaying::Update(float dt)
     input.windowSize = m_data->window.getSize();
 
     m_level.Update(dt, input);
+    m_vignette.Update(dt, m_level.IsInDanger());
 
     if (m_data->GetCurrentLevelName() == "tutorial")
     {
@@ -168,6 +170,7 @@ void StatePlaying::Draw()
     m_floatingHud.Draw(m_data->window);
 
     m_data->window.setView(m_data->window.getDefaultView());
+    m_vignette.Draw(m_data->window);
     m_screenHud.Draw(m_data->window);
     DebugOverlay::Draw(m_data->window, m_level.GetView());
 

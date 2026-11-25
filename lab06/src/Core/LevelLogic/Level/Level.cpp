@@ -282,17 +282,24 @@ void Level::HandleItems(const GameContext& ctx)
     }
 }
 
+bool Level::IsInDanger() const
+{
+    if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+    {
+        return !m_currentHost->IsDead() &&
+               m_currentHost->GetDecayTimer() <= Config::HOST_DANGER_THRESHOLD;
+    }
+
+    return !m_parasite.IsDead() &&
+           m_parasite.GetLife() <= Config::PARASITE_DANGER_HEALTH;
+}
+
 void Level::UpdateHeartbeat()
 {
     if (m_audio == nullptr)
         return;
 
-    bool inDanger = m_currentHost != nullptr &&
-                    m_playerAvatar == m_currentHost &&
-                    !m_currentHost->IsDead() &&
-                    m_currentHost->GetDecayTimer() <= Config::HOST_DANGER_THRESHOLD;
-
-    if (inDanger)
+    if (IsInDanger())
     {
         m_audio->PlaySound(SOUND_ID_HEARTBEAT, true);
     }

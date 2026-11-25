@@ -36,6 +36,7 @@ public:
     LevelResult GetResult() const { return m_result; }
     const LevelStats& GetStats() const { return m_stats; }
     bool IsAvatarInElevator() const;
+    bool IsInDanger() const;
 
 private:
     void UpdateCamera(float dt, const LevelInput& input);

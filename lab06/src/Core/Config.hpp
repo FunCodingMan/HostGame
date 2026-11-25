@@ -91,6 +91,7 @@ namespace Config
     inline constexpr float PARASITE_GRAVITY = 2500.f;
     inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
     inline constexpr float PARASITE_MAX_HEALTH = 5.f;
+    inline constexpr float PARASITE_DANGER_HEALTH = 2.f;
     inline constexpr float MAX_FALL_SPEED = 1000.f;
     inline constexpr int PARASITE_FRAME_W = 16;
     inline constexpr int PARASITE_FRAME_H = 16;
@@ -271,6 +272,10 @@ namespace Config
 
     inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;
     inline constexpr float HOST_DANGER_PULSE_SPEED = 6.f;
+
+    inline constexpr float VIGNETTE_BASE_ALPHA  = 55.f;
+    inline constexpr float VIGNETTE_PULSE_ALPHA = 55.f;
+    inline const sf::Color VIGNETTE_COLOR = sf::Color(140, 0, 0);
 
     inline constexpr const char* SOUND_ID_BULLETS_DROP  = "bullets_drop";
     inline constexpr const char* SOUND_ID_RELOAD        = "reload";
