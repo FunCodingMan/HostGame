@@ -164,6 +164,8 @@ namespace Config
     inline constexpr float AMMO_DOT_OFFSET_Y = 54.f;
     inline const sf::Color AMMO_DOT_FILL_COLOR = sf::Color(255, 220, 80);
     inline const sf::Color AMMO_DOT_EMPTY_COLOR = sf::Color(80, 80, 80, 200);
+    inline const sf::Color AMMO_DOT_RELOAD_COLOR = sf::Color(255, 150, 60);
+    inline constexpr float AMMO_DOT_RELOAD_PULSE_SPEED = 16.f;
 
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
 

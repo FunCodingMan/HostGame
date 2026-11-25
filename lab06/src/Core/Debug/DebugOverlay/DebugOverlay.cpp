@@ -62,6 +62,10 @@ void DebugOverlay::Draw(sf::RenderWindow &window, const sf::View &worldView)
     if (s_currentFont == nullptr)
         return;
 
+    const sf::View& defaultView = window.getDefaultView();
+    window.setView(defaultView);
+    s_text.setPosition(20.f, defaultView.getSize().y - 35.f);
+
     sf::Vector2i pixel = sf::Mouse::getPosition(window);
     sf::Vector2f world = window.mapPixelToCoords(pixel, worldView);
 
@@ -69,9 +73,9 @@ void DebugOverlay::Draw(sf::RenderWindow &window, const sf::View &worldView)
     int tileY = static_cast<int>(std::floor(world.y / Config::WORLD_TILE_SIZE));
 
     std::ostringstream ss;
-    ss << "Px: (" << pixel.x << ", " << pixel.y << ")   " << "World: (" << std::fixed
-       << std::setprecision(1) << world.x << ", " << world.y << ")   " << "Tile: (" << tileX << ", "
-       << tileY << ")";
+    ss << "Px: (" << pixel.x << ", " << pixel.y << ")   "
+       << "World: (" << std::fixed << std::setprecision(1) << world.x << ", " << world.y << ")   "
+       << "Tile: (" << tileX << ", " << tileY << ")";
 
     s_text.setString(StringUtils::ToSfStringFromUtf8(ss.str()));
     window.draw(s_text);

@@ -17,9 +17,10 @@ public:
     void HandleInput(const sf::Event& event) override;
     void Update(float dt) override;
     void Draw() override;
+    void Pause() override;
 
 private:
-    void UpdateHUD();
+    void UpdateHUD(float dt);
     void HandleLevelResult();
 
     GameDataRef m_data;

@@ -11,34 +11,62 @@ bool SoundManager::LoadSound(const std::string& id, const std::string& filepath,
         return false;
     }
 
-    sf::Sound sound;
-    sound.setBuffer(*buffer);
-    sound.setVolume(volume);
-
     m_soundBuffers[id] = std::move(buffer);
-    m_sounds[id] = sound;
-    
+    m_sounds[id].clear();
+    m_soundVolumes[id] = volume;
+
     return true;
 }
 
 void SoundManager::PlaySound(const std::string& id, bool loop)
 {
-    auto it = m_sounds.find(id);
-    if (it != m_sounds.end())
+    auto bufferIt = m_soundBuffers.find(id);
+    if (bufferIt == m_soundBuffers.end())
     {
-        it->second.setLoop(loop);
+        std::cerr << "Audio Warning: Try to play unknown sound '" << id << "'\n";
+        return;
+    }
 
-        if (loop && it->second.getStatus() == sf::Sound::Playing)
+    auto& sounds = m_sounds[id];
+    float volume = m_soundVolumes[id];
+    sf::Sound* playSound = nullptr;
+
+    if (loop)
+    {
+        if (!sounds.empty() && sounds.front().getStatus() == sf::Sound::Playing)
         {
             return;
         }
 
-        it->second.play();
+        if (sounds.empty())
+        {
+            sounds.emplace_back(*bufferIt->second);
+            sounds.back().setVolume(volume);
+        }
+
+        playSound = &sounds.front();
     }
     else
     {
-        std::cerr << "Audio Warning: Try to play unknown sound '" << id << "'\n";
+        for (auto& sound : sounds)
+        {
+            if (sound.getStatus() != sf::Sound::Playing)
+            {
+                playSound = &sound;
+                break;
+            }
+        }
+
+        if (playSound == nullptr)
+        {
+            sounds.emplace_back(*bufferIt->second);
+            sounds.back().setVolume(volume);
+            playSound = &sounds.back();
+        }
     }
+
+    playSound->setLoop(loop);
+    playSound->play();
 }
 
 void SoundManager::StopSound(const std::string& id)
@@ -46,21 +74,29 @@ void SoundManager::StopSound(const std::string& id)
     auto it = m_sounds.find(id);
     if (it != m_sounds.end())
     {
-        it->second.stop();
+        for (auto& sound : it->second)
+        {
+            sound.stop();
+        }
     }
 }
 
 bool SoundManager::HasSound(const std::string& id) const
 {
-    return m_sounds.find(id) != m_sounds.end();
+    return m_soundBuffers.find(id) != m_soundBuffers.end();
 }
 
 void SoundManager::SetSoundVolume(const std::string& id, float volume)
 {
+    m_soundVolumes[id] = volume;
+
     auto it = m_sounds.find(id);
     if (it != m_sounds.end())
     {
-        it->second.setVolume(volume);
+        for (auto& sound : it->second)
+        {
+            sound.setVolume(volume);
+        }
     }
 }
 

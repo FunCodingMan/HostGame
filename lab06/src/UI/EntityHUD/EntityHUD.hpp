@@ -12,7 +12,7 @@ public:
     void SetPosition(sf::Vector2f entityPosition);
 
     void Update(float currentValue, float maxValue, sf::Color barColor);
-    void UpdateAmmo(int current, int maxAmmo);
+    void UpdateAmmo(int current, int maxAmmo, bool isReloading, float dt);
     void HideAmmo();
     void Draw(sf::RenderWindow& window);
 
@@ -25,6 +25,7 @@ private:
     std::vector<sf::CircleShape> m_ammoDots;
     sf::Vector2f m_entityPosition{0.f, 0.f};
     bool m_showAmmo = false;
+    float m_animTime = 0.f;
 
     float m_maxWidth;
 };

@@ -56,6 +56,11 @@ void StatePlaying::HandleInput(const sf::Event& event)
     }
 }
 
+void StatePlaying::Pause()
+{
+    m_data->sound.StopSound(Config::SOUND_ID_HEARTBEAT);
+}
+
 void StatePlaying::Update(float dt)
 {
     LevelInput input;
@@ -71,11 +76,11 @@ void StatePlaying::Update(float dt)
                           m_level.GetStats().syringesCollected);
     }
 
-    UpdateHUD();
+    UpdateHUD(dt);
     HandleLevelResult();
 }
 
-void StatePlaying::UpdateHUD()
+void StatePlaying::UpdateHUD(float dt)
 {
     LivingEntity* avatar = m_level.GetAvatar();
     m_floatingHud.SetPosition(avatar->GetPosition());
@@ -90,7 +95,8 @@ void StatePlaying::UpdateHUD()
         Military* military = dynamic_cast<Military*>(host);
 
         if (military != nullptr)
-            m_floatingHud.UpdateAmmo(military->GetAmmo(), Config::MILITARY_AMMO);
+            m_floatingHud.UpdateAmmo(military->GetAmmo(), Config::MILITARY_AMMO,
+                                     military->IsReloading(), dt);
         else
             m_floatingHud.HideAmmo();
 
@@ -100,11 +106,6 @@ void StatePlaying::UpdateHUD()
 
             if (military != nullptr)
             {
-                if (military->IsReloading())
-                {
-                    hint += ToSfStringFromUtf8("\nПерезарядка...");
-                }
-
                 hint += ToSfStringFromUtf8("\nЛКМ: Огонь | ПКМ: Высвободиться");
             }
             else

@@ -1,5 +1,8 @@
 #include "EntityHUD.hpp"
+
 #include <algorithm>
+#include <cmath>
+
 #include "Core/Config.hpp"
 
 EntityHUD::EntityHUD() : m_maxWidth(Config::PLAYER_HUD_WIDTH) {}
@@ -27,7 +30,8 @@ void EntityHUD::SetPosition(sf::Vector2f entityPosition)
 
 void EntityHUD::Update(float currentValue, float maxValue, sf::Color barColor)
 {
-    if (maxValue <= 0) return;
+    if (maxValue <= 0)
+        return;
 
     float percentage = std::clamp(currentValue / maxValue, 0.f, 1.f);
 
@@ -35,7 +39,7 @@ void EntityHUD::Update(float currentValue, float maxValue, sf::Color barColor)
     m_fgBar.setFillColor(barColor);
 }
 
-void EntityHUD::UpdateAmmo(int current, int maxAmmo)
+void EntityHUD::UpdateAmmo(int current, int maxAmmo, bool isReloading, float dt)
 {
     if (maxAmmo <= 0)
     {
@@ -44,12 +48,13 @@ void EntityHUD::UpdateAmmo(int current, int maxAmmo)
     }
 
     m_showAmmo = true;
+    m_animTime += dt;
 
     if (static_cast<int>(m_ammoDots.size()) != maxAmmo)
     {
         m_ammoDots.resize(maxAmmo);
 
-        for (auto& dot : m_ammoDots)
+        for (auto &dot : m_ammoDots)
         {
             dot.setRadius(Config::AMMO_DOT_RADIUS);
             dot.setOrigin(Config::AMMO_DOT_RADIUS, Config::AMMO_DOT_RADIUS);
@@ -60,10 +65,31 @@ void EntityHUD::UpdateAmmo(int current, int maxAmmo)
         UpdateAmmoPositions();
     }
 
+    float pulse = 1.f * std::sin(m_animTime * Config::AMMO_DOT_RELOAD_PULSE_SPEED);
+
     for (int i = 0; i < maxAmmo; ++i)
     {
-        m_ammoDots[i].setFillColor(i < current ? Config::AMMO_DOT_FILL_COLOR
-                                               : Config::AMMO_DOT_EMPTY_COLOR);
+        sf::CircleShape &dot = m_ammoDots[i];
+
+        if (i < current)
+        {
+            dot.setFillColor(Config::AMMO_DOT_FILL_COLOR);
+        }
+        else if (isReloading)
+        {
+            const sf::Color &empty = Config::AMMO_DOT_EMPTY_COLOR;
+            const sf::Color &reload = Config::AMMO_DOT_RELOAD_COLOR;
+
+            dot.setFillColor(sf::Color(
+                static_cast<sf::Uint8>(empty.r + (reload.r - empty.r) * pulse),
+                static_cast<sf::Uint8>(empty.g + (reload.g - empty.g) * pulse),
+                static_cast<sf::Uint8>(empty.b + (reload.b - empty.b) * pulse),
+                static_cast<sf::Uint8>(empty.a + (reload.a - empty.a) * pulse)));
+        }
+        else
+        {
+            dot.setFillColor(Config::AMMO_DOT_EMPTY_COLOR);
+        }
     }
 }
 
@@ -87,11 +113,11 @@ void EntityHUD::UpdateAmmoPositions()
     }
 }
 
-void EntityHUD::Draw(sf::RenderWindow& window)
+void EntityHUD::Draw(sf::RenderWindow &window)
 {
     if (m_showAmmo)
     {
-        for (const auto& dot : m_ammoDots)
+        for (const auto &dot : m_ammoDots)
         {
             window.draw(dot);
         }

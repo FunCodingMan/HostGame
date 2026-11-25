@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Audio.hpp>
 #include <unordered_map>
+#include <vector>
 #include <string>
 #include <memory>
 
@@ -24,7 +25,8 @@ public:
 
 private:
     std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> m_soundBuffers;
-    std::unordered_map<std::string, sf::Sound> m_sounds;
+    std::unordered_map<std::string, std::vector<sf::Sound>> m_sounds;
+    std::unordered_map<std::string, float> m_soundVolumes;
 
     std::unordered_map<std::string, std::unique_ptr<sf::Music>> m_musics;
 };
