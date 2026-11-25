@@ -17,7 +17,7 @@ protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Military; }
     const char* GetJumpSound() const override { return Config::SOUND_ID_JUMP; }
     const char* GetLandSound() const override { return Config::SOUND_ID_SMASH; }
-    const char* GetWalkSound() const override { return Config::SOUND_ID_MILITARY_WALK; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_HOST_WALK; }
     const char* GetDeathSound() const override { return Config::SOUND_ID_MILITARY_DEATH; }
     const char* GetDamageSound() const override { return Config::SOUND_ID_MILITARY_DAMAGE; }
 

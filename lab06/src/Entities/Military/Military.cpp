@@ -2,12 +2,12 @@
 #include "Core/Config.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Sound/SoundManager/SoundManager.hpp"
+#include "Core/Utils/RandomUtils/RandomUtils.hpp"
 #include "Core/Utils/Raycast/Raycast.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <random>
 
 using namespace Config;
 using namespace StringUtils;
@@ -20,7 +20,7 @@ Military::Military(sf::Vector2f position)
     m_jumpForce = Config::MILITARY_JUMP_FORCE;
     m_gravity   = Config::MILITARY_GRAVITY;
     m_maxSpeed  = Config::MILITARY_RUN_SPEED;
-    m_stepSoundInterval = Config::MILITARY_STEP_SOUND_INTERVAL;
+    m_stepSoundInterval = Config::HOST_STEP_SOUND_INTERVAL;
 
     bool hasTexture = std::ifstream("../assets/animations/military.png").good();
 
@@ -307,16 +307,13 @@ void Military::TryFire(const GameContext& ctx, bool fromPlayer)
 
     if (ctx.audio != nullptr)
     {
-        static std::mt19937 rng(std::random_device{}());
-        static std::uniform_int_distribution<int> dist(0, Config::SOUND_SHOT_VARIANTS - 1);
-
         const char* shots[Config::SOUND_SHOT_VARIANTS] = {
             Config::SOUND_ID_SHOT_1,
             Config::SOUND_ID_SHOT_2,
             Config::SOUND_ID_SHOT_3
         };
 
-        const char* id = shots[dist(rng)];
+        const char* id = shots[RandomUtils::Int(0, Config::SOUND_SHOT_VARIANTS - 1)];
         if (ctx.audio->HasSound(id))
         {
             ctx.audio->PlaySound(id);

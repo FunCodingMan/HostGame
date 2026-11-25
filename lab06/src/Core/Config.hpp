@@ -122,6 +122,11 @@ namespace Config
     inline constexpr float SCIENTIST_WALK_THRESHOLD = 15.f;
 
     inline constexpr float SCIENTIST_DECAY_TIME = 10.f;
+    inline constexpr float SCIENTIST_PATROL_SPEED = 90.f;
+    inline constexpr float SCIENTIST_WALK_TIME_MIN = 1.5f;
+    inline constexpr float SCIENTIST_WALK_TIME_MAX = 3.5f;
+    inline constexpr float SCIENTIST_IDLE_TIME_MIN = 1.0f;
+    inline constexpr float SCIENTIST_IDLE_TIME_MAX = 3.0f;
 
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
@@ -249,7 +254,7 @@ namespace Config
     inline constexpr float MILITARY_SHOOT_FRAME_TIME = 0.06f;
     inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.3f;
     inline constexpr float MILITARY_WALK_THRESHOLD   = 15.f;
-    inline constexpr float MILITARY_STEP_SOUND_INTERVAL = 1.45f;
+    inline constexpr float HOST_STEP_SOUND_INTERVAL = 1.45f;
 
     inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;
     inline constexpr float HOST_DANGER_PULSE_SPEED = 6.f;
@@ -259,7 +264,7 @@ namespace Config
     inline constexpr const char* SOUND_ID_ALERT         = "alert";
     inline constexpr const char* SOUND_ID_REPORT        = "report";
     inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
-    inline constexpr const char* SOUND_ID_MILITARY_WALK  = "military_walk";
+    inline constexpr const char* SOUND_ID_HOST_WALK      = "host_walk";
     inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
 
     inline constexpr const char* SOUND_ID_SHOT_1        = "shot_1";
@@ -275,7 +280,7 @@ namespace Config
     inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
     inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
     inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
-    inline constexpr const char* SOUND_PATH_MILITARY_WALK  = "../assets/sounds/military_walk.wav";
+    inline constexpr const char* SOUND_PATH_HOST_WALK     = "../assets/sounds/host_walk.wav";
     inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/open_door.wav";
 
     inline constexpr const char* SOUND_PATH_SHOT_1        = "../assets/sounds/shot_1.wav";
@@ -290,7 +295,7 @@ namespace Config
     inline constexpr float VOL_ALERT          = 70.f;
     inline constexpr float VOL_REPORT         = 60.f;
     inline constexpr float VOL_MILITARY_DEATH = 80.f;
-    inline constexpr float VOL_MILITARY_WALK  = 4.f;
+    inline constexpr float VOL_HOST_WALK      = 20.f;
     inline constexpr float VOL_DOOR_OPEN      = 100.f;
 
     inline constexpr float VOL_SHOT              = 60.f;
