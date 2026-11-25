@@ -19,18 +19,18 @@ void AnimationController::AddClip(const std::string& name, int frameCount, float
     if (m_nextRow >= rows) return;
 
     int row = m_nextRow++;
-    AddClipRow(name, row, 0, frameCount, frameTime);
+    AddClipRow(name, row, 0, frameCount, frameTime, true);
 }
 
 void AnimationController::AddClip(const std::string& name, int frameCount, float frameTime,
-                                  int row, int startCol)
+                                  int row, int startCol, bool loop)
 {
     if (m_texture == nullptr || frameCount <= 0 || row < 0 || startCol < 0) return;
 
     int rows = (int)(m_texture->getSize().y / m_frameH);
     if (row >= rows) return;
 
-    AddClipRow(name, row, startCol, frameCount, frameTime);
+    AddClipRow(name, row, startCol, frameCount, frameTime, loop);
 
     if (row + 1 > m_nextRow) m_nextRow = row + 1;
 }
@@ -43,7 +43,7 @@ void AnimationController::AddClip(const std::string& name,
 }
 
 void AnimationController::AddClipRow(const std::string& name, int row, int startCol,
-                                     int count, float frameTime)
+                                     int count, float frameTime, bool loop)
 {
     int cols = (int)(m_texture->getSize().x / m_frameW);
     int realCount = std::min(count, cols - startCol);
@@ -56,19 +56,26 @@ void AnimationController::AddClipRow(const std::string& name, int row, int start
         frames.emplace_back((startCol + i) * m_frameW, row * m_frameH, m_frameW, m_frameH);
     }
 
-    bool  loop = (realCount > 1);
-    float ft   = (realCount > 1) ? frameTime : 1.f;
+    bool  actualLoop = loop && (realCount > 1);
+    float ft         = (realCount > 1) ? frameTime : 1.f;
 
-    m_clips[name] = Clip{ frames, ft, loop };
+    m_clips[name] = Clip{ frames, ft, actualLoop };
 }
 
-void AnimationController::Play(const std::string& name)
+void AnimationController::Play(const std::string& name, bool restart)
 {
-    if (m_current == name) return;
+    if (m_current == name && !restart) return;
     if (!m_clips.count(name)) return;
     m_current = name;
     m_frame   = 0;
     m_elapsed = 0.f;
+}
+
+bool AnimationController::IsFinished() const
+{
+    auto it = m_clips.find(m_current);
+    if (it == m_clips.end() || it->second.frames.empty()) return true;
+    return !it->second.loop && m_frame >= (int)it->second.frames.size() - 1;
 }
 
 void AnimationController::Update(float dt)
@@ -114,21 +121,24 @@ public:
 
     void AddClip(const std::string& name, int frameCount, float frameTime);
     void AddClip(const std::string& name, int frameCount, float frameTime,
-                 int row, int startCol = 0);
+                 int row, int startCol = 0, bool loop = true);
 
     void AddClip(const std::string& name,
                  const std::vector<sf::IntRect>& frames,
                  float frameTime, bool loop = true);
 
-    void Play(const std::string& name);
+    void Play(const std::string& name, bool restart = false);
     void Update(float dt);
     void Apply(sf::Sprite& sprite) const;
+
+    bool HasClip(const std::string& name) const { return m_clips.count(name) > 0; }
+    bool IsFinished() const;
 
     const std::string& Current() const { return m_current; }
 
 private:
     void AddClipRow(const std::string& name, int row, int startCol,
-                    int count, float frameTime);
+                    int count, float frameTime, bool loop);
 
     const sf::Texture* m_texture = nullptr;
     int m_frameW  = 0;
@@ -268,8 +278,8 @@ namespace Config
     {
         Parasite,
         Human,
-        Bullet,
-        Military
+        Military,
+        Bullet
     };
 
     enum class BlockNames
@@ -281,8 +291,7 @@ namespace Config
         Elevator,
         Ventilation,
         Glass,
-        Door,
-        DoorOpen
+        Door
     };
 
     enum class CollisionType
@@ -325,6 +334,7 @@ namespace Config
     inline constexpr float PARASITE_GRAVITY = 2500.f;
     inline constexpr float PARASITE_JUMP_FORCE = 1000.f;
     inline constexpr float PARASITE_MAX_HEALTH = 5.f;
+    inline constexpr float PARASITE_DANGER_HEALTH = 2.f;
     inline constexpr float MAX_FALL_SPEED = 1000.f;
     inline constexpr int PARASITE_FRAME_W = 16;
     inline constexpr int PARASITE_FRAME_H = 16;
@@ -356,6 +366,11 @@ namespace Config
     inline constexpr float SCIENTIST_WALK_THRESHOLD = 15.f;
 
     inline constexpr float SCIENTIST_DECAY_TIME = 10.f;
+    inline constexpr float SCIENTIST_PATROL_SPEED = 90.f;
+    inline constexpr float SCIENTIST_WALK_TIME_MIN = 1.5f;
+    inline constexpr float SCIENTIST_WALK_TIME_MAX = 3.5f;
+    inline constexpr float SCIENTIST_IDLE_TIME_MIN = 1.0f;
+    inline constexpr float SCIENTIST_IDLE_TIME_MAX = 3.0f;
 
     inline constexpr float DASH_COOLDOWN_TIME = 2.f;
     inline constexpr float DASH_DURATION = 0.15f;
@@ -386,6 +401,12 @@ namespace Config
     inline constexpr float MENU_BUTTON_TEXT_SIZE = 50.f;
 
     inline constexpr float PLAYER_HUD_WIDTH = 50.f;
+
+    inline constexpr float AMMO_DOT_RADIUS = 3.5f;
+    inline constexpr float AMMO_DOT_SPACING = 11.f;
+    inline constexpr float AMMO_DOT_OFFSET_Y = 54.f;
+    inline const sf::Color AMMO_DOT_FILL_COLOR = sf::Color(255, 220, 80);
+    inline const sf::Color AMMO_DOT_EMPTY_COLOR = sf::Color(80, 80, 80, 200);
 
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
 
@@ -426,12 +447,15 @@ namespace Config
     inline constexpr float VOL_SMASH = 10.f;
     inline constexpr float VOL_WALK = 40.f;
     inline constexpr float VOL_WIN = 90.f;
-    inline constexpr float VOL_BGM = 5.f;
+    inline constexpr float VOL_BGM = 1.f;
 
     inline constexpr float STEP_SOUND_INTERVAL = 0.35f;
     inline constexpr float WALK_SOUND_VELOCITY = 15.f;
     inline constexpr float SMASH_FALL_SPEED_RATIO = 0.6f;
     inline constexpr float EJECT_DAMAGE = 9999.f;
+
+    inline constexpr float HOST_WALK_THRESHOLD = 15.f;
+    inline constexpr float CORPSE_LINGER_TIME  = 8.f;
 
     inline constexpr float MILITARY_SCALE            = 2.0f;
     inline constexpr int   MILITARY_FRAME_W          = 16;
@@ -451,12 +475,33 @@ namespace Config
     inline constexpr float MILITARY_DECAY_TIME       = 12.f;
 
     inline constexpr float MILITARY_VIEW_RANGE       = 420.f;
+    inline constexpr float MILITARY_FOV_COSINE       = 0.15f;
     inline constexpr float MILITARY_REACTION_TIME    = 0.35f;
-    inline constexpr float MILITARY_FIRE_INTERVAL    = 0.45f;
+    inline constexpr float MILITARY_FIRE_INTERVAL    = 0.1f;
     inline constexpr int   MILITARY_AMMO             = 6;
-    inline constexpr float MILITARY_RELOAD_TIME      = 1.6f;
+    inline constexpr float MILITARY_RELOAD_TIME      = 2.0f;
     inline constexpr float MILITARY_SHOT_DAMAGE      = 1.f;
     inline constexpr float MILITARY_LOSE_TARGET_TIME = 2.5f;
+    inline constexpr float MILITARY_ATTACK_STATE_TIME = 0.18f;
+    inline constexpr float MILITARY_ALERT_STATE_TIME  = 0.45f;
+
+    inline constexpr float ALERT_MARK_WIDTH = 5.f;
+    inline constexpr float ALERT_MARK_HEIGHT = 16.f;
+    inline constexpr float ALERT_MARK_DOT_RADIUS = 3.5f;
+    inline constexpr float ALERT_MARK_BOTTOM_OFFSET = 10.f;
+    inline constexpr float ALERT_MARK_DOT_OFFSET = 5.f;
+    inline const sf::Color ALERT_MARK_COLOR = sf::Color(255, 210, 0);
+
+    inline constexpr float MILITARY_WEAPON_SHOULDER_X = 7.f;
+    inline constexpr float MILITARY_WEAPON_SHOULDER_Y = -8.f;
+    inline constexpr float MILITARY_WEAPON_SCALE      = 2.f;
+    inline constexpr int   MILITARY_WEAPON_FRAME_W    = 18;
+    inline constexpr int   MILITARY_WEAPON_FRAME_H    = 5;
+    inline constexpr float MILITARY_WEAPON_GRIP_X     = 2.f;
+    inline constexpr float MILITARY_WEAPON_SHOOT_FRAME_TIME = 0.06f;
+
+    inline constexpr float DOOR_OPEN_FRAME_TIME  = 0.06f;
+    inline constexpr int   DOOR_OPEN_FRAME_COUNT = 10;
 
     inline constexpr float MILITARY_REPORT_RADIUS    = 64.f;
     inline constexpr float MILITARY_REPORT_TIMEOUT   = 2.f;
@@ -464,46 +509,75 @@ namespace Config
     inline constexpr float MILITARY_IDLE_FRAME_TIME  = 0.40f;
     inline constexpr float MILITARY_WALK_FRAME_TIME  = 0.12f;
     inline constexpr float MILITARY_SHOOT_FRAME_TIME = 0.06f;
-    inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.08f;
+    inline constexpr float MILITARY_DEATH_FRAME_TIME = 0.3f;
     inline constexpr float MILITARY_WALK_THRESHOLD   = 15.f;
+    inline constexpr float HOST_STEP_SOUND_INTERVAL = 1.45f;
 
     inline constexpr float HOST_DANGER_THRESHOLD   = 3.f;
     inline constexpr float HOST_DANGER_PULSE_SPEED = 6.f;
+
+    inline constexpr float VIGNETTE_BASE_ALPHA  = 55.f;
+    inline constexpr float VIGNETTE_PULSE_ALPHA = 55.f;
+    inline const sf::Color VIGNETTE_COLOR = sf::Color(140, 0, 0);
+
+    inline constexpr const char* SOUND_ID_BULLETS_DROP  = "bullets_drop";
+    inline constexpr const char* SOUND_ID_RELOAD        = "reload";
+    inline constexpr const char* SOUND_ID_ALERT         = "alert";
+    inline constexpr const char* SOUND_ID_REPORT        = "report";
+    inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
+    inline constexpr const char* SOUND_ID_HOST_WALK      = "host_walk";
+    inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
 
     inline constexpr const char* SOUND_ID_SHOT_1        = "shot_1";
     inline constexpr const char* SOUND_ID_SHOT_2        = "shot_2";
     inline constexpr const char* SOUND_ID_SHOT_3        = "shot_3";
     inline constexpr int         SOUND_SHOT_VARIANTS    = 3;
-    inline constexpr const char* SOUND_ID_RELOAD        = "reload";
-    inline constexpr const char* SOUND_ID_ALERT         = "alert";
-    inline constexpr const char* SOUND_ID_REPORT        = "report";
-    inline constexpr const char* SOUND_ID_EXPLOSION     = "explosion";
-    inline constexpr const char* SOUND_ID_MILITARY_DEATH = "military_death";
-    inline constexpr const char* SOUND_ID_MILITARY_STEP  = "military_step";
-    inline constexpr const char* SOUND_ID_DOOR_OPEN     = "door_open";
-    inline constexpr const char* SOUND_ID_DOOR_LOCKED   = "door_locked";
+    inline constexpr const char* SOUND_ID_MILITARY_DAMAGE  = "military_damage";
+    inline constexpr const char* SOUND_ID_SCIENTIST_DAMAGE = "scientist_damage";
+    inline constexpr const char* SOUND_ID_HEARTBEAT        = "heartbeat";
+
+    inline constexpr const char* SOUND_PATH_BULLETS_DROP  = "../assets/sounds/bullets_drop.wav";
+    inline constexpr const char* SOUND_PATH_RELOAD        = "../assets/sounds/reload.wav";
+    inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
+    inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
+    inline constexpr const char* SOUND_PATH_HOST_WALK     = "../assets/sounds/host_walk.wav";
+    inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/open_door.wav";
 
     inline constexpr const char* SOUND_PATH_SHOT_1        = "../assets/sounds/shot_1.wav";
     inline constexpr const char* SOUND_PATH_SHOT_2        = "../assets/sounds/shot_2.wav";
     inline constexpr const char* SOUND_PATH_SHOT_3        = "../assets/sounds/shot_3.wav";
-    inline constexpr const char* SOUND_PATH_RELOAD        = "../assets/sounds/reload.wav";
-    inline constexpr const char* SOUND_PATH_ALERT         = "../assets/sounds/alert.wav";
-    inline constexpr const char* SOUND_PATH_REPORT        = "../assets/sounds/report.wav";
-    inline constexpr const char* SOUND_PATH_EXPLOSION     = "../assets/sounds/explosion.wav";
-    inline constexpr const char* SOUND_PATH_MILITARY_DEATH = "../assets/sounds/military_death.wav";
-    inline constexpr const char* SOUND_PATH_MILITARY_STEP  = "../assets/sounds/military_step.wav";
-    inline constexpr const char* SOUND_PATH_DOOR_OPEN     = "../assets/sounds/door_open.wav";
-    inline constexpr const char* SOUND_PATH_DOOR_LOCKED   = "../assets/sounds/door_locked.wav";
+    inline constexpr const char* SOUND_PATH_MILITARY_DAMAGE  = "../assets/sounds/military_damage.wav";
+    inline constexpr const char* SOUND_PATH_SCIENTIST_DAMAGE = "../assets/sounds/scientist_damage.wav";
+    inline constexpr const char* SOUND_PATH_HEARTBEAT        = "../assets/sounds/heartbeat.wav";
 
-    inline constexpr float VOL_SHOT           = 60.f;
-    inline constexpr float VOL_RELOAD         = 50.f;
+    inline constexpr float VOL_BULLETS_DROP   = 45.f;
+    inline constexpr float VOL_RELOAD         = 70.f;
     inline constexpr float VOL_ALERT          = 70.f;
     inline constexpr float VOL_REPORT         = 60.f;
-    inline constexpr float VOL_EXPLOSION      = 90.f;
     inline constexpr float VOL_MILITARY_DEATH = 80.f;
-    inline constexpr float VOL_MILITARY_STEP  = 35.f;
-    inline constexpr float VOL_DOOR_OPEN      = 70.f;
-    inline constexpr float VOL_DOOR_LOCKED    = 60.f;
+    inline constexpr float VOL_HOST_WALK      = 20.f;
+    inline constexpr float VOL_DOOR_OPEN      = 100.f;
+
+    inline constexpr float VOL_SHOT              = 60.f;
+    inline constexpr float VOL_MILITARY_DAMAGE   = 80.f;
+    inline constexpr float VOL_SCIENTIST_DAMAGE  = 80.f;
+    inline constexpr float VOL_HEARTBEAT         = 100.f;
+
+    inline constexpr float RAD_TO_DEG = 57.2957795f;
+
+    inline constexpr int   BULLET_POOL_SIZE    = 64;
+    inline constexpr float BULLET_SPEED        = 800.f;
+    inline constexpr float BULLET_LENGTH       = 14.f;
+    inline constexpr float BULLET_THICKNESS    = 4.f;
+    inline constexpr float BULLET_HITBOX_SIZE  = 6.f;
+    inline constexpr float BULLET_MAX_LIFETIME = 2.0f;
+
+    inline const sf::Color BULLET_PLAYER_COLOR = sf::Color(255, 240, 120);
+    inline const sf::Color BULLET_ENEMY_COLOR  = sf::Color(255, 110, 60);
+    inline const sf::Color BULLET_DEBUG_COLOR  = sf::Color::Yellow;
+
+    inline constexpr float LOS_STEP_SIZE       = 8.f;
 
     enum class TutorialStep
     {
@@ -519,20 +593,23 @@ namespace Config
 }
 Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.cpp
 Code:
+// Path: ./src/Core/Debug/DebugOverlay/DebugOverlay.cpp
 #include "DebugOverlay.hpp"
+
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+
 #include "Core/Config.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
-#include <sstream>
-#include <iomanip>
-#include <cmath>
-#include <iostream>
 
-void DebugOverlay::Init(const sf::Font& font, sf::Vector2u windowSize)
+void DebugOverlay::Init(const sf::Font &font, sf::Vector2u windowSize)
 {
     s_currentFont = &font;
-    
-    s_text = sf::Text(); 
-    
+
+    s_text = sf::Text();
+
     s_text.setFont(font);
     s_text.setCharacterSize(18);
     s_text.setFillColor(sf::Color::Yellow);
@@ -541,14 +618,44 @@ void DebugOverlay::Init(const sf::Font& font, sf::Vector2u windowSize)
     s_text.setPosition(20.f, static_cast<float>(windowSize.y) - 35.f);
 }
 
-void DebugOverlay::ToggleMouseCoords() { s_show = !s_show; }
-bool DebugOverlay::IsMouseCoordsEnabled() { return s_show; }
-
-void DebugOverlay::Draw(sf::RenderWindow& window, const sf::View& worldView)
+void DebugOverlay::ToggleMouseCoords()
 {
-    if (!s_show) return;
+    s_show = !s_show;
+}
+bool DebugOverlay::IsMouseCoordsEnabled()
+{
+    return s_show;
+}
 
-    if (s_currentFont == nullptr) return;
+void DebugOverlay::AddLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color color)
+{
+    s_lines.push_back({p1, p2, color});
+}
+
+void DebugOverlay::Draw(sf::RenderWindow &window, const sf::View &worldView)
+{
+    if (!s_lines.empty())
+    {
+        sf::View oldView = window.getView();
+        window.setView(worldView);
+
+        std::vector<sf::Vertex> vertices;
+        vertices.reserve(s_lines.size() * 2);
+        for (const auto &line : s_lines)
+        {
+            vertices.push_back(sf::Vertex(line.p1, line.color));
+            vertices.push_back(sf::Vertex(line.p2, line.color));
+        }
+        window.draw(vertices.data(), vertices.size(), sf::Lines);
+        s_lines.clear(); // Сбрасываем линии после рендера текущего кадра
+
+        window.setView(oldView);
+    }
+
+    if (!s_show)
+        return;
+    if (s_currentFont == nullptr)
+        return;
 
     sf::Vector2i pixel = sf::Mouse::getPosition(window);
     sf::Vector2f world = window.mapPixelToCoords(pixel, worldView);
@@ -557,18 +664,19 @@ void DebugOverlay::Draw(sf::RenderWindow& window, const sf::View& worldView)
     int tileY = static_cast<int>(std::floor(world.y / Config::WORLD_TILE_SIZE));
 
     std::ostringstream ss;
-    ss << "Px: (" << pixel.x << ", " << pixel.y << ")   "
-       << "World: (" << std::fixed << std::setprecision(1)
-       << world.x << ", " << world.y << ")   "
-       << "Tile: (" << tileX << ", " << tileY << ")";
+    ss << "Px: (" << pixel.x << ", " << pixel.y << ")   " << "World: (" << std::fixed
+       << std::setprecision(1) << world.x << ", " << world.y << ")   " << "Tile: (" << tileX << ", "
+       << tileY << ")";
 
     s_text.setString(StringUtils::ToSfStringFromUtf8(ss.str()));
     window.draw(s_text);
 }
 Path to file: ./src/Core/Debug/DebugOverlay/DebugOverlay.hpp
 Code:
+// Path: ./src/Core/Debug/DebugOverlay/DebugOverlay.hpp
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <vector>
 
 class DebugOverlay
 {
@@ -578,7 +686,15 @@ public:
     static bool IsMouseCoordsEnabled();
     static void Draw(sf::RenderWindow& window, const sf::View& worldView);
 
+    static void AddLine(sf::Vector2f p1, sf::Vector2f p2, sf::Color color);
+
 private:
+    struct DebugLine {
+        sf::Vector2f p1, p2;
+        sf::Color color;
+    };
+    static inline std::vector<DebugLine> s_lines;
+
     static inline bool s_show = false;
     static inline sf::Text s_text;
     static inline const sf::Font* s_currentFont = nullptr; 
@@ -589,6 +705,7 @@ Code:
 #include <SFML/Graphics.hpp>
 #include "Core/Map/Map.hpp"
 #include "Core/Sound/SoundManager/SoundManager.hpp"
+#include "Entities/Bullet/BulletManager/BulletManager.hpp"
 
 class LivingEntity;
 
@@ -598,6 +715,7 @@ struct GameContext
     sf::Vector2f mousePos;
     Map* levelMap;
     SoundManager* audio;
+    BulletManager* bullets = nullptr;
 
     LivingEntity* playerAvatar = nullptr;
     bool avatarIsParasite = true;
@@ -664,17 +782,20 @@ Game::Game()
     m_data->sound.LoadSound(SOUND_ID_WIN,         SOUND_PATH_WIN,         VOL_WIN);
     m_data->sound.LoadSound(SOUND_ID_DASH,        SOUND_PATH_DASH,        VOL_DASH);
 
-    m_data->sound.LoadSound(SOUND_ID_SHOT_1, SOUND_PATH_SHOT_1, VOL_SHOT);
-    m_data->sound.LoadSound(SOUND_ID_SHOT_2, SOUND_PATH_SHOT_2, VOL_SHOT);
-    m_data->sound.LoadSound(SOUND_ID_SHOT_3, SOUND_PATH_SHOT_3, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_BULLETS_DROP, SOUND_PATH_BULLETS_DROP, VOL_BULLETS_DROP);
     m_data->sound.LoadSound(SOUND_ID_RELOAD, SOUND_PATH_RELOAD, VOL_RELOAD);
     m_data->sound.LoadSound(SOUND_ID_ALERT, SOUND_PATH_ALERT, VOL_ALERT);
     m_data->sound.LoadSound(SOUND_ID_REPORT, SOUND_PATH_REPORT, VOL_REPORT);
-    m_data->sound.LoadSound(SOUND_ID_EXPLOSION, SOUND_PATH_EXPLOSION, VOL_EXPLOSION);
     m_data->sound.LoadSound(SOUND_ID_MILITARY_DEATH, SOUND_PATH_MILITARY_DEATH, VOL_MILITARY_DEATH);
-    m_data->sound.LoadSound(SOUND_ID_MILITARY_STEP,  SOUND_PATH_MILITARY_STEP,  VOL_MILITARY_STEP);
+    m_data->sound.LoadSound(SOUND_ID_HOST_WALK, SOUND_PATH_HOST_WALK, VOL_HOST_WALK);
     m_data->sound.LoadSound(SOUND_ID_DOOR_OPEN, SOUND_PATH_DOOR_OPEN, VOL_DOOR_OPEN);
-    m_data->sound.LoadSound(SOUND_ID_DOOR_LOCKED, SOUND_PATH_DOOR_LOCKED, VOL_DOOR_LOCKED);
+
+    m_data->sound.LoadSound(SOUND_ID_SHOT_1, SOUND_PATH_SHOT_1, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_2, SOUND_PATH_SHOT_2, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_SHOT_3, SOUND_PATH_SHOT_3, VOL_SHOT);
+    m_data->sound.LoadSound(SOUND_ID_MILITARY_DAMAGE, SOUND_PATH_MILITARY_DAMAGE, VOL_MILITARY_DAMAGE);
+    m_data->sound.LoadSound(SOUND_ID_SCIENTIST_DAMAGE, SOUND_PATH_SCIENTIST_DAMAGE, VOL_SCIENTIST_DAMAGE);
+    m_data->sound.LoadSound(SOUND_ID_HEARTBEAT, SOUND_PATH_HEARTBEAT, VOL_HEARTBEAT);
 
     m_data->sound.LoadMusic(MUSIC_ID_BGM, MUSIC_PATH_BGM, VOL_BGM);
 
@@ -824,6 +945,11 @@ bool GameKeyboard::IsEjectKeyPressed()
     return sf::Mouse::isButtonPressed(sf::Mouse::Right);
 }
 
+bool GameKeyboard::IsShootKeyPressed()
+{
+    return sf::Mouse::isButtonPressed(sf::Mouse::Left);
+}
+
 bool GameKeyboard::IsHitboxesPressed(const sf::Event& event)
 {
     return event.key.code == sf::Keyboard::B && sf::Keyboard::isKeyPressed(sf::Keyboard::F3);
@@ -884,6 +1010,7 @@ public:
     static bool IsRightKeyPressed();
     static bool IsDashKeyPressed();
     static bool IsEjectKeyPressed();
+    static bool IsShootKeyPressed();
 
     static void SetMovementEnabled(bool state) { s_movementEnabled = state; }
     static void SetJumpEnabled(bool state)     { s_jumpEnabled = state; }
@@ -908,6 +1035,7 @@ Code:
 #include "Core/Config.hpp"
 #include "Entities/Host/Host.hpp"
 #include "Entities/Scientist/Scientist.hpp"
+#include "Entities/Military/Military.hpp"
 #include "Entities/Items/Syringe/Syringe.hpp"
 #include <fstream>
 #include <sstream>
@@ -969,6 +1097,10 @@ void LevelLoader::LoadEnemies(const std::string& path,
         {
             enemy = std::make_unique<Scientist>(pos);
         } 
+        else if (type == "Military")
+        {
+            enemy = std::make_unique<Military>(pos);
+        }
         else
         {
             std::cerr << "[LevelLoader] " << path << ":" << lineNum
@@ -1079,6 +1211,7 @@ Level::Level()
 void Level::Load(const std::string& name, SoundManager& audio)
 {
     m_audio = &audio;
+    m_audio->StopSound(SOUND_ID_HEARTBEAT);
     m_stats.Reset();
     m_result = LevelResult::None;
 
@@ -1087,6 +1220,7 @@ void Level::Load(const std::string& name, SoundManager& audio)
 
     m_hosts.clear();
     m_syringes.clear();
+    m_bullets.Clear();
 
     LevelLoader::LoadEnemies("../assets/map/enemies_" + name + ".txt", m_hosts, m_map);
     LevelLoader::LoadSyringes("../assets/map/syringes_" + name + ".txt", m_syringes, m_map);
@@ -1134,6 +1268,8 @@ void Level::Update(float dt, const LevelInput& input)
 {
     m_stats.timeSpent += dt;
 
+    m_map.Update(dt);
+
     UpdateCamera(dt, input);
 
     GameContext ctx;
@@ -1143,17 +1279,31 @@ void Level::Update(float dt, const LevelInput& input)
     ctx.audio = m_audio;
     ctx.playerAvatar = m_playerAvatar;
     ctx.avatarIsParasite = (m_playerAvatar == &m_parasite);
+    ctx.bullets = &m_bullets;
 
     m_parasite.Update(ctx);
 
     for (auto& enemy : m_hosts)
+    {
         enemy->Update(ctx);
+    }
     for (auto& syringe : m_syringes)
+    {
         syringe->Update(ctx);
+    }
+    
+    const std::vector<sf::Vector2i> brokenTiles = m_bullets.Update(dt, m_map);
 
+    if (!brokenTiles.empty())
+    {
+        m_audio->PlaySound(SOUND_ID_BREAK_GLASS);
+    }
+
+    HandleBullets();
     HandlePossession();
     HandleEjection(ctx);
     HandleItems(ctx);
+    UpdateHeartbeat();
 
     CleanDeadEnemies();
 
@@ -1162,6 +1312,72 @@ void Level::Update(float dt, const LevelInput& input)
                      m_syringes.end());
 
     CheckEndConditions();
+}
+
+void Level::HandleBullets()
+{
+    for (Bullet& bullet : m_bullets.GetBullets())
+    {
+        if (!bullet.active)
+        {
+            continue;
+        }
+
+        sf::FloatRect bulletBounds = BulletManager::GetBulletBounds(bullet);
+
+        if (!bullet.fromPlayer)
+        {
+            if (m_playerAvatar != nullptr && !m_playerAvatar->IsDead() &&
+                bulletBounds.intersects(m_playerAvatar->GetBounds()))
+            {
+                m_playerAvatar->TakeDamage(bullet.damage);
+                bullet.active = false;
+
+                if (!m_playerAvatar->IsDead())
+                {
+                    const char* sound = m_playerAvatar->GetDamageSound();
+                    if (sound != nullptr && m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
+            }
+            continue;
+        }
+
+        for (auto& enemy : m_hosts)
+        {
+            if (enemy->IsDead() || enemy.get() == m_currentHost)
+            {
+                continue;
+            }
+
+            if (bulletBounds.intersects(enemy->GetBounds()))
+            {
+                bool wasDead = enemy->IsDead();
+                enemy->TakeDamage(bullet.damage);
+                bullet.active = false;
+
+                if (!wasDead && enemy->IsDead())
+                {
+                    const char* sound = enemy->GetDeathSound();
+                    if (m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
+                else if (!wasDead)
+                {
+                    const char* sound = enemy->GetDamageSound();
+                    if (sound != nullptr && m_audio->HasSound(sound))
+                    {
+                        m_audio->PlaySound(sound);
+                    }
+                }
+                break;
+            }
+        }
+    }
 }
 
 void Level::HandlePossession()
@@ -1174,9 +1390,11 @@ void Level::HandlePossession()
         if (!enemy->IsDead() && m_parasite.GetBounds().intersects(enemy->GetBounds()))
         {
             m_parasite.SetPlayerControlled(false);
+            m_parasite.ResetMovement();
 
             enemy->SetPlayerControlled(true);
             enemy->ResetDecayTimer();
+            enemy->OnPossessed();
 
             m_playerAvatar = enemy.get();
             m_currentHost = enemy.get();
@@ -1198,18 +1416,35 @@ void Level::HandleEjection(const GameContext& ctx)
 
     bool manualEject = GameKeyboard::IsEjectKeyPressed();
     bool timeOut = (m_currentHost->GetDecayTimer() <= 0.f);
+    bool hostDead = m_currentHost->IsDead();
 
     if (manualEject && m_timeInCurrentHost < Config::COOLDOWN_IN_HOST)
         manualEject = false;
 
-    if (manualEject || timeOut)
+    if (manualEject || timeOut || hostDead)
     {
+        sf::Vector2f ejectPosition = m_currentHost->GetPosition();
+        bool hostDiedNow = !hostDead && (manualEject || timeOut);
+
         m_currentHost->SetPlayerControlled(false);
-        m_currentHost->TakeDamage(Config::EJECT_DAMAGE);
+        m_currentHost->OnEjected();
 
-        ctx.audio->PlaySound(SOUND_ID_DEATH);
+        if (hostDiedNow)
+        {
+            m_currentHost->Kill();
+        }
 
-        m_parasite.SetPosition(m_currentHost->GetPosition());
+        if (hostDiedNow || hostDead)
+        {
+            const char* sound = m_currentHost->GetDeathSound();
+            if (ctx.audio->HasSound(sound))
+            {
+                ctx.audio->PlaySound(sound);
+            }
+        }
+
+        m_parasite.SetPosition(ejectPosition);
+        m_parasite.ResetMovement();
         m_parasite.SetPlayerControlled(true);
 
         if (manualEject)
@@ -1217,6 +1452,7 @@ void Level::HandleEjection(const GameContext& ctx)
 
         m_playerAvatar = &m_parasite;
         m_currentHost = nullptr;
+        m_timeInCurrentHost = 0.f;
     }
 }
 
@@ -1240,11 +1476,42 @@ void Level::HandleItems(const GameContext& ctx)
     }
 }
 
+bool Level::IsInDanger() const
+{
+    if (m_currentHost != nullptr && m_playerAvatar == m_currentHost)
+    {
+        return !m_currentHost->IsDead() &&
+               m_currentHost->GetDecayTimer() <= Config::HOST_DANGER_THRESHOLD;
+    }
+
+    return !m_parasite.IsDead() &&
+           m_parasite.GetLife() <= Config::PARASITE_DANGER_HEALTH;
+}
+
+void Level::UpdateHeartbeat()
+{
+    if (m_audio == nullptr)
+        return;
+
+    if (IsInDanger())
+    {
+        m_audio->PlaySound(SOUND_ID_HEARTBEAT, true);
+    }
+    else
+    {
+        m_audio->StopSound(SOUND_ID_HEARTBEAT);
+    }
+}
+
 void Level::CleanDeadEnemies()
 {
     m_hosts.erase(std::remove_if(m_hosts.begin(), m_hosts.end(),
-                                 [](const std::unique_ptr<Host>& enemy)
-                                 { return enemy->IsDead(); }),
+                                 [this](const std::unique_ptr<Host>& enemy)
+                                 {
+                                     return enemy->IsDead() &&
+                                            enemy->GetCorpseTime() >= Config::CORPSE_LINGER_TIME &&
+                                            enemy.get() != m_currentHost;
+                                 }),
                   m_hosts.end());
 }
 
@@ -1258,6 +1525,7 @@ void Level::CheckEndConditions()
 
     if (isParasiteDead || fellIntoPit)
     {
+        m_audio->StopSound(SOUND_ID_HEARTBEAT);
         m_audio->PlaySound(SOUND_ID_LOSE);
         m_audio->PlaySound(SOUND_ID_DEATH);
         m_result = LevelResult::Failed;
@@ -1269,6 +1537,7 @@ void Level::CheckEndConditions()
         int access = m_playerAvatar->GetProperties().GetInt("access_level", 0);
         if (access >= 1)
         {
+            m_audio->StopSound(SOUND_ID_HEARTBEAT);
             m_audio->PlaySound(SOUND_ID_WIN);
             m_result = LevelResult::Completed;
         }
@@ -1286,15 +1555,31 @@ void Level::Draw(sf::RenderWindow& window)
 
     for (auto& enemy : m_hosts)
     {
-        if (!enemy->IsDead())
+        if (enemy->IsDead())
+        {
             enemy->Draw(window);
+        }
+    }
+
+    for (auto& enemy : m_hosts)
+    {
+        if (!enemy->IsDead())
+        {
+            enemy->Draw(window);
+        }
     }
 
     for (auto& syringe : m_syringes)
+    {
         syringe->Draw(window);
+    }
 
     if (m_parasite.IsPlayerControlled())
+    {
         m_parasite.Draw(window);
+    }
+    
+    m_bullets.Draw(window);
 }
 Path to file: ./src/Core/LevelLogic/Level/Level.hpp
 Code:
@@ -1309,6 +1594,7 @@ Code:
 #include "Entities/Parasite/Parasite.hpp"
 #include "Entities/Host/Host.hpp"
 #include "Entities/Items/Syringe/Syringe.hpp"
+#include "Entities/Bullet/BulletManager/BulletManager.hpp"
 
 class SoundManager;
 
@@ -1335,6 +1621,7 @@ public:
     LevelResult GetResult() const { return m_result; }
     const LevelStats& GetStats() const { return m_stats; }
     bool IsAvatarInElevator() const;
+    bool IsInDanger() const;
 
 private:
     void UpdateCamera(float dt, const LevelInput& input);
@@ -1343,8 +1630,12 @@ private:
     void HandlePossession();
     void HandleEjection(const GameContext& ctx);
     void HandleItems(const GameContext& ctx);
+    void UpdateHeartbeat();
     void CleanDeadEnemies();
     void CheckEndConditions();
+    void HandleBullets();
+
+    BulletManager m_bullets;
 
     SoundManager* m_audio = nullptr;
     Map m_map;
@@ -1379,6 +1670,102 @@ struct LevelStats {
         syringesCollected = 0;
     }
 };
+Path to file: ./src/Core/Map/Door.cpp
+Code:
+#include "Core/Map/Door.hpp"
+#include "Core/Config.hpp"
+
+Door::Door(int tileX, int tileY, const sf::Texture& texture)
+    : m_tileX(tileX), m_tileY(tileY)
+{
+    const float scale = static_cast<float>(Config::WORLD_TILE_SIZE) / Config::TEXTURE_TILE_SIZE;
+
+    m_sprite.setTexture(texture);
+    m_sprite.setScale(scale, scale);
+    m_sprite.setOrigin(Config::TEXTURE_TILE_SIZE / 2.f, static_cast<float>(Config::TEXTURE_TILE_SIZE));
+    m_sprite.setPosition(tileX * Config::WORLD_TILE_SIZE + Config::WORLD_TILE_SIZE / 2.f,
+                         (tileY + 1) * Config::WORLD_TILE_SIZE);
+
+    m_anim.Setup(texture, Config::TEXTURE_TILE_SIZE, Config::TEXTURE_TILE_SIZE);
+    m_anim.AddClip("opening", Config::DOOR_OPEN_FRAME_COUNT,
+                   Config::DOOR_OPEN_FRAME_TIME, 0, 0, false);
+    m_anim.Play("opening");
+    m_anim.Apply(m_sprite);
+}
+
+bool Door::Open()
+{
+    if (m_state != State::Closed)
+    {
+        return false;
+    }
+
+    m_state = State::Opening;
+    m_anim.Play("opening", true);
+    m_anim.Apply(m_sprite);
+    return true;
+}
+
+void Door::Update(float dt)
+{
+    if (m_state != State::Opening)
+    {
+        return;
+    }
+
+    m_anim.Update(dt);
+    m_anim.Apply(m_sprite);
+
+    if (m_anim.IsFinished())
+    {
+        m_state = State::Open;
+    }
+}
+
+void Door::Draw(sf::RenderWindow& window) const
+{
+    if (m_state == State::Open)
+    {
+        return;
+    }
+
+    window.draw(m_sprite);
+}
+
+Path to file: ./src/Core/Map/Door.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Core/Animation/AnimationController.hpp"
+
+class Door
+{
+public:
+    Door(int tileX, int tileY, const sf::Texture& texture);
+
+    bool Open();
+    void Update(float dt);
+    void Draw(sf::RenderWindow& window) const;
+
+    bool IsOpen() const { return m_state == State::Open; }
+    int  GetTileX() const { return m_tileX; }
+    int  GetTileY() const { return m_tileY; }
+
+private:
+    enum class State
+    {
+        Closed,
+        Opening,
+        Open
+    };
+
+    sf::Sprite m_sprite;
+    AnimationController m_anim;
+    int m_tileX;
+    int m_tileY;
+    State m_state = State::Closed;
+};
+
 Path to file: ./src/Core/Map/Map.cpp
 Code:
 #include "Core/Map/Map.hpp"
@@ -1395,6 +1782,11 @@ Map::Map() : m_width(0), m_height(0)
         std::cerr << "Ошибка: Не удалось загрузить tileset.png" << std::endl;
     }
 
+    if (!m_doorTexture.loadFromFile("../assets/animations/door.png")) {
+        std::cerr << "Ошибка: Не удалось загрузить door.png" << std::endl;
+    }
+    m_doorTexture.setSmooth(false);
+
     m_Vertices.setPrimitiveType(sf::Quads);
     
     InitStringMappings();
@@ -1410,7 +1802,6 @@ void Map::InitStringMappings()
     m_stringToBlock["ve"] = Config::BlockNames::Ventilation;
     m_stringToBlock["gl"] = Config::BlockNames::Glass;
     m_stringToBlock["dr"] = Config::BlockNames::Door;
-    m_stringToBlock["do"] = Config::BlockNames::DoorOpen;
 }
 
 Config::CollisionType Map::StringToColisionType(const string& s)
@@ -1517,6 +1908,7 @@ bool Map::LoadFromFile(const string& filename)
     }
 
     m_grid.clear();
+    m_doors.clear();
 
     string line;
     m_height = 0;
@@ -1532,9 +1924,38 @@ bool Map::LoadFromFile(const string& filename)
         LoadLeveFromLine(line);
     }
 
+    for (int i = 0; i < static_cast<int>(m_grid.size()); ++i)
+    {
+        if (m_grid[i] == Config::BlockNames::Door)
+        {
+            m_doors.emplace_back(i % m_width, i / m_width, m_doorTexture);
+        }
+    }
+
     BuildVertexArray();
 
     return true;
+}
+
+void Map::Update(float dt)
+{
+    for (Door& door : m_doors)
+    {
+        door.Update(dt);
+
+        if (!door.IsOpen())
+        {
+            continue;
+        }
+
+        int index = door.GetTileY() * m_width + door.GetTileX();
+
+        if (m_grid[index] == Config::BlockNames::Door)
+        {
+            m_grid[index] = Config::BlockNames::Empty;
+            BuildVertexElement(door.GetTileX(), door.GetTileY());
+        }
+    }
 }
 
 Config::BlockNames Map::GetTile(int x, int y) const
@@ -1591,6 +2012,17 @@ bool Map::IsSolidAt(sf::Vector2f worldPos) const
     int ty = static_cast<int>(std::floor(worldPos.y / Config::WORLD_TILE_SIZE));
 
     return IsSolid(tx, ty, Config::EntityType::Parasite);
+}
+
+bool Map::BlocksSight(int x, int y) const
+{
+    const Config::TileData* data = GetTileData(GetTile(x, y));
+
+    if (!data) return true;
+
+    return data->collision == Config::CollisionType::Solid ||
+           data->collision == Config::CollisionType::Ventilation ||
+           data->collision == Config::CollisionType::Door;
 }
 
 void Map::BuildVertexElement(int xTile, int yTile)
@@ -1679,18 +2111,46 @@ bool Map::IsDoor(int x, int y) const
     return GetTile(x, y) == Config::BlockNames::Door;
 }
 
-void Map::OpenDoor(int x, int y)
+Door* Map::FindDoor(int x, int y)
 {
-    if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
-    if (!IsDoor(x, y)) return;
+    for (Door& door : m_doors)
+    {
+        if (door.GetTileX() == x && door.GetTileY() == y)
+        {
+            return &door;
+        }
+    }
 
-    m_grid[y * m_width + x] = Config::BlockNames::DoorOpen;
-    BuildVertexElement(x, y);
+    return nullptr;
+}
+
+const Door* Map::FindDoor(int x, int y) const
+{
+    for (const Door& door : m_doors)
+    {
+        if (door.GetTileX() == x && door.GetTileY() == y)
+        {
+            return &door;
+        }
+    }
+
+    return nullptr;
+}
+
+bool Map::OpenDoor(int x, int y)
+{
+    Door* door = FindDoor(x, y);
+    return door != nullptr && door->Open();
 }
 
 void Map::Draw(sf::RenderWindow& window) const
 {
     window.draw(m_Vertices, &m_tileset);
+
+    for (const Door& door : m_doors)
+    {
+        door.Draw(window);
+    }
 }
 
 Path to file: ./src/Core/Map/Map.hpp
@@ -1701,6 +2161,7 @@ Code:
 #include <unordered_map>
 #include <SFML/Graphics.hpp>
 #include "Core/Config.hpp"
+#include "Core/Map/Door.hpp"
 
 class Map
 {
@@ -1710,9 +2171,12 @@ public:
     bool LoadTileConfig(const std::string& filename);
     bool LoadFromFile(const std::string& filename);
 
+    void Update(float dt);
+
     Config::BlockNames GetTile(int x, int y) const;
     bool IsSolid(int x, int y, Config::EntityType entityType) const;
     bool IsSolidAt(sf::Vector2f worldPos) const;
+    bool BlocksSight(int x, int y) const;
     bool IsBreakable(int x, int y) const;
     
     void BreakTile(int x, int y); 
@@ -1732,7 +2196,7 @@ public:
     float GetHeightInPixels() const { return m_height * Config::WORLD_TILE_SIZE; }
     
     bool IsDoor(int x, int y) const;
-    void OpenDoor(int x, int y);
+    bool OpenDoor(int x, int y);
 
 private:
     std::vector<Config::BlockNames> m_grid;
@@ -1754,7 +2218,12 @@ private:
 
     void BuildVertexElement(int x, int y);
 
+    Door*       FindDoor(int x, int y);
+    const Door* FindDoor(int x, int y) const;
+
     sf::Texture m_tileset;
+    sf::Texture m_doorTexture;
+    std::vector<Door> m_doors;
     sf::VertexArray m_Vertices;
 };
 Path to file: ./src/Core/Sound/SoundManager/SoundManager.cpp
@@ -1782,17 +2251,38 @@ bool SoundManager::LoadSound(const std::string& id, const std::string& filepath,
     return true;
 }
 
-void SoundManager::PlaySound(const std::string& id)
+void SoundManager::PlaySound(const std::string& id, bool loop)
 {
     auto it = m_sounds.find(id);
     if (it != m_sounds.end())
     {
+        it->second.setLoop(loop);
+
+        if (loop && it->second.getStatus() == sf::Sound::Playing)
+        {
+            return;
+        }
+
         it->second.play();
     }
     else
     {
         std::cerr << "Audio Warning: Try to play unknown sound '" << id << "'\n";
     }
+}
+
+void SoundManager::StopSound(const std::string& id)
+{
+    auto it = m_sounds.find(id);
+    if (it != m_sounds.end())
+    {
+        it->second.stop();
+    }
+}
+
+bool SoundManager::HasSound(const std::string& id) const
+{
+    return m_sounds.find(id) != m_sounds.end();
 }
 
 void SoundManager::SetSoundVolume(const std::string& id, float volume)
@@ -1866,7 +2356,9 @@ public:
 ;
 
     bool LoadSound(const std::string& id, const std::string& filepath, float volume = 100.f);
-    void PlaySound(const std::string& id);
+    bool HasSound(const std::string& id) const;
+    void PlaySound(const std::string& id, bool loop = false);
+    void StopSound(const std::string& id);
     void SetSoundVolume(const std::string& id, float volume);
 
     bool LoadMusic(const std::string& id, const std::string& filepath, float volume = 100.f);
@@ -2025,6 +2517,126 @@ private:
     float m_windowWidth = 0.f;
     float m_timer = 0.f;
 };
+Path to file: ./src/Core/Utils/RandomUtils/RandomUtils.hpp
+Code:
+#pragma once
+#include <random>
+
+namespace RandomUtils
+{
+    inline std::mt19937& Engine()
+    {
+        static std::mt19937 engine(std::random_device{}());
+        return engine;
+    }
+
+    inline float Float(float min, float max)
+    {
+        return std::uniform_real_distribution<float>(min, max)(Engine());
+    }
+
+    inline int Int(int min, int max)
+    {
+        return std::uniform_int_distribution<int>(min, max)(Engine());
+    }
+}
+
+Path to file: ./src/Core/Utils/Raycast/Raycast.cpp
+Code:
+// Path: ./src/Core/Utils/Raycast/Raycast.cpp
+#include "Core/Utils/Raycast/Raycast.hpp"
+
+#include <cmath>
+
+#include "Core/Config.hpp"
+#include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
+#include "Entities/Entity/Entity.hpp"
+
+bool Raycast::IsWithinFov(sf::Vector2f dirToTarget, sf::Vector2f faceDir, float fovCosine)
+{
+    float faceLen = std::hypot(faceDir.x, faceDir.y);
+    if (faceLen == 0.f)
+    {
+        return true;
+    }
+
+    sf::Vector2f unitFace = faceDir / faceLen;
+    float dot = dirToTarget.x * unitFace.x + dirToTarget.y * unitFace.y;
+    return dot >= fovCosine;
+}
+
+void Raycast::DrawDebugRay(sf::Vector2f from, sf::Vector2f to, bool canSee)
+{
+    if (!Entity::AreHitboxesVisible())
+    {
+        return;
+    }
+
+    sf::Color color = canSee ? sf::Color::Green : sf::Color::Red;
+    DebugOverlay::AddLine(from, to, color);
+}
+
+bool Raycast::CanSee(const Map& map,
+                     sf::Vector2f eye,
+                     sf::Vector2f target,
+                     float maxRange,
+                     float fovCosine,
+                     sf::Vector2f faceDir)
+{
+    sf::Vector2f toTarget = target - eye;
+    float distance = std::hypot(toTarget.x, toTarget.y);
+
+    if (distance > maxRange)
+    {
+        return false;
+    }
+
+    if (distance == 0.f)
+    {
+        return true;
+    }
+
+    sf::Vector2f dir = toTarget / distance;
+    if (!IsWithinFov(dir, faceDir, fovCosine))
+    {
+        return false;
+    }
+
+    float tileSize = static_cast<float>(map.GetTileSize());
+
+    for (float walked = 0.f; walked < distance; walked += Config::LOS_STEP_SIZE)
+    {
+        sf::Vector2f point = eye + dir * walked;
+        int tileX = static_cast<int>(std::floor(point.x / tileSize));
+        int tileY = static_cast<int>(std::floor(point.y / tileSize));
+
+        if (map.BlocksSight(tileX, tileY))
+        {
+            DrawDebugRay(eye, point, false);
+            return false;
+        }
+    }
+
+    DrawDebugRay(eye, target, true);
+    return true;
+}
+Path to file: ./src/Core/Utils/Raycast/Raycast.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+#include "Core/Map/Map.hpp"
+
+class Raycast
+{
+  public:
+    static bool CanSee(const Map &map, sf::Vector2f eye, sf::Vector2f target, float maxRange,
+                       float fovCosine = -1.f, sf::Vector2f faceDir = sf::Vector2f(0.f, 0.f));
+
+  private:
+    static bool IsWithinFov(sf::Vector2f dirToTarget, sf::Vector2f faceDir, float fovCosine);
+    static void DrawDebugRay(sf::Vector2f from, sf::Vector2f to, bool canSee);
+};
 Path to file: ./src/Core/Utils/StringUtils/StringUtils.hpp
 Code:
 #pragma once
@@ -2043,6 +2655,188 @@ namespace StringUtils {
     }
 
 }
+Path to file: ./src/Entities/Bullet/BulletManager/BulletManager.cpp
+Code:
+#include "Entities/Bullet/BulletManager/BulletManager.hpp"
+
+#include <cmath>
+
+#include "Entities/Entity/Entity.hpp"
+
+BulletManager::BulletManager()
+{
+    m_shape.setSize(sf::Vector2f(Config::BULLET_LENGTH, Config::BULLET_THICKNESS));
+    m_shape.setOrigin(Config::BULLET_LENGTH / 2.f, Config::BULLET_THICKNESS / 2.f);
+
+    m_debugBox.setSize(sf::Vector2f(Config::BULLET_HITBOX_SIZE, Config::BULLET_HITBOX_SIZE));
+    m_debugBox.setOrigin(Config::BULLET_HITBOX_SIZE / 2.f, Config::BULLET_HITBOX_SIZE / 2.f);
+    m_debugBox.setFillColor(sf::Color::Transparent);
+    m_debugBox.setOutlineColor(Config::BULLET_DEBUG_COLOR);
+    m_debugBox.setOutlineThickness(1.f);
+}
+
+void BulletManager::Spawn(sf::Vector2f origin, sf::Vector2f direction, float damage,
+                          bool fromPlayer)
+{
+    float length = std::hypot(direction.x, direction.y);
+    if (length == 0.f)
+    {
+        return;
+    }
+
+    sf::Vector2f unitDir = direction / length;
+
+    for (Bullet &bullet : m_pool)
+    {
+        if (bullet.active)
+        {
+            continue;
+        }
+
+        bullet.active = true;
+        bullet.fromPlayer = fromPlayer;
+        bullet.position = origin;
+        bullet.velocity = unitDir * Config::BULLET_SPEED;
+        bullet.angleDeg = std::atan2(unitDir.y, unitDir.x) * Config::RAD_TO_DEG;
+        bullet.damage = damage;
+        bullet.lifeTimer = Config::BULLET_MAX_LIFETIME;
+        return;
+    }
+}
+
+bool BulletManager::IsOutOfMap(sf::Vector2f pos, const Map &map) const
+{
+    return pos.x < 0.f || pos.x > map.GetWidthInPixels() || pos.y < 0.f ||
+           pos.y > map.GetHeightInPixels();
+}
+
+std::vector<sf::Vector2i> BulletManager::Update(float dt, Map &map)
+{
+    std::vector<sf::Vector2i> brokenTiles;
+    float tileSize = static_cast<float>(map.GetTileSize());
+
+    for (Bullet &bullet : m_pool)
+    {
+        if (!bullet.active)
+        {
+            continue;
+        }
+
+        bullet.position += bullet.velocity * dt;
+        bullet.lifeTimer -= dt;
+
+        if (bullet.lifeTimer <= 0.f || IsOutOfMap(bullet.position, map))
+        {
+            bullet.active = false;
+            continue;
+        }
+
+        int tileX = static_cast<int>(std::floor(bullet.position.x / tileSize));
+        int tileY = static_cast<int>(std::floor(bullet.position.y / tileSize));
+
+        if (!map.IsSolid(tileX, tileY, Config::EntityType::Bullet))
+        {
+            continue;
+        }
+
+        if (map.IsBreakable(tileX, tileY))
+        {
+            map.BreakTile(tileX, tileY);
+            brokenTiles.emplace_back(tileX, tileY);
+        }
+
+        bullet.active = false;
+    }
+
+    return brokenTiles;
+}
+
+void BulletManager::Draw(sf::RenderWindow &window)
+{
+    bool showHitboxes = Entity::AreHitboxesVisible();
+
+    for (const Bullet &bullet : m_pool)
+    {
+        if (!bullet.active)
+        {
+            continue;
+        }
+
+        m_shape.setPosition(bullet.position);
+        m_shape.setRotation(bullet.angleDeg);
+        m_shape.setFillColor(bullet.fromPlayer ? Config::BULLET_PLAYER_COLOR
+                                               : Config::BULLET_ENEMY_COLOR);
+        window.draw(m_shape);
+
+        if (showHitboxes)
+        {
+            m_debugBox.setPosition(bullet.position);
+            window.draw(m_debugBox);
+        }
+    }
+}
+
+void BulletManager::Clear()
+{
+    for (Bullet &bullet : m_pool)
+    {
+        bullet.active = false;
+    }
+}
+
+std::array<Bullet, Config::BULLET_POOL_SIZE> &BulletManager::GetBullets()
+{
+    return m_pool;
+}
+
+sf::FloatRect BulletManager::GetBulletBounds(const Bullet &bullet)
+{
+    float half = Config::BULLET_HITBOX_SIZE / 2.f;
+    return sf::FloatRect(bullet.position.x - half, bullet.position.y - half,
+                         Config::BULLET_HITBOX_SIZE, Config::BULLET_HITBOX_SIZE);
+}
+Path to file: ./src/Entities/Bullet/BulletManager/BulletManager.hpp
+Code:
+#pragma once
+#include <array>
+#include <vector>
+
+#include <SFML/Graphics.hpp>
+
+#include "Core/Config.hpp"
+#include "Core/Map/Map.hpp"
+
+struct Bullet
+{
+    bool active = false;
+    bool fromPlayer = false;
+    sf::Vector2f position{0.f, 0.f};
+    sf::Vector2f velocity{0.f, 0.f};
+    float angleDeg = 0.f;
+    float damage = 0.f;
+    float lifeTimer = 0.f;
+};
+
+class BulletManager
+{
+  public:
+    BulletManager();
+
+    void Spawn(sf::Vector2f origin, sf::Vector2f direction, float damage, bool fromPlayer);
+    std::vector<sf::Vector2i> Update(float dt, Map &map);
+    void Draw(sf::RenderWindow &window);
+    void Clear();
+
+    std::array<Bullet, Config::BULLET_POOL_SIZE> &GetBullets();
+    static sf::FloatRect GetBulletBounds(const Bullet &bullet);
+
+  private:
+    bool IsOutOfMap(sf::Vector2f pos, const Map &map) const;
+
+    std::array<Bullet, Config::BULLET_POOL_SIZE> m_pool;
+    sf::RectangleShape m_shape;
+    sf::RectangleShape m_debugBox;
+};
 Path to file: ./src/Entities/Character/Character.cpp
 Code:
 #include "Entities/Character/Character.hpp"
@@ -2068,8 +2862,26 @@ Character::Character(float maxLife, sf::Vector2f /*position*/)
             case EntityState::Dash: 
                 m_anim.Play("dash"); 
                 break;
+            case EntityState::Jump:
+                m_anim.Play("jump");
+                break;
+            case EntityState::Fall:
+                m_anim.Play("fall");
+                break;
             case EntityState::Dead:
                 m_anim.Play("dead"); 
+                break;
+            case EntityState::Alert:
+                m_anim.Play("alert");
+                break;
+            case EntityState::Attack:
+                m_anim.Play("attack");
+                break;
+            case EntityState::Reload:
+                m_anim.Play("reload");
+                break;
+            case EntityState::Report:
+                m_anim.Play("report");
                 break;
             default:
                 break;
@@ -2106,9 +2918,10 @@ void Character::InitHitboxFromCenter(float left, float right, float top, float b
     m_hitbox.setOutlineThickness(1.f);
 }
 
-void Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
+bool Character::InitSprite(const std::string& texturePath, int frameW, int frameH, float scale)
 {
-    if (!m_texture.loadFromFile(texturePath))
+    bool loaded = m_texture.loadFromFile(texturePath);
+    if (!loaded)
     {
         std::cerr << "Ошибка: Не удалось загрузить " << texturePath << std::endl;
     }
@@ -2118,6 +2931,8 @@ void Character::InitSprite(const std::string& texturePath, int frameW, int frame
     m_sprite.setScale(scale, scale);
     m_sprite.setOrigin(frameW / 2.f, frameH / 2.f);
     m_scale = scale;
+
+    return loaded;
 }
 
 bool Character::CheckMoveKeys(float dt)
@@ -2133,12 +2948,14 @@ bool Character::CheckMoveKeys(float dt)
     if (left)
     {
         m_velocity.x -= m_accel * dt;
+        m_lookDir = -1;
         return true;
     }
 
     if (right)
     {
         m_velocity.x += m_accel * dt;
+        m_lookDir = 1;
         return true;
     }
 
@@ -2217,7 +3034,7 @@ void Character::UpdateVertical(const GameContext& ctx, bool allowInput)
 
         OnJump();
         
-        if (const char* sound = GetJumpSound()) {
+        if (const char* sound = GetJumpSound(); sound && ctx.audio->HasSound(sound)) {
             ctx.audio->PlaySound(sound);
         }
     }
@@ -2263,7 +3080,7 @@ void Character::ResolveCollisionsY(int y, const GameContext& ctx)
 
         if (impactVelocity > Config::MAX_FALL_SPEED * Config::SMASH_FALL_SPEED_RATIO) 
         {
-            if (const char* sound = GetLandSound()) {
+            if (const char* sound = GetLandSound(); sound && ctx.audio->HasSound(sound)) {
                 ctx.audio->PlaySound(sound); 
             }
         }
@@ -2284,9 +3101,12 @@ bool Character::TryOpenDoor(int x, int y, const GameContext& ctx)
     if (!ctx.levelMap->IsDoor(x, y)) return false;
     if (m_properties.GetInt("access_level", 0) < 1) return false;
 
-    ctx.levelMap->OpenDoor(x, y);
-    ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
-    return true;
+    if (ctx.levelMap->OpenDoor(x, y) && ctx.audio->HasSound(Config::SOUND_ID_DOOR_OPEN))
+    {
+        ctx.audio->PlaySound(Config::SOUND_ID_DOOR_OPEN);
+    }
+
+    return false;
 }
 
 void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
@@ -2337,14 +3157,7 @@ void Character::ResolveCollisions(const GameContext& ctx, Axis axis)
 
 void Character::UpdateSpriteDirection()
 {
-    if (m_velocity.x > 0.f)
-    {
-        m_sprite.setScale(m_scale, m_scale);
-    }
-    else if (m_velocity.x < 0.f)
-    {
-        m_sprite.setScale(-m_scale, m_scale);
-    }
+    m_sprite.setScale(m_lookDir < 0 ? -m_scale : m_scale, m_scale);
 }
 
 void Character::UpdateAnimation(float dt)
@@ -2369,10 +3182,10 @@ void Character::ApplyMovement(const GameContext& ctx)
         m_stepTimer -= ctx.dt;
         if (m_stepTimer <= 0.f)
         {
-            if (const char* sound = GetWalkSound()) {
+            if (const char* sound = GetWalkSound(); sound && ctx.audio->HasSound(sound)) {
                 ctx.audio->PlaySound(sound); 
             }
-            m_stepTimer = Config::STEP_SOUND_INTERVAL; 
+            m_stepTimer = m_stepSoundInterval;
         }
     }
     else
@@ -2396,6 +3209,7 @@ Code:
 #include <string>
 #include "Entities/LivingEntity/LivingEntity.hpp"                             
 #include "Core/Animation/AnimationController.hpp"
+#include "Core/Config.hpp"
 #include "Core/Map/Map.hpp"
 #include "Entities/StateManager/EntityStateManager/EntityStateManager.hpp"
 
@@ -2407,6 +3221,11 @@ public:
     EntityStateManager& GetStateManager() { return m_stateManager; }
     const EntityStateManager& GetStateManager() const { return m_stateManager; }
 
+    int  GetLookDir() const { return m_lookDir; }
+    void SetLookDir(int dir) { m_lookDir = (dir < 0) ? -1 : 1; }
+
+    virtual const char* GetDeathSound() const { return Config::SOUND_ID_DEATH; }
+
 protected:
     virtual const char* GetJumpSound() const { return nullptr; }
     virtual const char* GetLandSound() const { return nullptr; }
@@ -2415,7 +3234,7 @@ protected:
 
     void InitHitbox(float width, float height, sf::Vector2f position);
     void InitHitboxFromCenter(float left, float right, float top, float bottom, sf::Vector2f position);
-    void InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
+    bool InitSprite(const std::string& texturePath, int frameW, int frameH, float scale);
 
     virtual void UpdateHorizontal(const GameContext& ctx);
     virtual void UpdateVertical(const GameContext& ctx, bool allowInput);
@@ -2446,9 +3265,11 @@ protected:
     float m_maxSpeed  = 0.f;
     float m_scale     = 1.f;
     bool  m_isOnGround = false;
+    int   m_lookDir   = 1;
     sf::Vector2f m_spriteOffset{0.f, 0.f};
 
     float m_stepTimer = 0.f;
+    float m_stepSoundInterval = Config::STEP_SOUND_INTERVAL;
 
     AnimationController m_anim;
 
@@ -2517,6 +3338,7 @@ private:
 };
 Path to file: ./src/Entities/Entity/Entity.hpp
 Code:
+// Path: ./src/Entities/Entity/Entity.hpp
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "Core/GameContext.hpp"
@@ -2532,6 +3354,11 @@ public:
     static void ToggleHitboxes()
     {
         m_showHitboxes = !m_showHitboxes;
+    }
+
+    static bool AreHitboxesVisible() 
+    {
+        return m_showHitboxes;
     }
 
     virtual ~Entity() = default;
@@ -2563,12 +3390,17 @@ public:
     }
 
     sf::Vector2f GetVelocity() const { return m_velocity; }
+    void SetVelocity(sf::Vector2f velocity) { m_velocity = velocity; }
 private:
     inline static bool m_showHitboxes = false;
 };
 Path to file: ./src/Entities/Host/Host.cpp
 Code:
 #include "Entities/Host/Host.hpp"
+#include "Core/Config.hpp"
+#include <cmath>
+
+using namespace Config;
 
 Host::Host(float maxLife, sf::Vector2f position, float decayTime)
     : Character(maxLife, position)
@@ -2577,14 +3409,133 @@ Host::Host(float maxLife, sf::Vector2f position, float decayTime)
     m_decayTimer    = decayTime;
 }
 
+void Host::Update(const GameContext& ctx)
+{
+    if (m_isDead)
+    {
+        m_corpseTimer += ctx.dt;
+        m_velocity.x = 0.f;
+        UpdateVertical(ctx, false);
+        ApplyMovement(ctx);
+        return;
+    }
+
+    m_stateManager.Update(ctx.dt);
+
+    if (m_isPlayerControlled)
+    {
+        m_decayTimer -= ctx.dt;
+        UpdateControlled(ctx);
+    }
+    else
+    {
+        UpdateAI(ctx);
+    }
+
+    UpdateMovementState();
+    ApplyMovement(ctx);
+}
+
+void Host::UpdateControlled(const GameContext& ctx)
+{
+    UpdateMove(ctx);
+}
+
+void Host::UpdateAI(const GameContext& ctx)
+{
+    UpdateVertical(ctx, false);
+}
+
+void Host::UpdateMovementState()
+{
+    EntityState state = m_stateManager.GetState();
+
+    if (state == EntityState::Dead ||
+        state == EntityState::Alert ||
+        state == EntityState::Attack ||
+        state == EntityState::Reload ||
+        state == EntityState::Report)
+    {
+        return;
+    }
+
+    if (m_isOnGround)
+    {
+        if (std::abs(m_velocity.x) > Config::HOST_WALK_THRESHOLD)
+        {
+            m_stateManager.SetState(EntityState::Walk);
+        }
+        else
+        {
+            m_stateManager.SetState(EntityState::Idle);
+        }
+    }
+    else
+    {
+        m_stateManager.SetState(m_velocity.y < 0.f ? EntityState::Jump : EntityState::Fall);
+    }
+}
+
+void Host::Die()
+{
+    LivingEntity::Die();
+    m_isPlayerControlled = false;
+    m_velocity = sf::Vector2f(0.f, 0.f);
+    m_corpseTimer = 0.f;
+    m_stateManager.SetState(EntityState::Dead);
+}
+
+void Host::OnPossessed()
+{
+    m_velocity = sf::Vector2f(0.f, 0.f);
+    m_stateManager.SetState(EntityState::Idle);
+}
+
+void Host::OnEjected()
+{
+    if (m_isDead)
+    {
+        return;
+    }
+
+    m_velocity.x = 0.f;
+    m_stateManager.SetState(EntityState::Idle);
+}
+
+void Host::Draw(sf::RenderWindow& window)
+{
+    if (!m_isDead)
+    {
+        Entity::Draw(window);
+        return;
+    }
+
+    sf::Sprite corpse = m_sprite;
+    corpse.setColor(sf::Color(130, 130, 130, 220));
+    corpse.setRotation(90.f);
+
+    sf::FloatRect corpseBounds = corpse.getGlobalBounds();
+    sf::FloatRect bodyBounds   = m_hitbox.getGlobalBounds();
+    corpse.move(0.f, (bodyBounds.top + bodyBounds.height) -
+                     (corpseBounds.top + corpseBounds.height));
+
+    window.draw(corpse);
+
+    if (Entity::AreHitboxesVisible())
+    {
+        window.draw(m_hitbox);
+    }
+}
+
 void Host::AddDecayTime(float time)
 {
-        m_decayTimer += time;
-        if (m_decayTimer > m_maxDecayTimer) 
-        {
-            m_decayTimer = m_maxDecayTimer;
-        }
+    m_decayTimer += time;
+    if (m_decayTimer > m_maxDecayTimer)
+    {
+        m_decayTimer = m_maxDecayTimer;
+    }
 }
+
 Path to file: ./src/Entities/Host/Host.hpp
 Code:
 #pragma once
@@ -2596,15 +3547,34 @@ class Host : public Character
 public:
     Host(float maxLife, sf::Vector2f position, float decayTime);
 
+    void Update(const GameContext& ctx) override;
+    void Draw(sf::RenderWindow& window) override;
+
     void  ResetDecayTimer()                 { m_decayTimer = m_maxDecayTimer; }
     float GetDecayTimer()    const override { return m_decayTimer; }
     float GetMaxDecayTimer() const override { return m_maxDecayTimer; }
     void AddDecayTime(float time);
     void SetMaxDecayTime(float time) { m_maxDecayTimer = time; m_decayTimer = time; }
+
+    virtual void OnPossessed();
+    virtual void OnEjected();
+    void Kill() { Die(); }
+
+    float GetCorpseTime() const { return m_corpseTimer; }
+    bool  IsCorpse()      const { return m_isDead; }
+
 protected:
+    void Die() override;
+
+    virtual void UpdateControlled(const GameContext& ctx);
+    virtual void UpdateAI(const GameContext& ctx);
+    void UpdateMovementState();
+
     float m_decayTimer    = 0.f;
     float m_maxDecayTimer = 0.f;
+    float m_corpseTimer   = 0.f;
 };
+
 Path to file: ./src/Entities/Items/Syringe/Syringe.cpp
 Code:
 #include "Entities/Items/Syringe/Syringe.hpp"
@@ -2685,6 +3655,7 @@ public:
 
     virtual float GetDecayTimer() const { return 0.f; }
     virtual float GetMaxDecayTimer() const { return 1.f; }
+    virtual const char* GetDamageSound() const { return nullptr; }
 
     virtual void TakeDamage(float amount)
     {
@@ -2713,6 +3684,504 @@ protected:
 
     PropertiesManager m_properties;
 };
+Path to file: ./src/Entities/Military/Military.cpp
+Code:
+#include "Entities/Military/Military.hpp"
+#include "Core/Config.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Sound/SoundManager/SoundManager.hpp"
+#include "Core/Utils/RandomUtils/RandomUtils.hpp"
+#include "Core/Utils/Raycast/Raycast.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+
+using namespace Config;
+using namespace StringUtils;
+
+Military::Military(sf::Vector2f position)
+    : Host(Config::MILITARY_MAX_HEALTH, position, Config::MILITARY_DECAY_TIME)
+{
+    m_accel     = Config::MILITARY_ACCEL;
+    m_friction  = Config::MILITARY_FRICTION;
+    m_jumpForce = Config::MILITARY_JUMP_FORCE;
+    m_gravity   = Config::MILITARY_GRAVITY;
+    m_maxSpeed  = Config::MILITARY_RUN_SPEED;
+    m_stepSoundInterval = Config::HOST_STEP_SOUND_INTERVAL;
+
+    bool hasTexture = std::ifstream("../assets/animations/military.png").good();
+
+    if (hasTexture)
+    {
+        hasTexture = InitSprite("../assets/animations/military.png",
+                                Config::MILITARY_FRAME_W,
+                                Config::MILITARY_FRAME_H,
+                                Config::MILITARY_SCALE);
+    }
+
+    if (!hasTexture)
+    {
+        InitSprite("../assets/animations/scientist.png",
+                   Config::SCIENTIST_FRAME_W,
+                   Config::SCIENTIST_FRAME_H,
+                   Config::MILITARY_SCALE);
+        m_sprite.setColor(sf::Color(170, 220, 170));
+    }
+
+    InitHitboxFromCenter(Config::MILITARY_HITBOX_LEFT,
+                         Config::MILITARY_HITBOX_RIGHT,
+                         Config::MILITARY_HITBOX_TOP,
+                         Config::MILITARY_HITBOX_BOTTOM,
+                         position);
+
+    m_sprite.setPosition(position);
+
+    m_anim.Setup(m_texture,
+                 Config::MILITARY_FRAME_W,
+                 Config::MILITARY_FRAME_H);
+
+    m_anim.AddClip("idle", 8, Config::MILITARY_IDLE_FRAME_TIME);
+    m_anim.AddClip("walk", 5, Config::MILITARY_WALK_FRAME_TIME);
+    m_anim.AddClip("attack", 2, Config::MILITARY_SHOOT_FRAME_TIME, 2, 0, true);
+    m_anim.AddClip("reload", 2, 0.15f, 3, 0, true);
+    m_anim.AddClip("dead", 6, Config::MILITARY_DEATH_FRAME_TIME, 4, 0, false);
+
+    m_properties.SetSfString("name", ToSfStringFromUtf8("Военный"));
+    m_properties.SetInt("access_level", 0);
+
+    if (!m_weaponTexture.loadFromFile("../assets/animations/gun.png"))
+    {
+        std::cerr << "Ошибка: Не удалось загрузить ../assets/animations/gun.png" << std::endl;
+    }
+    m_weaponTexture.setSmooth(false);
+
+    m_weapon.setTexture(m_weaponTexture);
+    m_weapon.setScale(Config::MILITARY_WEAPON_SCALE, Config::MILITARY_WEAPON_SCALE);
+    m_weapon.setOrigin(Config::MILITARY_WEAPON_GRIP_X,
+                       Config::MILITARY_WEAPON_FRAME_H / 2.f);
+
+    m_weaponAnim.Setup(m_weaponTexture,
+                       Config::MILITARY_WEAPON_FRAME_W,
+                       Config::MILITARY_WEAPON_FRAME_H);
+    m_weaponAnim.AddClip("idle", 1, 0.f);
+    m_weaponAnim.AddClip("shoot", 2, Config::MILITARY_WEAPON_SHOOT_FRAME_TIME, 1, 0, false);
+    m_weaponAnim.Play("idle");
+
+    m_stateManager.SetState(EntityState::Idle);
+}
+
+void Military::UpdateControlled(const GameContext& ctx)
+{
+    Character::UpdateMove(ctx);
+    UpdateTimers(ctx);
+
+    sf::Vector2f center = m_hitbox.getPosition();
+    SetLookDir(ctx.mousePos.x >= center.x ? 1 : -1);
+    UpdateWeaponAim(ctx.mousePos);
+
+    if (m_ammo <= 0 && !m_isReloading)
+    {
+        StartReload(ctx);
+    }
+    else if (GameKeyboard::IsShootKeyPressed())
+    {
+        TryFire(ctx, true);
+    }
+}
+
+void Military::UpdateAI(const GameContext& ctx)
+{
+    UpdateTimers(ctx);
+    UpdateVertical(ctx, false);
+
+    bool seesTarget = false;
+    sf::Vector2f targetPos;
+
+    if (ctx.playerAvatar != nullptr && !ctx.playerAvatar->IsDead() && ctx.avatarIsParasite)
+    {
+        sf::FloatRect bounds = ctx.playerAvatar->GetBounds();
+        targetPos = sf::Vector2f(bounds.left + bounds.width / 2.f,
+                                 bounds.top + bounds.height / 2.f);
+
+        seesTarget = Raycast::CanSee(*ctx.levelMap,
+                                     GetEyePosition(),
+                                     targetPos,
+                                     Config::MILITARY_VIEW_RANGE,
+                                     Config::MILITARY_FOV_COSINE,
+                                     sf::Vector2f(static_cast<float>(m_lookDir), 0.f));
+    }
+
+    if (seesTarget)
+    {
+        m_hasTarget = true;
+        m_velocity.x = 0.f;
+
+        SetLookDir(targetPos.x >= m_hitbox.getPosition().x ? 1 : -1);
+        UpdateWeaponAim(targetPos);
+
+        if (!m_wasSeen)
+        {
+            m_reactionTimer = Config::MILITARY_REACTION_TIME;
+            m_alertTimer    = Config::MILITARY_ALERT_STATE_TIME;
+            m_stateManager.SetState(EntityState::Alert);
+
+            if (ctx.audio != nullptr)
+            {
+                if (ctx.audio->HasSound(Config::SOUND_ID_REPORT))
+                {
+                    ctx.audio->PlaySound(Config::SOUND_ID_REPORT);
+                }
+                if (ctx.audio->HasSound(Config::SOUND_ID_ALERT))
+                {
+                    ctx.audio->PlaySound(Config::SOUND_ID_ALERT);
+                }
+            }
+        }
+
+        if (!m_isReloading && m_reactionTimer <= 0.f)
+        {
+            if (m_ammo <= 0)
+            {
+                StartReload(ctx);
+            }
+            else
+            {
+                TryFire(ctx, false);
+            }
+        }
+    }
+    else
+    {
+        m_hasTarget = false;
+        m_reactionTimer = 0.f;
+
+        if (m_isReloading)
+        {
+            m_velocity.x = 0.f;
+        }
+        else
+        {
+            UpdatePatrol(ctx);
+        }
+
+        sf::Vector2f forward = GetEyePosition();
+        forward.x += static_cast<float>(m_lookDir) * 100.f;
+        UpdateWeaponAim(forward);
+
+        if (m_ammo <= 0 && !m_isReloading)
+        {
+            StartReload(ctx);
+        }
+    }
+
+    m_wasSeen = seesTarget;
+}
+
+void Military::UpdatePatrol(const GameContext& ctx)
+{
+    if (!m_isOnGround)
+    {
+        m_velocity.x = 0.f;
+        return;
+    }
+
+    const float tileSize = static_cast<float>(ctx.levelMap->GetTileSize());
+    sf::FloatRect bounds = GetBounds();
+
+    auto isSolidAt = [&](float x, float y)
+    {
+        int tx = static_cast<int>(std::floor(x / tileSize));
+        int ty = static_cast<int>(std::floor(y / tileSize));
+        return ctx.levelMap->IsSolid(tx, ty, Config::EntityType::Military);
+    };
+
+    float aheadX = m_patrolDir > 0.f ? bounds.left + bounds.width + 4.f
+                                    : bounds.left - 4.f;
+    bool wallAhead   = isSolidAt(aheadX, bounds.top + bounds.height * 0.5f);
+    bool groundAhead = isSolidAt(aheadX, bounds.top + bounds.height + 4.f);
+
+    if (wallAhead || !groundAhead)
+    {
+        m_patrolDir = -m_patrolDir;
+    }
+
+    m_velocity.x = m_patrolDir * Config::MILITARY_PATROL_SPEED;
+    SetLookDir(m_patrolDir > 0.f ? 1 : -1);
+}
+
+void Military::UpdateTimers(const GameContext& ctx)
+{
+    m_weaponAnim.Update(ctx.dt);
+
+    if (m_weaponAnim.Current() == "shoot" && m_weaponAnim.IsFinished())
+    {
+        m_weaponAnim.Play("idle");
+    }
+
+    if (m_fireTimer > 0.f)
+    {
+        m_fireTimer -= ctx.dt;
+    }
+
+    if (m_reactionTimer > 0.f)
+    {
+        m_reactionTimer -= ctx.dt;
+    }
+
+    if (m_attackTimer > 0.f)
+    {
+        m_attackTimer -= ctx.dt;
+        if (m_attackTimer <= 0.f && m_stateManager.GetState() == EntityState::Attack)
+        {
+            m_stateManager.SetState(EntityState::Idle);
+        }
+    }
+
+    if (m_alertTimer > 0.f)
+    {
+        m_alertTimer -= ctx.dt;
+        if (m_alertTimer <= 0.f && m_stateManager.GetState() == EntityState::Alert)
+        {
+            m_stateManager.SetState(EntityState::Idle);
+        }
+    }
+
+    if (m_isReloading)
+    {
+        m_reloadTimer -= ctx.dt;
+        if (m_reloadTimer <= 0.f)
+        {
+            m_isReloading = false;
+            m_ammo = Config::MILITARY_AMMO;
+
+            if (m_stateManager.GetState() == EntityState::Reload)
+            {
+                m_stateManager.SetState(EntityState::Idle);
+            }
+        }
+    }
+}
+
+void Military::UpdateWeaponAim(sf::Vector2f point)
+{
+    sf::Vector2f shoulder = GetShoulderPosition();
+    sf::Vector2f direction = point - shoulder;
+
+    if (std::hypot(direction.x, direction.y) > 0.001f)
+    {
+        m_aimAngle = std::atan2(direction.y, direction.x) * Config::RAD_TO_DEG;
+    }
+}
+
+void Military::TryFire(const GameContext& ctx, bool fromPlayer)
+{
+    if (m_isReloading || m_fireTimer > 0.f || m_ammo <= 0 || ctx.bullets == nullptr)
+    {
+        return;
+    }
+
+    --m_ammo;
+    m_fireTimer   = Config::MILITARY_FIRE_INTERVAL;
+    m_attackTimer = Config::MILITARY_ATTACK_STATE_TIME;
+    m_stateManager.SetState(EntityState::Attack);
+    m_weaponAnim.Play("shoot", true);
+
+    float radians = m_aimAngle / Config::RAD_TO_DEG;
+    sf::Vector2f direction(std::cos(radians), std::sin(radians));
+
+    ctx.bullets->Spawn(GetMuzzlePosition(), direction,
+                       Config::MILITARY_SHOT_DAMAGE, fromPlayer);
+
+    if (ctx.audio != nullptr)
+    {
+        const char* shots[Config::SOUND_SHOT_VARIANTS] = {
+            Config::SOUND_ID_SHOT_1,
+            Config::SOUND_ID_SHOT_2,
+            Config::SOUND_ID_SHOT_3
+        };
+
+        const char* id = shots[RandomUtils::Int(0, Config::SOUND_SHOT_VARIANTS - 1)];
+        if (ctx.audio->HasSound(id))
+        {
+            ctx.audio->PlaySound(id);
+        }
+    }
+}
+
+void Military::StartReload(const GameContext& ctx)
+{
+    if (m_isReloading || m_ammo >= Config::MILITARY_AMMO)
+    {
+        return;
+    }
+
+    m_isReloading = true;
+    m_reloadTimer = Config::MILITARY_RELOAD_TIME;
+    m_stateManager.SetState(EntityState::Reload);
+
+    if (ctx.audio != nullptr && ctx.audio->HasSound(Config::SOUND_ID_RELOAD))
+    {
+        ctx.audio->PlaySound(Config::SOUND_ID_RELOAD);
+    }
+}
+
+void Military::OnPossessed()
+{
+    Host::OnPossessed();
+
+    m_hasTarget     = false;
+    m_wasSeen       = false;
+    m_reactionTimer = 0.f;
+    m_attackTimer   = 0.f;
+    m_alertTimer    = 0.f;
+    m_fireTimer     = 0.15f;
+}
+
+void Military::OnEjected()
+{
+    Host::OnEjected();
+
+    m_hasTarget     = false;
+    m_wasSeen       = false;
+    m_reactionTimer = 0.f;
+    m_attackTimer   = 0.f;
+    m_alertTimer    = 0.f;
+    m_fireTimer     = 0.3f;
+}
+
+sf::Vector2f Military::GetEyePosition() const
+{
+    return m_hitbox.getPosition() + sf::Vector2f(0.f, -10.f);
+}
+
+sf::Vector2f Military::GetShoulderPosition() const
+{
+    return m_hitbox.getPosition() +
+           sf::Vector2f(static_cast<float>(m_lookDir) * Config::MILITARY_WEAPON_SHOULDER_X,
+                        Config::MILITARY_WEAPON_SHOULDER_Y);
+}
+
+sf::Vector2f Military::GetMuzzlePosition() const
+{
+    float radians = m_aimAngle / Config::RAD_TO_DEG;
+    sf::Vector2f direction(std::cos(radians), std::sin(radians));
+
+    float muzzleDistance = (Config::MILITARY_WEAPON_FRAME_W - Config::MILITARY_WEAPON_GRIP_X) *
+                           Config::MILITARY_WEAPON_SCALE;
+
+    return GetShoulderPosition() + direction * muzzleDistance;
+}
+
+void Military::Draw(sf::RenderWindow& window)
+{
+    Host::Draw(window);
+
+    if (m_isDead)
+    {
+        return;
+    }
+
+    float radians = m_aimAngle / Config::RAD_TO_DEG;
+    bool aimingLeft = std::cos(radians) < 0.f;
+
+    m_weapon.setScale(Config::MILITARY_WEAPON_SCALE,
+                      aimingLeft ? -Config::MILITARY_WEAPON_SCALE : Config::MILITARY_WEAPON_SCALE);
+    m_weapon.setPosition(GetShoulderPosition());
+    m_weapon.setRotation(m_aimAngle);
+    m_weaponAnim.Apply(m_weapon);
+    window.draw(m_weapon);
+
+    if (m_hasTarget || m_alertTimer > 0.f)
+    {
+        DrawAlertMark(window);
+    }
+}
+
+void Military::DrawAlertMark(sf::RenderWindow& window)
+{
+    sf::FloatRect bounds = GetBounds();
+    float x = bounds.left + bounds.width / 2.f;
+    float barBottom = bounds.top - Config::ALERT_MARK_BOTTOM_OFFSET;
+
+    sf::RectangleShape bar(sf::Vector2f(Config::ALERT_MARK_WIDTH, Config::ALERT_MARK_HEIGHT));
+    bar.setOrigin(Config::ALERT_MARK_WIDTH / 2.f, Config::ALERT_MARK_HEIGHT);
+    bar.setPosition(x, barBottom);
+    bar.setFillColor(Config::ALERT_MARK_COLOR);
+    bar.setOutlineThickness(1.f);
+    bar.setOutlineColor(sf::Color::Black);
+    window.draw(bar);
+
+    sf::CircleShape dot(Config::ALERT_MARK_DOT_RADIUS);
+    dot.setOrigin(Config::ALERT_MARK_DOT_RADIUS, Config::ALERT_MARK_DOT_RADIUS);
+    dot.setPosition(x, barBottom + Config::ALERT_MARK_DOT_OFFSET);
+    dot.setFillColor(Config::ALERT_MARK_COLOR);
+    dot.setOutlineThickness(1.f);
+    dot.setOutlineColor(sf::Color::Black);
+    window.draw(dot);
+}
+
+Path to file: ./src/Entities/Military/Military.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "Entities/Host/Host.hpp"
+
+class Military : public Host
+{
+public:
+    Military(sf::Vector2f position);
+
+    void Draw(sf::RenderWindow& window) override;
+
+    int  GetAmmo()      const { return m_ammo; }
+    bool IsReloading()  const { return m_isReloading; }
+    bool HasTarget()    const { return m_hasTarget; }
+
+protected:
+    Config::EntityType GetEntityType() const override { return Config::EntityType::Military; }
+    const char* GetJumpSound() const override { return Config::SOUND_ID_JUMP; }
+    const char* GetLandSound() const override { return Config::SOUND_ID_SMASH; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_HOST_WALK; }
+    const char* GetDeathSound() const override { return Config::SOUND_ID_MILITARY_DEATH; }
+    const char* GetDamageSound() const override { return Config::SOUND_ID_MILITARY_DAMAGE; }
+
+    void UpdateControlled(const GameContext& ctx) override;
+    void UpdateAI(const GameContext& ctx) override;
+    void OnPossessed() override;
+    void OnEjected() override;
+
+private:
+    void UpdateTimers(const GameContext& ctx);
+    void UpdatePatrol(const GameContext& ctx);
+    void UpdateWeaponAim(sf::Vector2f point);
+    void TryFire(const GameContext& ctx, bool fromPlayer);
+    void StartReload(const GameContext& ctx);
+    void DrawAlertMark(sf::RenderWindow& window);
+
+    sf::Vector2f GetEyePosition() const;
+    sf::Vector2f GetShoulderPosition() const;
+    sf::Vector2f GetMuzzlePosition() const;
+
+    sf::Texture m_weaponTexture;
+    sf::Sprite m_weapon;
+    AnimationController m_weaponAnim;
+
+    float m_aimAngle    = 0.f;
+    float m_reactionTimer = 0.f;
+    float m_fireTimer     = 0.f;
+    float m_reloadTimer   = 0.f;
+    float m_attackTimer   = 0.f;
+    float m_alertTimer    = 0.f;
+    float m_patrolDir     = 1.f;
+
+    bool m_isReloading = false;
+    bool m_hasTarget   = false;
+    bool m_wasSeen     = false;
+
+    int m_ammo = Config::MILITARY_AMMO;
+};
+
 Path to file: ./src/Entities/Parasite/Parasite.cpp
 Code:
 #include "Entities/Parasite/Parasite.hpp"
@@ -2783,11 +4252,24 @@ void Parasite::ForceDash(const GameContext& ctx)
     m_velocity.x = (dx / length) * m_dashForce;
     m_velocity.y = (dy / length) * m_dashForce;
 
+    if (std::abs(dx) > 0.1f)
+    {
+        SetLookDir(dx > 0.f ? 1 : -1);
+    }
+
     m_dashCooldown = Config::DASH_COOLDOWN_TIME;
     m_hasDash      = false;
     m_isOnGround   = false;
 
     m_stateManager.SetState(EntityState::Dash);
+}
+
+void Parasite::ResetMovement()
+{
+    m_velocity = sf::Vector2f(0.f, 0.f);
+    m_isOnGround = false;
+    m_hasDash = true;
+    m_stateManager.SetState(EntityState::Idle);
 }
 
 void Parasite::UpdateDash(const GameContext& ctx)
@@ -2897,6 +4379,7 @@ public:
     void Update(const GameContext& ctx) override;
     bool IsDashing() const;
     void ForceDash(const GameContext& ctx);
+    void ResetMovement();
 
     int GetJumpCount()        const { return m_jumpCount; }
     int GetDashCount()        const { return m_dashCount; }
@@ -2932,6 +4415,7 @@ Code:
 #include "Entities/Scientist/Scientist.hpp"
 #include "Core/Config.hpp"
 #include <cmath>
+#include "Core/Utils/RandomUtils/RandomUtils.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
 
 using namespace Config;
@@ -2945,6 +4429,7 @@ Scientist::Scientist(sf::Vector2f position)
     m_jumpForce = Config::SCIENTIST_JUMP_FORCE;
     m_gravity   = Config::SCIENTIST_GRAVITY;
     m_maxSpeed  = Config::SCIENTIST_MAX_SPEED;
+    m_stepSoundInterval = Config::HOST_STEP_SOUND_INTERVAL;
 
     InitSprite("../assets/animations/scientist.png",
         Config::SCIENTIST_FRAME_W,
@@ -2969,44 +4454,85 @@ Scientist::Scientist(sf::Vector2f position)
     m_properties.SetSfString("name", ToSfStringFromUtf8("Учёный"));
     m_properties.SetInt("access_level", 1);
 
+    m_idleTimer = RandomUtils::Float(Config::SCIENTIST_IDLE_TIME_MIN, Config::SCIENTIST_IDLE_TIME_MAX);
+
     m_stateManager.SetState(EntityState::Idle);
 }
 
-
-void Scientist::Update(const GameContext& ctx)
+void Scientist::UpdateAI(const GameContext& ctx)
 {
-    if (m_isDead)
+    UpdateVertical(ctx, false);
+
+    if (m_isWalking)
     {
+        if (IsBlockedAhead(ctx, m_moveDir))
+        {
+            m_velocity.x = 0.f;
+            m_isWalking = false;
+            m_idleTimer = RandomUtils::Float(Config::SCIENTIST_IDLE_TIME_MIN, Config::SCIENTIST_IDLE_TIME_MAX);
+            return;
+        }
+
+        m_velocity.x = static_cast<float>(m_moveDir) * Config::SCIENTIST_PATROL_SPEED;
+        SetLookDir(m_moveDir);
+
+        m_walkTimer -= ctx.dt;
+        if (m_walkTimer <= 0.f)
+        {
+            m_velocity.x = 0.f;
+            m_isWalking = false;
+            m_idleTimer = RandomUtils::Float(Config::SCIENTIST_IDLE_TIME_MIN, Config::SCIENTIST_IDLE_TIME_MAX);
+        }
         return;
     }
-    m_stateManager.Update(ctx.dt);
 
-    if (m_isPlayerControlled)
-    {
-        m_decayTimer -= ctx.dt;
-        UpdateMove(ctx);
-    }
-    else
-    {
-        UpdateVertical(ctx, false);
-    }
+    m_velocity.x = 0.f;
+    m_idleTimer -= ctx.dt;
 
-    if (m_isOnGround)
+    if (m_idleTimer <= 0.f)
     {
-        if (std::abs(m_velocity.x) > Config::SCIENTIST_WALK_THRESHOLD)
-        {
-            m_stateManager.SetState(EntityState::Walk);
-        }
-        else
-        {
-            m_stateManager.SetState(EntityState::Idle);
-        }
+        StartWalking(ctx);
     }
-    else 
+}
+
+void Scientist::StartWalking(const GameContext& ctx)
+{
+    int dir = RandomUtils::Int(0, 1) == 0 ? -1 : 1;
+
+    if (IsBlockedAhead(ctx, dir))
     {
+        dir = -dir;
     }
 
-    ApplyMovement(ctx);
+    if (IsBlockedAhead(ctx, dir))
+    {
+        m_idleTimer = RandomUtils::Float(Config::SCIENTIST_IDLE_TIME_MIN, Config::SCIENTIST_IDLE_TIME_MAX);
+        return;
+    }
+
+    m_moveDir = dir;
+    m_isWalking = true;
+    m_walkTimer = RandomUtils::Float(Config::SCIENTIST_WALK_TIME_MIN, Config::SCIENTIST_WALK_TIME_MAX);
+}
+
+bool Scientist::IsBlockedAhead(const GameContext& ctx, int dir) const
+{
+    const float tileSize = static_cast<float>(ctx.levelMap->GetTileSize());
+    sf::FloatRect bounds = GetBounds();
+
+    auto isSolidAt = [&](float x, float y)
+    {
+        int tx = static_cast<int>(std::floor(x / tileSize));
+        int ty = static_cast<int>(std::floor(y / tileSize));
+        return ctx.levelMap->IsSolid(tx, ty, Config::EntityType::Human);
+    };
+
+    float aheadX = dir > 0 ? bounds.left + bounds.width + 4.f
+                           : bounds.left - 4.f;
+    bool wallAhead   = isSolidAt(aheadX, bounds.top + bounds.height * 0.5f);
+    bool groundAhead = isSolidAt(aheadX, bounds.top + bounds.height + 4.f);
+
+    return wallAhead || !groundAhead;
 }
 Path to file: ./src/Entities/Scientist/Scientist.hpp
 Code:
@@ -3018,10 +4544,20 @@ class Scientist : public Host
 public:
     Scientist(sf::Vector2f position);
 
-    void Update(const GameContext& ctx) override;
-
 protected:
     Config::EntityType GetEntityType() const override { return Config::EntityType::Human; }
+    const char* GetWalkSound() const override { return Config::SOUND_ID_HOST_WALK; }
+    const char* GetDamageSound() const override { return Config::SOUND_ID_SCIENTIST_DAMAGE; }
+    void UpdateAI(const GameContext& ctx) override;
+
+private:
+    void StartWalking(const GameContext& ctx);
+    bool IsBlockedAhead(const GameContext& ctx, int dir) const;
+
+    int m_moveDir = 1;
+    float m_walkTimer = 0.f;
+    float m_idleTimer = 0.f;
+    bool m_isWalking = false;
 };
 Path to file: ./src/Entities/StateManager/EntityStateManager/EntityStateManager.cpp
 Code:
@@ -3376,9 +4912,102 @@ private:
 
     sf::Text m_statsText;
 };
+Path to file: ./src/States/LevelSelect/StateLevelSelect.cpp
+Code:
+#include "States/LevelSelect/StateLevelSelect.hpp"
+#include "Core/GameKeyboard/GameKeyboard.hpp"
+#include "Core/Utils/StringUtils/StringUtils.hpp"
+#include "States/MainMenu/StateMainMenu.hpp"
+#include "States/Playing/StatePlaying.hpp"
+#include <algorithm>
+
+using namespace StringUtils;
+
+StateLevelSelect::StateLevelSelect(GameDataRef data) : m_data(data) {}
+
+void StateLevelSelect::Init()
+{
+    auto windowSize = m_data->window.getSize();
+    m_title.Init(L"ВЫБОР УРОВНЯ", m_data->headerFont, 80, 150.f, windowSize.x);
+
+    const float spacing = 70.f;
+    const int levelCount = static_cast<int>(m_data->levels.size());
+    const float startY = std::max(windowSize.y * 0.4f, 300.f);
+
+    for (int i = 0; i < levelCount; ++i)
+    {
+        sf::String levelName = ToSfStringFromUtf8(m_data->levels[i]);
+
+        m_menu.AddButton(levelName, m_data->headerFont, startY + i * spacing, windowSize.x,
+                         [this, i]()
+                         {
+                             m_data->currentLevelIndex = i;
+                             m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
+                         });
+    }
+
+    m_menu.AddButton(L"Назад", m_data->headerFont, startY + levelCount * spacing, windowSize.x,
+                     [this]()
+                     {
+                         m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+                     });
+}
+
+void StateLevelSelect::HandleInput(const sf::Event& event)
+{
+    if (event.type == sf::Event::KeyPressed)
+    {
+        if (GameKeyboard::IsEventEscape(event))
+        {
+            m_data->manager.AddState(StateRef(new StateMainMenu(m_data)), true);
+            return;
+        }
+
+        m_menu.HandleInput(event, m_data->sound);
+    }
+}
+
+void StateLevelSelect::Update(float dt)
+{
+    m_menu.Update();
+}
+
+void StateLevelSelect::Draw()
+{
+    m_title.Draw(m_data->window);
+    m_menu.Draw(m_data->window);
+}
+
+Path to file: ./src/States/LevelSelect/StateLevelSelect.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "States/UI/UIMenu/UIMenu.hpp"
+#include "States/UI/MenuLabel/MenuLabel.hpp"
+#include "States/State.hpp"
+#include "Core/GameData.hpp"
+
+class StateLevelSelect : public State
+{
+public:
+    StateLevelSelect(GameDataRef data);
+
+    void Init() override;
+    void HandleInput(const sf::Event& event) override;
+    void Update(float dt) override;
+    void Draw() override;
+
+private:
+    GameDataRef m_data;
+
+    MenuLabel m_title;
+    UIMenu m_menu;
+};
+
 Path to file: ./src/States/MainMenu/StateMainMenu.cpp
 Code:
 #include "States/MainMenu/StateMainMenu.hpp"
+#include "States/LevelSelect/StateLevelSelect.hpp"
 #include "States/Playing/StatePlaying.hpp"
 
 StateMainMenu::StateMainMenu(GameDataRef data) : m_data(data) {}
@@ -3394,7 +5023,11 @@ void StateMainMenu::Init()
         m_data->manager.AddState(StateRef(new StatePlaying(m_data)), true);
     });
 
-    m_menu.AddButton(L"Выход", m_data->headerFont, 500.f, windowSize.x, [this]() {
+    m_menu.AddButton(L"Уровни", m_data->headerFont, 500.f, windowSize.x, [this]() {
+        m_data->manager.AddState(StateRef(new StateLevelSelect(m_data)), true);
+    });
+
+    m_menu.AddButton(L"Выход", m_data->headerFont, 600.f, windowSize.x, [this]() {
         m_data->window.close();
     });
 }
@@ -3551,10 +5184,12 @@ Code:
 #include "Core/Debug/DebugOverlay/DebugOverlay.hpp"
 #include "Core/GameKeyboard/GameKeyboard.hpp"
 #include "Core/Utils/StringUtils/StringUtils.hpp"
+#include "Entities/Military/Military.hpp"
 #include "States/GameOver/StateGameOver.hpp"
 #include "States/Pause/StatePause.hpp"
 #include "States/Victory/StateVictory.hpp"
 #include "States/LevelCompleted/StateLevelCompleted.hpp"
+#include <string>
 
 using namespace StringUtils;
 
@@ -3572,6 +5207,7 @@ void StatePlaying::Init()
 
     m_floatingHud.Init();
     m_screenHud.Init(m_data->headerFont, m_data->window.getSize().x);
+    m_vignette.Init(m_data->window.getSize());
     DebugOverlay::Init(m_data->headerFont, m_data->window.getSize());
 
     m_data->sound.PlayMusic(Config::MUSIC_ID_BGM, true);
@@ -3608,6 +5244,7 @@ void StatePlaying::Update(float dt)
     input.windowSize = m_data->window.getSize();
 
     m_level.Update(dt, input);
+    m_vignette.Update(dt, m_level.IsInDanger());
 
     if (m_data->GetCurrentLevelName() == "tutorial")
     {
@@ -3631,9 +5268,34 @@ void StatePlaying::UpdateHUD()
 
     if (host != nullptr && avatar == host)
     {
+        Military* military = dynamic_cast<Military*>(host);
+
+        if (military != nullptr)
+            m_floatingHud.UpdateAmmo(military->GetAmmo(), Config::MILITARY_AMMO);
+        else
+            m_floatingHud.HideAmmo();
+
         if (!isInElevator)
-            m_screenHud.SetHintText(ToSfStringFromUtf8("Носитель: ") + avatarName +
-                                    ToSfStringFromUtf8("\nПКМ: Высвободиться"));
+        {
+            sf::String hint = ToSfStringFromUtf8("Носитель: ") + avatarName;
+
+            if (military != nullptr)
+            {
+                if (military->IsReloading())
+                {
+                    hint += ToSfStringFromUtf8("\nПерезарядка...");
+                }
+
+                hint += ToSfStringFromUtf8("\nЛКМ: Огонь | ПКМ: Высвободиться");
+            }
+            else
+            {
+                hint += ToSfStringFromUtf8("\nПКМ: Высвободиться");
+            }
+
+            m_screenHud.SetHintText(hint);
+        }
+
         m_floatingHud.Update(host->GetDecayTimer(), host->GetMaxDecayTimer(),
                              sf::Color(220, 200, 0));
     }
@@ -3642,6 +5304,7 @@ void StatePlaying::UpdateHUD()
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
                                     ToSfStringFromUtf8("\nЛКМ: Вселиться"));
+        m_floatingHud.HideAmmo();
         const Parasite& p = m_level.GetParasite();
         m_floatingHud.Update(p.GetLife(), p.GetMaxLife(), sf::Color(200, 0, 0));
     }
@@ -3688,6 +5351,7 @@ void StatePlaying::Draw()
     m_floatingHud.Draw(m_data->window);
 
     m_data->window.setView(m_data->window.getDefaultView());
+    m_vignette.Draw(m_data->window);
     m_screenHud.Draw(m_data->window);
     DebugOverlay::Draw(m_data->window, m_level.GetView());
 
@@ -3703,6 +5367,7 @@ Code:
 #include "Core/LevelLogic/Level/Level.hpp"
 #include "UI/EntityHUD/EntityHUD.hpp"
 #include "UI/ScreenHUD/ScreenHUD.hpp"
+#include "UI/Vignette/Vignette.hpp"
 #include "Core/Tutorial/TutorialOverlay/TutorialOverlay.hpp"
 
 class StatePlaying : public State
@@ -3724,6 +5389,7 @@ private:
     Level m_level;
     EntityHUD m_floatingHud;
     ScreenHUD m_screenHud;
+    Vignette m_vignette;
     TutorialOverlay m_tutorial;
 
     bool m_endStatePushed = false;
@@ -4112,9 +5778,13 @@ void EntityHUD::Init()
 
 void EntityHUD::SetPosition(sf::Vector2f entityPosition)
 {
+    m_entityPosition = entityPosition;
+
     sf::Vector2f hudPos = sf::Vector2f(entityPosition.x, entityPosition.y - 40.f);
     m_bgBar.setPosition(hudPos);
     m_fgBar.setPosition(hudPos);
+
+    UpdateAmmoPositions();
 }
 
 void EntityHUD::Update(float currentValue, float maxValue, sf::Color barColor)
@@ -4127,8 +5797,68 @@ void EntityHUD::Update(float currentValue, float maxValue, sf::Color barColor)
     m_fgBar.setFillColor(barColor);
 }
 
+void EntityHUD::UpdateAmmo(int current, int maxAmmo)
+{
+    if (maxAmmo <= 0)
+    {
+        HideAmmo();
+        return;
+    }
+
+    m_showAmmo = true;
+
+    if (static_cast<int>(m_ammoDots.size()) != maxAmmo)
+    {
+        m_ammoDots.resize(maxAmmo);
+
+        for (auto& dot : m_ammoDots)
+        {
+            dot.setRadius(Config::AMMO_DOT_RADIUS);
+            dot.setOrigin(Config::AMMO_DOT_RADIUS, Config::AMMO_DOT_RADIUS);
+            dot.setOutlineThickness(1.f);
+            dot.setOutlineColor(sf::Color::Black);
+        }
+
+        UpdateAmmoPositions();
+    }
+
+    for (int i = 0; i < maxAmmo; ++i)
+    {
+        m_ammoDots[i].setFillColor(i < current ? Config::AMMO_DOT_FILL_COLOR
+                                               : Config::AMMO_DOT_EMPTY_COLOR);
+    }
+}
+
+void EntityHUD::HideAmmo()
+{
+    m_showAmmo = false;
+}
+
+void EntityHUD::UpdateAmmoPositions()
+{
+    if (m_ammoDots.empty())
+        return;
+
+    float totalWidth = (m_ammoDots.size() - 1) * Config::AMMO_DOT_SPACING;
+    float startX = m_entityPosition.x - totalWidth / 2.f;
+    float y = m_entityPosition.y - Config::AMMO_DOT_OFFSET_Y;
+
+    for (size_t i = 0; i < m_ammoDots.size(); ++i)
+    {
+        m_ammoDots[i].setPosition(startX + i * Config::AMMO_DOT_SPACING, y);
+    }
+}
+
 void EntityHUD::Draw(sf::RenderWindow& window)
 {
+    if (m_showAmmo)
+    {
+        for (const auto& dot : m_ammoDots)
+        {
+            window.draw(dot);
+        }
+    }
+
     window.draw(m_bgBar);
     window.draw(m_fgBar);
 }
@@ -4136,6 +5866,7 @@ Path to file: ./src/UI/EntityHUD/EntityHUD.hpp
 Code:
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <vector>
 
 class EntityHUD
 {
@@ -4147,12 +5878,20 @@ public:
     void SetPosition(sf::Vector2f entityPosition);
 
     void Update(float currentValue, float maxValue, sf::Color barColor);
+    void UpdateAmmo(int current, int maxAmmo);
+    void HideAmmo();
     void Draw(sf::RenderWindow& window);
 
 private:
+    void UpdateAmmoPositions();
+
     sf::RectangleShape m_bgBar; 
     sf::RectangleShape m_fgBar; 
-    
+
+    std::vector<sf::CircleShape> m_ammoDots;
+    sf::Vector2f m_entityPosition{0.f, 0.f};
+    bool m_showAmmo = false;
+
     float m_maxWidth;
 };
 Path to file: ./src/UI/ScreenHUD/ScreenHUD.cpp
@@ -4222,3 +5961,104 @@ private:
     sf::Text m_hintText;
     sf::Text m_timerText;
 };
+Path to file: ./src/UI/Vignette/Vignette.cpp
+Code:
+#include "UI/Vignette/Vignette.hpp"
+#include "Core/Config.hpp"
+#include <algorithm>
+#include <cmath>
+
+namespace
+{
+    constexpr unsigned TEXTURE_SIZE = 256;
+    constexpr float INNER_RADIUS = 0.55f;
+    constexpr float OUTER_RADIUS = 1.0f;
+}
+
+void Vignette::Init(sf::Vector2u windowSize)
+{
+    sf::Image image;
+    image.create(TEXTURE_SIZE, TEXTURE_SIZE, sf::Color::Transparent);
+
+    const float center = TEXTURE_SIZE / 2.f;
+
+    for (unsigned y = 0; y < TEXTURE_SIZE; ++y)
+    {
+        for (unsigned x = 0; x < TEXTURE_SIZE; ++x)
+        {
+            float dx = (x + 0.5f - center) / center;
+            float dy = (y + 0.5f - center) / center;
+            float distance = std::sqrt(dx * dx + dy * dy);
+
+            float t = std::clamp((distance - INNER_RADIUS) / (OUTER_RADIUS - INNER_RADIUS),
+                                 0.f, 1.f);
+            t = t * t * (3.f - 2.f * t);
+
+            auto alpha = static_cast<sf::Uint8>(t * 255.f);
+            image.setPixel(x, y, sf::Color(255, 255, 255, alpha));
+        }
+    }
+
+    m_texture.loadFromImage(image);
+    m_texture.setSmooth(true);
+
+    m_sprite.setTexture(m_texture, true);
+    m_sprite.setPosition(0.f, 0.f);
+    m_sprite.setScale(windowSize.x / static_cast<float>(TEXTURE_SIZE),
+                      windowSize.y / static_cast<float>(TEXTURE_SIZE));
+    m_sprite.setColor(sf::Color(Config::VIGNETTE_COLOR.r,
+                                Config::VIGNETTE_COLOR.g,
+                                Config::VIGNETTE_COLOR.b,
+                                0));
+}
+
+void Vignette::Update(float dt, bool active)
+{
+    if (active)
+    {
+        m_time += dt * Config::HOST_DANGER_PULSE_SPEED;
+    }
+    else
+    {
+        m_time = 0.f;
+    }
+
+    float pulse = active ? 0.5f + 0.5f * std::sin(m_time) : 0.f;
+    float target = active ? Config::VIGNETTE_BASE_ALPHA +
+                            Config::VIGNETTE_PULSE_ALPHA * pulse
+                          : 0.f;
+
+    m_alpha += (target - m_alpha) * std::min(1.f, dt * 6.f);
+
+    sf::Color color = Config::VIGNETTE_COLOR;
+    color.a = static_cast<sf::Uint8>(std::clamp(m_alpha, 0.f, 255.f));
+    m_sprite.setColor(color);
+}
+
+void Vignette::Draw(sf::RenderWindow& window)
+{
+    if (m_alpha > 0.f)
+    {
+        window.draw(m_sprite);
+    }
+}
+
+Path to file: ./src/UI/Vignette/Vignette.hpp
+Code:
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class Vignette
+{
+public:
+    void Init(sf::Vector2u windowSize);
+    void Update(float dt, bool active);
+    void Draw(sf::RenderWindow& window);
+
+private:
+    sf::Texture m_texture;
+    sf::Sprite m_sprite;
+    float m_time = 0.f;
+    float m_alpha = 0.f;
+};
+
