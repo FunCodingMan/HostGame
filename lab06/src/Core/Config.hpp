@@ -158,6 +158,12 @@ namespace Config
 
     inline constexpr float PLAYER_HUD_WIDTH = 50.f;
 
+    inline constexpr float AMMO_DOT_RADIUS = 3.5f;
+    inline constexpr float AMMO_DOT_SPACING = 11.f;
+    inline constexpr float AMMO_DOT_OFFSET_Y = 54.f;
+    inline const sf::Color AMMO_DOT_FILL_COLOR = sf::Color(255, 220, 80);
+    inline const sf::Color AMMO_DOT_EMPTY_COLOR = sf::Color(80, 80, 80, 200);
+
     inline constexpr float COOLDOWN_IN_HOST = 1.f;
 
     inline constexpr const char *SOUND_ID_BREAK_GLASS = "break_glass";
@@ -234,6 +240,13 @@ namespace Config
     inline constexpr float MILITARY_LOSE_TARGET_TIME = 2.5f;
     inline constexpr float MILITARY_ATTACK_STATE_TIME = 0.18f;
     inline constexpr float MILITARY_ALERT_STATE_TIME  = 0.45f;
+
+    inline constexpr float ALERT_MARK_WIDTH = 5.f;
+    inline constexpr float ALERT_MARK_HEIGHT = 16.f;
+    inline constexpr float ALERT_MARK_DOT_RADIUS = 3.5f;
+    inline constexpr float ALERT_MARK_BOTTOM_OFFSET = 10.f;
+    inline constexpr float ALERT_MARK_DOT_OFFSET = 5.f;
+    inline const sf::Color ALERT_MARK_COLOR = sf::Color(255, 210, 0);
 
     inline constexpr float MILITARY_WEAPON_SHOULDER_X = 7.f;
     inline constexpr float MILITARY_WEAPON_SHOULDER_Y = -8.f;

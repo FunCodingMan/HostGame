@@ -85,20 +85,22 @@ void StatePlaying::UpdateHUD()
 
     if (host != nullptr && avatar == host)
     {
+        Military* military = dynamic_cast<Military*>(host);
+
+        if (military != nullptr)
+            m_floatingHud.UpdateAmmo(military->GetAmmo(), Config::MILITARY_AMMO);
+        else
+            m_floatingHud.HideAmmo();
+
         if (!isInElevator)
         {
             sf::String hint = ToSfStringFromUtf8("Носитель: ") + avatarName;
 
-            if (Military* military = dynamic_cast<Military*>(host))
+            if (military != nullptr)
             {
-                hint += ToSfStringFromUtf8("\nПатроны: ") +
-                        ToSfStringFromUtf8(std::to_string(military->GetAmmo())) +
-                        ToSfStringFromUtf8("/") +
-                        ToSfStringFromUtf8(std::to_string(Config::MILITARY_AMMO));
-
                 if (military->IsReloading())
                 {
-                    hint += ToSfStringFromUtf8(" (перезарядка)");
+                    hint += ToSfStringFromUtf8("\nПерезарядка...");
                 }
 
                 hint += ToSfStringFromUtf8("\nЛКМ: Огонь | ПКМ: Высвободиться");
@@ -119,6 +121,7 @@ void StatePlaying::UpdateHUD()
         if (!isInElevator)
             m_screenHud.SetHintText(ToSfStringFromUtf8("Форма: ") + avatarName +
                                     ToSfStringFromUtf8("\nЛКМ: Вселиться"));
+        m_floatingHud.HideAmmo();
         const Parasite& p = m_level.GetParasite();
         m_floatingHud.Update(p.GetLife(), p.GetMaxLife(), sf::Color(200, 0, 0));
     }

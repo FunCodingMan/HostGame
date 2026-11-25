@@ -403,4 +403,32 @@ void Military::Draw(sf::RenderWindow& window)
     m_weapon.setRotation(m_aimAngle);
     m_weaponAnim.Apply(m_weapon);
     window.draw(m_weapon);
+
+    if (m_hasTarget || m_alertTimer > 0.f)
+    {
+        DrawAlertMark(window);
+    }
+}
+
+void Military::DrawAlertMark(sf::RenderWindow& window)
+{
+    sf::FloatRect bounds = GetBounds();
+    float x = bounds.left + bounds.width / 2.f;
+    float barBottom = bounds.top - Config::ALERT_MARK_BOTTOM_OFFSET;
+
+    sf::RectangleShape bar(sf::Vector2f(Config::ALERT_MARK_WIDTH, Config::ALERT_MARK_HEIGHT));
+    bar.setOrigin(Config::ALERT_MARK_WIDTH / 2.f, Config::ALERT_MARK_HEIGHT);
+    bar.setPosition(x, barBottom);
+    bar.setFillColor(Config::ALERT_MARK_COLOR);
+    bar.setOutlineThickness(1.f);
+    bar.setOutlineColor(sf::Color::Black);
+    window.draw(bar);
+
+    sf::CircleShape dot(Config::ALERT_MARK_DOT_RADIUS);
+    dot.setOrigin(Config::ALERT_MARK_DOT_RADIUS, Config::ALERT_MARK_DOT_RADIUS);
+    dot.setPosition(x, barBottom + Config::ALERT_MARK_DOT_OFFSET);
+    dot.setFillColor(Config::ALERT_MARK_COLOR);
+    dot.setOutlineThickness(1.f);
+    dot.setOutlineColor(sf::Color::Black);
+    window.draw(dot);
 }

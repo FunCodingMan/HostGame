@@ -32,6 +32,7 @@ private:
     void UpdateWeaponAim(sf::Vector2f point);
     void TryFire(const GameContext& ctx, bool fromPlayer);
     void StartReload(const GameContext& ctx);
+    void DrawAlertMark(sf::RenderWindow& window);
 
     sf::Vector2f GetEyePosition() const;
     sf::Vector2f GetShoulderPosition() const;
